@@ -1,0 +1,22 @@
+# Backend — Python 3.14 (xem .python-version)
+# Thêm thư viện: ghi kèm phiên bản (==) và nêu lý do trong Pull Request.
+
+# Web API
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+python-multipart==0.0.33
+pydantic-settings==2.16.2
+httpx==0.28.1
+
+# Cơ sở dữ liệu
+SQLAlchemy==2.1.8
+alembic==1.20.1
+
+# Đọc file Excel, kiểm tra lược đồ kịch bản
+openpyxl==3.1.5
+jsonschema==4.26.0
+
+# Chưa chốt — thêm ở task tương ứng:
+#   driver CSDL + lưu vector ......... T3.6 / T5.4
+#   đọc PDF/DOCX giáo trình .......... T5.4 (lưu ý: PyMuPDF dùng giấy phép AGPL)
+#   SDK của nhà cung cấp LLM ......... T0.4
