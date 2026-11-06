@@ -1,0 +1,12 @@
+# Cấu hình ruff dùng chung cho mọi phần Python trong repo. Xem docs/QUY_UOC.md mục 5.
+target-version = "py314"
+line-length = 110
+extend-exclude = ["nckh", "Cơ bản"]
+
+[lint]
+# E/F: lỗi cơ bản · I: sắp xếp import · B: lỗi hay gặp · UP: cú pháp Python mới · SIM: đơn giản hóa
+select = ["E", "F", "I", "B", "UP", "SIM"]
+
+[lint.per-file-ignores]
+# Spike là code thử nghiệm, cho phép bắt mọi lỗi
+"spikes/**" = ["BLE001"]
