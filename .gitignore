@@ -1,0 +1,57 @@
+# ===== Bí mật / cấu hình cục bộ =====
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+key.txt
+key*.txt
+*api_key*
+*apikey*
+
+# ===== Python =====
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# ===== PyInstaller =====
+build/
+dist/
+# Giữ lại file .spec do nhóm viết tay; file .spec tự sinh của spike thì bỏ
+spikes/**/*.spec
+
+# ===== Node / Web =====
+node_modules/
+web/dist/
+*.log
+npm-debug.log*
+
+# ===== Office: file khóa tạm khi đang mở =====
+~$*
+*.tmp
+
+# ===== Hệ điều hành / IDE =====
+Thumbs.db
+desktop.ini
+.DS_Store
+.idea/
+
+# ===== Dữ liệu chạy thử, không đưa lên repo =====
+backend/storage/
+desktop/cache/
+*.sqlite3
+*.db
+
+# ===== Đề cương: chứa số điện thoại, MSSV — không đưa lên repo =====
+nckh/
+
+# ===== Tài liệu gốc của trung tâm (chưa chuẩn hóa) =====
+# Bản chuẩn hóa nằm trong samples/ (T1.2). Mở dòng này nếu nhóm quyết định đưa bản gốc lên repo riêng tư.
+Cơ bản/

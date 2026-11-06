@@ -1,0 +1,20 @@
+# Chuẩn hóa xuống dòng: lưu LF trong repo, Git tự chuyển khi checkout
+* text=auto eol=lf
+
+# Script Windows giữ CRLF
+*.ps1 text eol=crlf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# File nhị phân — không so sánh, không đổi xuống dòng
+*.xlsx binary
+*.xlsm binary
+*.xls  binary
+*.docx binary
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.exe  binary
