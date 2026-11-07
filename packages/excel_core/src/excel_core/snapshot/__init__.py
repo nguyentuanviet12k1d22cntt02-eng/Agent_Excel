@@ -21,7 +21,7 @@ from excel_core.snapshot.model import (
     ValueKind,
     WorkbookSnapshot,
 )
-from excel_core.snapshot.number_format import SHORT_DATE, parse_number_format
+from excel_core.snapshot.number_format import SHORT_DATE, normalize_date_pattern, parse_number_format
 from excel_core.snapshot.request import (
     ALL_GROUPS,
     CELL_GROUPS,
@@ -64,6 +64,7 @@ __all__ = [
     "ValueKind",
     "WorkbookSnapshot",
     "merge_requests",
+    "normalize_date_pattern",
     "parse_number_format",
     "snapshot_from_dict",
     "snapshot_to_dict",

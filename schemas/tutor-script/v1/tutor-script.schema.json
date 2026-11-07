@@ -407,7 +407,7 @@
       ]
     },
     "check_value_equals": {
-      "description": "Giá trị vùng bằng giá trị kỳ vọng. Mã lỗi: wrong_value, empty.",
+      "description": "Giá trị vùng bằng giá trị kỳ vọng. Chữ so nguyên văn (khoảng trắng, hoa thường đều tính). Mã lỗi: stored_as_text, wrong_value, empty.",
       "type": "object",
       "required": ["type", "range", "expected"],
       "properties": {
@@ -450,19 +450,19 @@
       "additionalProperties": false
     },
     "check_formula_uses_function": {
-      "description": "Công thức dùng (ít nhất một trong) các hàm yêu cầu. Mã lỗi: missing_function, used_operator_instead.",
+      "description": "Công thức dùng (ít nhất một trong) các hàm yêu cầu. Mã lỗi: used_operator_instead, missing_function, empty.",
       "type": "object",
       "required": ["type", "range", "functions"],
       "properties": {
         "type": { "const": "formula_uses_function" }, "id": true, "sheet": true, "description": true,
         "range": { "$ref": "#/$defs/range" },
         "functions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9.]{0,30}$" } },
-        "forbid_operator_only": { "description": "Không đạt nếu công thức chỉ dùng phép tính (+ - * /) thay cho hàm.", "type": "boolean", "default": true }
+        "forbid_operator_only": { "description": "Không đạt (mã used_operator_instead) nếu tính bằng phép toán trên từng ô lẻ, kể cả bọc trong hàm gộp như =SUM(C9+D9+E9). =SUM(C9,D9,E9) vẫn đạt.", "type": "boolean", "default": true }
       },
       "additionalProperties": false
     },
     "check_formula_consistent": {
-      "description": "Mọi ô cùng một công thức R1C1 (đã sao chép). KHÔNG bắt được lỗi địa chỉ tuyệt đối: luôn kèm value_equals. Mã lỗi: inconsistent_formula, absolute_reference.",
+      "description": "Mọi ô cùng một công thức R1C1 (đã sao chép). Mọi tham chiếu cố định theo chiều sao chép (mọi ô cùng kết quả) thì báo absolute_reference; vẫn luôn kèm value_equals. Mã lỗi: absolute_reference, inconsistent_formula, empty.",
       "type": "object",
       "required": ["type", "range"],
       "properties": {
@@ -472,7 +472,7 @@
       "additionalProperties": false
     },
     "check_formula_matches_r1c1": {
-      "description": "Công thức đúng mẫu R1C1 cho trước (khi chỉ có một cách đúng). Mã lỗi: wrong_formula.",
+      "description": "Công thức đúng mẫu R1C1 cho trước (khi chỉ có một cách đúng). Mã lỗi: hardcoded_value, wrong_formula, empty.",
       "type": "object",
       "required": ["type", "range", "r1c1"],
       "properties": {
@@ -483,7 +483,7 @@
       "additionalProperties": false
     },
     "check_number_format": {
-      "description": "Định dạng số so theo ý nghĩa, không so chuỗi mã. Mã lỗi: wrong_category, wrong_decimals, missing_separator, unexpected_separator.",
+      "description": "Định dạng số so theo ý nghĩa, không so chuỗi mã. Mã lỗi: wrong_category, missing_separator, unexpected_separator, wrong_decimals, wrong_date_pattern.",
       "type": "object",
       "required": ["type", "range"],
       "properties": {
@@ -509,7 +509,7 @@
       "additionalProperties": false
     },
     "check_alignment": {
-      "description": "Căn lề. Mã lỗi: wrong_alignment, not_wrapped.",
+      "description": "Căn lề. Căn ngang so theo căn lề hiển thị thực tế: ô General chứa số/ngày tính là right, chứa chữ tính là left, ô trống General không tính là căn gì. Mã lỗi: wrong_alignment, not_wrapped.",
       "type": "object",
       "required": ["type", "range"],
       "properties": {
@@ -662,7 +662,7 @@
       "additionalProperties": false
     },
     "check_page_setup": {
-      "description": "Thiết lập trang in. COM đọc PageSetup chậm: Desktop chỉ đọc khi bước hiện tại cần. Mã lỗi: wrong_orientation, wrong_paper_size, wrong_margins, wrong_fit, wrong_print_area.",
+      "description": "Thiết lập trang in. COM đọc PageSetup chậm: Desktop chỉ đọc khi bước hiện tại cần. Mã lỗi: wrong_orientation, wrong_paper_size, wrong_margins, wrong_fit, wrong_centering, wrong_print_area.",
       "type": "object",
       "required": ["type"],
       "properties": {
@@ -689,7 +689,7 @@
       "additionalProperties": false
     },
     "check_header_footer": {
-      "description": "Đầu/cuối trang có nội dung yêu cầu (ví dụ số trang &P). Mã lỗi: missing_page_number, wrong_position.",
+      "description": "Đầu/cuối trang có nội dung yêu cầu (ví dụ số trang &P). Mã lỗi: wrong_position, missing_page_number, missing_header_footer.",
       "type": "object",
       "required": ["type", "position", "contains"],
       "properties": {
@@ -722,7 +722,7 @@
       "additionalProperties": false
     },
     "check_observation_only": {
-      "description": "Bước quan sát/nhận xét, không chấm: học viên tự bấm \"Đã xong\".",
+      "description": "Bước quan sát/nhận xét, không chấm: học viên tự bấm \"Đã xong\". Mã lỗi: not_confirmed.",
       "type": "object",
       "required": ["type", "confirm_text"],
       "properties": {

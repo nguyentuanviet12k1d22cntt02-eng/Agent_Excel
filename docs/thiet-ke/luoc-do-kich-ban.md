@@ -134,4 +134,4 @@ Khi chuyển, đã sửa 2 điểm: (1) gợi ý **không ghi địa chỉ ô v�
 
 1. Câu hỏi cho GVHD trong 2 kịch bản tay (Thành tiền có phải bước bắt buộc; `0.00` có được chấp nhận; `=SUM(C9,D9,E9)`). Bản JSON đang theo phương án nháp.
 2. Thông báo lỗi của `jsonschema` với `oneOf` khó đọc → Web quản trị (T6.x) cần lớp chuyển thông báo lỗi sang tiếng Việt dễ hiểu theo `path` của lỗi.
-3. Danh sách mã lỗi chuẩn cho từng loại điều kiện sẽ chốt khi viết `checks/` (T4.4); mô tả `$defs/check_*` hiện liệt kê mã dự kiến.
+3. ~~Danh sách mã lỗi chuẩn cho từng loại điều kiện.~~ Đã chốt ở T4.4: [danh-muc-dieu-kien.md mục 6](danh-muc-dieu-kien.md#6-mã-lỗi-đã-chốt-khi-cài-đặt-t44); mô tả `$defs/check_*` trong lược đồ khớp với code (có test).

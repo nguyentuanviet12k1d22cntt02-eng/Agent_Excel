@@ -9,7 +9,7 @@ Thư viện Python dùng chung cho Backend và Desktop.
 | `formula.py` | Phân tích công thức: A1 → R1C1, tên hàm, phép tính | T4.2 |
 | `readers/` | Đọc workbook thành snapshot: `openpyxl_reader.py` (file `.xlsx`, Backend; màu theme ở `colors.py`, bộ lọc/trang in/biểu đồ ở `openpyxl_objects.py`), `com_reader.py` (Excel đang chạy, Desktop) | T4.2, T7.2 |
 | `diff/` | So sánh file đề với file kết quả mẫu, gom ô cùng loại thay đổi thành vùng. Xem nhanh: `python -m excel_core.diff de.xlsx dap-an.xlsx` | T4.3 |
-| `checks/` | Kiểm tra điều kiện kiểm chứng, mỗi loại một file | T4.4 |
+| `checks/` | 25 loại điều kiện kiểm chứng, mỗi loại một file (`TYPE`, `CODES`, `reads()`, `evaluate()`); `run_check()`, `read_requests()` gộp nhu cầu đọc theo nguồn (bài đang làm / file đề / file đáp án) | T4.4 |
 | `script/` | Đọc và kiểm tra kịch bản JSON theo lược đồ trong `schemas/` | T4.5 |
 
 **Quy tắc:** không import gì từ `apps/`; không import `win32com` ở mức module (xem [cấu trúc thư mục](../../docs/quy-uoc/cau-truc-thu-muc.md#3-quy-tắc-phụ-thuộc-giữa-các-phần)). Mọi module có logic phải có test.

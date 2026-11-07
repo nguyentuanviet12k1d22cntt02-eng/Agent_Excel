@@ -91,7 +91,8 @@ def _date_time_category(text: str, brackets: set[str]) -> NumberCategory | None:
     return None
 
 
-def _date_pattern(code: str) -> str:
+def normalize_date_pattern(code: str) -> str:
+    """Mẫu ngày để so sánh: chữ thường, bỏ mã vùng; định dạng ngày dựng sẵn → "short_date"."""
     lowered = _BRACKET.sub("", code.lower()).strip()
     lowered = lowered.replace("\\", "").replace(";@", "")
     return SHORT_DATE if lowered in _SHORT_DATE_CODES else lowered
@@ -114,7 +115,7 @@ def parse_number_format(code: str | None) -> NumberFormatInfo:
 
     date_or_time = _date_time_category(stripped, brackets)
     if date_or_time is not None:
-        pattern = _date_pattern(raw) if date_or_time == "date" else None
+        pattern = normalize_date_pattern(raw) if date_or_time == "date" else None
         return NumberFormatInfo(raw, date_or_time, None, False, pattern)
 
     has_digits = re.search(r"[0#?]", stripped) is not None

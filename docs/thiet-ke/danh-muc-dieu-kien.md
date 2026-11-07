@@ -116,3 +116,54 @@ Kết quả làm thử kỹ thuật ([t2-7-bao-cao-spike.md](../task/t2-7-bao-ca
 2. T2.1, T2.3 đo xem COM đọc được những thuộc tính nào, nhanh không → cập nhật cột "Nguồn đọc".
 3. ~~T2.4 xác định `off_target` (hộp thoại) và `printed_to_pdf` làm được tới đâu.~~ Đã xong: cả hai làm được (mục 4).
 4. Bổ sung loại điều kiện cho **biểu đồ, hàm logic, tham chiếu** khi có bài trung cấp (T1.1).
+
+## 6. Mã lỗi đã chốt khi cài đặt (T4.4)
+
+Code: `packages/excel_core/src/excel_core/checks/`, mỗi loại một file. Mã lỗi xếp theo **thứ tự ưu tiên**: khi các ô trong vùng sai theo nhiều kiểu, điều kiện trả mã đứng trước (lỗi cụ thể trước, `empty` = "chưa làm" sau cùng); mã còn lại ghi trong `detail`. Test `test_registry.py` bắt buộc mô tả trong lược đồ liệt kê đúng các mã này.
+
+| `type` | Mã lỗi (theo thứ tự ưu tiên) |
+|---|---|
+| `value_equals` | `stored_as_text`, `wrong_value`, `empty` |
+| `value_type` | `stored_as_text`, `wrong_type`, `empty` |
+| `data_unchanged` | `formula_overwritten`, `source_modified` |
+| `is_formula` | `hardcoded_value`, `empty` |
+| `formula_uses_function` | `used_operator_instead`, `missing_function`, `empty` |
+| `formula_consistent` | `absolute_reference`, `inconsistent_formula`, `empty` |
+| `formula_matches_r1c1` | `hardcoded_value`, `wrong_formula`, `empty` |
+| `number_format` | `wrong_category`, `missing_separator`, `unexpected_separator`, `wrong_decimals`, `wrong_date_pattern` |
+| `alignment` | `wrong_alignment`, `not_wrapped` |
+| `font` | `wrong_font` |
+| `fill` | `no_fill`, `wrong_fill` |
+| `border` | `missing_border`, `wrong_border_style` |
+| `merged` | `not_merged` |
+| `row_col_hidden` | `wrong_visibility` |
+| `row_col_size` | `wrong_size` |
+| `layout_matches` | `wrong_layout` |
+| `sheet_exists` | `missing_sheet` |
+| `autofilter` | `no_filter`, `wrong_column`, `wrong_criteria` |
+| `visible_rows` | `wrong_rows_visible` |
+| `sorted_by` | `rows_broken`, `wrong_order`, `not_sorted` |
+| `page_setup` | `wrong_orientation`, `wrong_paper_size`, `wrong_margins`, `wrong_fit`, `wrong_centering`, `wrong_print_area` |
+| `header_footer` | `wrong_position`, `missing_page_number`, `missing_header_footer` |
+| `chart` | `missing_chart`, `wrong_chart_type`, `wrong_data_range`, `missing_title` |
+| `printed_to_pdf` | `not_printed` |
+| `observation_only` | `not_confirmed` |
+
+Kết quả chấm có 3 trạng thái: `passed`, `failed`, `not_evaluable`. Trạng thái cuối dùng khi điều kiện không chấm được trong ngữ cảnh hiện có: `printed_to_pdf`, `observation_only` khi chấm trên file; thiếu file tham chiếu; tham số sai mà lược đồ không bắt được. Desktop gặp trạng thái này thì không tính bước là sai.
+
+**Các quyết định khi cài đặt:**
+
+| Điều kiện | Quyết định | Lý do |
+|---|---|---|
+| `value_equals` | Chữ so nguyên văn (chỉ chuẩn hóa Unicode NFC); số có sai số; ngày so được với số seri. Chữ trông như số bằng giá trị kỳ vọng → `stored_as_text` | Bài TRIM/UPPER cần đúng từng ký tự; số gõ dạng chữ là lỗi hay gặp (b09) |
+| `alignment` | So **căn lề hiển thị thực tế**: General + số/ngày = right, General + chữ = left, ô trống General không tính là căn gì | Vá lỗi T2.6 (điều kiện căn phải đạt sẵn trên đề); kịch bản ghi `["right"]` là đủ |
+| `formula_uses_function` | Phép toán trên từng ô lẻ, kể cả `=SUM(C9+D9+E9)`, → `used_operator_instead`; `=SUM(C9,D9,E9)` đạt | Theo phương án nháp của câu hỏi GVHD b22 |
+| `formula_consistent` | Đồng nhất R1C1 mà mọi tham chiếu cố định theo chiều sao chép → `absolute_reference` | Bắt lỗi `$` mà R1C1 không bắt được |
+| `formula_matches_r1c1` | Ô bị gõ đè số → `hardcoded_value` (không phải `wrong_formula`) | Khớp phản hồi ngay của b09 bước 4 |
+| `number_format` | Kiểm theo thứ tự: loại → dấu nghìn → số lẻ → mẫu ngày. Ô chưa định dạng = General | Còn General thì báo sai loại trước |
+| `border` | Đọc rộng 1 ô quanh vùng; cạnh chung giữa hai ô lưu ở ô nào cũng được | Excel lưu viền ở ô bên này hoặc bên kia |
+| `fill`, `font` | So màu có ngưỡng 3/255 mỗi kênh | Màu theme quy đổi lệch ±1 |
+| `row_col_size` `autofit` | So với kích thước của chính dòng/cột đó trong file đáp án | Không đo được chữ theo phông từ file |
+| `sorted_by` | Thứ tự như Excel (số < chữ < đúng/sai < lỗi, ô trống cuối); chữ so theo chữ cái gốc bỏ dấu | Không lệch với thứ tự tiếng Việt của Excel |
+| `chart` | `data_range` đạt nếu bằng vùng bao của: giá trị; giá trị + tên chuỗi; giá trị + nhãn trục; hoặc tất cả | Chọn vùng có/không tiêu đề đều ra cùng biểu đồ |
+| `data_unchanged` | Ô công thức của đề: so công thức; ô hằng số: so giá trị | Giá trị công thức được phép đổi theo ô học viên nhập |
