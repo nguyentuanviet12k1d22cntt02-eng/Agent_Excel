@@ -18,7 +18,7 @@ from datetime import date, timedelta
 from pathlib import Path
 
 import openpyxl
-from openpyxl.styles import Alignment, Font
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.worksheet.worksheet import Worksheet
 
 logger = logging.getLogger(__name__)
@@ -131,7 +131,73 @@ def scrub_author(path: Path) -> None:
             target.writestr(info, data)
 
 
-BUILDERS: dict[str, Callable[[bool], openpyxl.Workbook]] = {"b09": _b09, "b22": _b22}
+B14_SHEET = "Bang_Diem"
+B14_STUDENTS = [
+    ("Nguyễn Văn An", 8, 7.5, 9),
+    ("Trần Thị Bình", 6.5, 8, 7),
+    ("Lê Minh Châu", 9, 9, 8.5),
+    ("Phạm Quốc Dũng", 7, 6, 8),
+    ("Hoàng Thu Hà", 8.5, 7, 9.5),
+]
+B16_SHEET = "Bai 01"
+B16_STAFF = [
+    ("NV01", "Nguyễn Văn An", "Kế toán", 8_500_000),
+    ("NV02", "Trần Thị Bình", "Kinh doanh", 12_000_000),
+    ("NV03", "Lê Minh Châu", "Kỹ thuật", 15_500_000),
+    ("NV04", "Phạm Quốc Dũng", "Kinh doanh", 9_800_000),
+    ("NV05", "Hoàng Thu Hà", "Kế toán", 11_200_000),
+    ("NV06", "Võ Thanh Long", "Kỹ thuật", 13_700_000),
+]
+
+
+def _b14(solution: bool) -> openpyxl.Workbook:
+    """Tạo bảng: gộp ô tiêu đề, in đậm, tô nền dòng tiêu đề cột, kẻ viền cả bảng."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = B14_SHEET
+    ws["A1"] = "BẢNG ĐIỂM HỌC KỲ I (số liệu giả)"
+    for i, title in enumerate(["STT", "Họ tên", "Toán", "Văn", "Anh"], start=1):
+        ws.cell(3, i, title)
+    for n, (name, *scores) in enumerate(B14_STUDENTS, start=1):
+        ws.append([n, name, *scores])
+    if solution:
+        ws.merge_cells("A1:E1")
+        ws["A1"].font = Font(bold=True, size=14)
+        ws["A1"].alignment = Alignment(horizontal="center")
+        thin = Side(style="thin")
+        for row in ws.iter_rows(min_row=3, max_row=3 + len(B14_STUDENTS), min_col=1, max_col=5):
+            for cell in row:
+                cell.border = Border(top=thin, bottom=thin, left=thin, right=thin)
+        for cell in ws[3]:
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill("solid", fgColor="FFD9E1F2")
+            cell.alignment = Alignment(horizontal="center")
+    return wb
+
+
+def _b16(solution: bool) -> openpyxl.Workbook:
+    """Sắp xếp danh sách nhân viên theo Lương giảm dần (giữ nguyên từng dòng)."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = B16_SHEET
+    ws["A1"] = "DANH SÁCH NHÂN VIÊN (số liệu giả)"
+    for i, title in enumerate(["Mã NV", "Họ tên", "Phòng", "Lương"], start=1):
+        ws.cell(3, i, title).font = Font(bold=True)
+    rows = sorted(B16_STAFF, key=lambda r: r[3], reverse=True) if solution else B16_STAFF
+    for offset, record in enumerate(rows):
+        for col, value in enumerate(record, start=1):
+            ws.cell(4 + offset, col, value)
+        ws.cell(4 + offset, 4).number_format = "#,##0"
+    ws["F3"] = "Yêu cầu: sắp xếp bảng theo Lương từ cao xuống thấp."
+    return wb
+
+
+BUILDERS: dict[str, Callable[[bool], openpyxl.Workbook]] = {
+    "b09": _b09,
+    "b22": _b22,
+    "b14": _b14,
+    "b16": _b16,
+}
 
 
 def recalculate_with_excel(paths: list[Path]) -> None:
@@ -160,9 +226,12 @@ def main() -> int:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     parser = argparse.ArgumentParser(description="Dựng file Excel cho test excel_core.")
     parser.add_argument("--no-excel", action="store_true", help="không mở Excel tính lại công thức")
+    parser.add_argument("--only", nargs="+", choices=sorted(BUILDERS), help="chỉ dựng các bài này")
     args = parser.parse_args()
     written = []
     for name, build in BUILDERS.items():
+        if args.only and name not in args.only:
+            continue
         folder = HERE / name
         folder.mkdir(exist_ok=True)
         for filename, solution in (("de.xlsx", False), ("dap-an.xlsx", True)):

@@ -41,5 +41,6 @@ def b22_files() -> tuple[Path, Path]:
 def pytest_generate_tests(metafunc: pytest.Metafunc) -> None:
     """Test nào nhận tham số `sample_folder` sẽ chạy trên mọi bài mẫu và 2 bài tự soạn trong fixtures/."""
     if "sample_folder" in metafunc.fixturenames:
-        folders = [*sample_dirs(), FIXTURES / "b09", FIXTURES / "b22"]
+        own = sorted(d for d in FIXTURES.iterdir() if (d / "de.xlsx").is_file())  # bài nhóm tự soạn
+        folders = [*sample_dirs(), *own]
         metafunc.parametrize("sample_folder", folders, ids=[f.name for f in folders])

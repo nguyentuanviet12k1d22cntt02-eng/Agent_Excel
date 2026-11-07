@@ -14,6 +14,7 @@ from excel_core.snapshot import (
     RangeRead,
     SheetSnapshot,
     WorkbookSnapshot,
+    parse_number_format,
 )
 
 S = "Bài 01"
@@ -144,3 +145,36 @@ def test_to_text_is_one_line_per_change(b09_files: tuple[Path, Path]):
 
 def test_all_groups_constant_is_complete():
     assert ALL_GROUPS == CELL_GROUPS | SHEET_GROUPS
+
+
+def test_number_format_excel_copies_into_new_formula_is_ignored():
+    # Gõ =SUM(C9:E9) vào ô General: Excel tự lấy định dạng của C9 (T2.6, b22)
+    accounting = parse_number_format(r'_(* #,##0_);_(* \(#,##0\);_(* "-"??_);_(@_)')
+    source = CellSnapshot(value=25000.0, value_kind="number", number_format=accounting)
+    general = parse_number_format("General")
+    before = sheet({"C9": source, "F9": CellSnapshot(number_format=general)})
+    after = sheet(
+        {
+            "C9": source,
+            "F9": CellSnapshot(
+                value=25000.0, value_kind="number", formula="=SUM(C9:E9)", number_format=accounting
+            ),
+        }
+    )
+    diff = diff_workbooks(workbook(before), workbook(after))
+    assert [c.kind for c in diff] == [ChangeKind.FORMULA]
+
+
+def test_number_format_chosen_by_author_is_kept():
+    percent = parse_number_format("0%")
+    general = parse_number_format("General")
+    source = CellSnapshot(value=5.0, value_kind="number", number_format=general)
+    before = sheet({"C9": source, "F9": CellSnapshot(number_format=general)})
+    after = sheet(
+        {
+            "C9": source,
+            "F9": CellSnapshot(value=0.5, value_kind="number", formula="=C9/10", number_format=percent),
+        }
+    )
+    kinds = {c.kind for c in diff_workbooks(workbook(before), workbook(after))}
+    assert kinds == {ChangeKind.FORMULA, ChangeKind.NUMBER_FORMAT}

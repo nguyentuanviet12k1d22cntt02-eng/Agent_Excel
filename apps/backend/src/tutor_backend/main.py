@@ -18,14 +18,20 @@ from tutor_backend.core.config import Settings, get_settings
 from tutor_backend.core.errors import install_error_handlers
 from tutor_backend.core.jobs import JobRunner, ThreadJobRunner
 from tutor_backend.db.session import create_db_engine, create_session_factory
+from tutor_backend.services.generation_service import LLMFactory, default_llm_factory
 
 logger = logging.getLogger(__name__)
 
 API_PREFIX = "/api/v1"
 
 
-def create_app(settings: Settings | None = None, *, job_runner: JobRunner | None = None) -> FastAPI:
-    """Tạo ứng dụng. Test truyền `settings` và `job_runner` riêng; khi chạy thật đọc từ .env."""
+def create_app(
+    settings: Settings | None = None,
+    *,
+    job_runner: JobRunner | None = None,
+    llm_factory: LLMFactory | None = None,
+) -> FastAPI:
+    """Tạo ứng dụng. Test truyền `settings`, `job_runner`, `llm_factory` riêng; khi chạy thật đọc từ .env."""
     settings = settings or get_settings()
     engine = create_db_engine(settings)
     jobs = job_runner or ThreadJobRunner(settings.job_workers)
@@ -47,6 +53,7 @@ def create_app(settings: Settings | None = None, *, job_runner: JobRunner | None
     app.state.engine = engine
     app.state.session_factory = create_session_factory(engine)
     app.state.jobs = jobs
+    app.state.llm_factory = llm_factory or default_llm_factory
     app.add_middleware(
         CORSMiddleware,
         allow_origins=settings.cors_origins,

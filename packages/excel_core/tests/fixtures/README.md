@@ -6,8 +6,10 @@ Bài **do nhóm tự soạn, số liệu giả**, được phép công khai. B�
 |---|---|---|
 | `b09/` | `2. Bang_Ke_Ban_Hang` | Bảng chính B9:I14 (cột H có công thức `=F*G`), bảng số liệu thô B17:I22. Đáp án: Số lượng Comma Style 0 số lẻ, Đơn giá và Thành tiền `#,##0.00`, Tỉ lệ `0.000`, căn phải |
 | `b22/` | `Bài 01` | Tiền Bún/Thịt/Cá C9:E19. Đáp án: `=SUM(C9:E9)` sao chép xuống F9:F19, dòng TỔNG CỘNG C20:F20 |
+| `b14/` | `Bang_Diem` | Bảng điểm (tự soạn cho T5.5). Đáp án: gộp A1:E1, tiêu đề đậm cỡ 14, dòng tiêu đề cột đậm + tô nền + căn giữa, kẻ viền cả bảng |
+| `b16/` | `Bai 01` | Danh sách nhân viên (tự soạn cho T5.5). Đáp án: sắp xếp theo Lương giảm dần, giữ nguyên từng dòng |
 
-Dựng lại (cần Windows có Excel, vì file đáp án phải được Excel tính và lưu để có giá trị của công thức):
+Dựng lại (cần Windows có Excel, vì file đáp án phải được Excel tính và lưu để có giá trị của công thức; `--only b14 b16` để dựng một số bài):
 
 ```powershell
 .venv\Scripts\python packages\excel_core\tests\fixtures\build_fixtures.py

@@ -16,6 +16,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
+from tutor_backend.ai.llm_client import LLMResponse
 from tutor_backend.core.config import Settings
 from tutor_backend.core.jobs import InlineJobRunner
 from tutor_backend.core.security import TokenType, create_token, hash_password
@@ -208,3 +209,78 @@ def textbook_docx() -> bytes:
 @pytest.fixture
 def text_pdf() -> Callable[[list[str]], bytes]:
     return build_text_pdf
+
+
+# ----- LLM giả cho test sinh kịch bản (CI không gọi AI thật) -----
+class FakeLLM:
+    """Trả lần lượt các phản hồi soạn sẵn; phần tử là Exception thì ném ra như lỗi mạng/key."""
+
+    model = "fake-model"
+
+    def __init__(self, responses: list[object]) -> None:
+        self.responses = list(responses)
+        self.requests: list[str] = []
+
+    def complete_json(self, system: str, user: str, schema: dict, schema_name: str) -> LLMResponse:
+        self.requests.append(user)
+        item = self.responses.pop(0)
+        if isinstance(item, Exception):
+            raise item
+        return LLMResponse(item, prompt_tokens=1000, completion_tokens=2000, duration_ms=50)
+
+
+def _step(title: str, change_ids: list[str], **extra: object) -> dict:
+    step = {
+        "title": title,
+        "task": f"Hoàn thành: {title.lower()}.",
+        "change_ids": change_ids,
+        "ui_controls": [],
+        "hint_orientation": "Nhớ lại mục tiêu của bước này.",
+        "hint_tool": "Dùng công cụ phù hợp trên thẻ Home.",
+        "hint_location": "Chọn vùng được khoanh rồi làm theo.",
+        "hint_detailed": "Làm theo các bước:",
+        "actions": ["Chọn vùng được khoanh.", "Thực hiện thao tác của bước."],
+        "alternative": None,
+        "feedback": [],
+        "reference_ids": [],
+    }
+    step.update(extra)
+    return step
+
+
+def b22_plan() -> dict:
+    """Kế hoạch đúng cho bài b22 tự soạn (2 thay đổi: c1 cột Tổng tiền, c2 dòng TỔNG CỘNG)."""
+    return {
+        "summary": "Tính Tổng tiền từng ngày và dòng TỔNG CỘNG bằng hàm SUM.",
+        "skills": ["formula_basics", "function_math_stat"],
+        "completion_message": "Bạn đã hoàn thành bài hàm SUM!",
+        "steps": [
+            _step(
+                "Tổng tiền từng ngày",
+                ["c1"],
+                ui_controls=["AutoSum"],
+                hint_tool="Dùng hàm SUM, nút AutoSum gõ sẵn hàm này.",
+                feedback=[
+                    {"code": "used_operator_instead", "message": "Hãy dùng hàm SUM thay cho phép cộng."}
+                ],
+            ),
+            _step("Dòng TỔNG CỘNG", ["c2"], ui_controls=["AutoSum"]),
+        ],
+    }
+
+
+@pytest.fixture
+def fake_llm(app: FastAPI) -> Callable[[list[object]], FakeLLM]:
+    """Gắn LLM giả vào ứng dụng: fake_llm([phản hồi lần 1, lần 2, ...])."""
+
+    def _install(responses: list[object]) -> FakeLLM:
+        llm = FakeLLM(responses)
+        app.state.llm_factory = lambda settings, model: llm
+        return llm
+
+    return _install
+
+
+@pytest.fixture
+def b22_plan_factory() -> Callable[[], dict]:
+    return b22_plan

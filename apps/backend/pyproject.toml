@@ -31,5 +31,8 @@ dependencies = [
     "python-docx==1.2.0",
     # Chưa chốt, thêm ở task tương ứng:
     #   embedding + lưu vector ........... chờ chọn nhà cung cấp (Q10 gửi GVHD; kien-truc.md A7)
-    #   SDK của nhà cung cấp LLM ......... T0.4
 ]
+
+# Prompt LLM là file .md nằm trong package (ai/prompts/): phải đóng gói kèm khi cài không ở chế độ editable
+[tool.setuptools.package-data]
+tutor_backend = ["ai/prompts/*.md"]

@@ -12,7 +12,14 @@ from typing import Any
 
 import openpyxl
 
-from excel_core.address import CellRange, cell_address, group_into_ranges, parse_range
+from excel_core.address import (
+    AddressError,
+    CellRange,
+    cell_address,
+    group_into_ranges,
+    parse_range,
+    split_sheet_reference,
+)
 from excel_core.diff.describe import (
     describe_alignment,
     describe_border,
@@ -21,6 +28,7 @@ from excel_core.diff.describe import (
     describe_value,
     object_changes,
 )
+from excel_core.formula import FormulaError, parse_formula
 from excel_core.readers import read_workbook, used_range
 from excel_core.snapshot import (
     CELL_GROUPS,
@@ -143,6 +151,32 @@ def _cell_field_changes(
         yield kind, describe(old), describe(new), f"{kind}|{old!r}|{new!r}"
 
 
+def _is_auto_format(before: CellSnapshot, after: SheetSnapshot, address: str) -> bool:
+    """Định dạng số Excel tự áp khi gõ công thức vào ô General: lấy theo ô được tham chiếu đầu tiên.
+
+    Không phải thao tác của người làm đáp án nên không tính là thay đổi (T2.6: b22 thừa bước "định dạng").
+    """
+    cell = after.cell(address)
+    if cell.formula is None or before.formula is not None or cell.number_format is None:
+        return False
+    if before.number_format is not None and before.number_format.category != "general":
+        return False
+    try:
+        references = parse_formula(cell.formula).references
+    except FormulaError:
+        return False
+    if not references:
+        return False
+    sheet, first = split_sheet_reference(references[0])
+    if sheet not in (None, after.name):
+        return False
+    try:
+        source = after.cell(parse_range(first).top_left)
+    except AddressError:
+        return False
+    return source.number_format is not None and source.number_format.code == cell.number_format.code
+
+
 def _compared_addresses(before: SheetSnapshot, after: SheetSnapshot) -> set[tuple[int, int]]:
     cells: set[tuple[int, int]] = set()
     for read in (*before.read_ranges, *after.read_ranges):
@@ -157,6 +191,8 @@ def _cell_diff(name: str, before: SheetSnapshot, after: SheetSnapshot) -> list[t
     for col, row in _compared_addresses(before, after):
         address = cell_address(col, row)
         for kind, old, new, key in _cell_field_changes(before.cell(address), after.cell(address)):
+            if kind == ChangeKind.NUMBER_FORMAT and _is_auto_format(before.cell(address), after, address):
+                continue
             buckets.setdefault((kind, key), {})[(col, row)] = (old, new)
     found = []
     for (kind, _), described in buckets.items():
