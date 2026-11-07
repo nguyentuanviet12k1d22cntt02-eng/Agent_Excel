@@ -41,17 +41,22 @@ class PropertyGroup(StrEnum):
 class RangeRequest:
     sheet: str
     range: str  # "F10:F14" — một vùng liền kề
-    groups: frozenset[PropertyGroup]
+    groups: frozenset[PropertyGroup]  # chỉ nhóm theo ô: VALUES … STRUCTURE
+
+
+@dataclass(frozen=True)
+class SheetRequest:
+    sheet: str
+    groups: frozenset[PropertyGroup]  # chỉ nhóm theo sheet: FILTER, PAGE_SETUP, CHARTS
 
 
 @dataclass(frozen=True)
 class ReadRequest:
-    ranges: tuple[RangeRequest, ...]
-    sheet_groups: frozenset[PropertyGroup] = frozenset()  # filter, page_setup, charts theo sheet
-    include_sheet_list: bool = False  # cho sheet_exists
+    ranges: tuple[RangeRequest, ...] = ()
+    sheets: tuple[SheetRequest, ...] = ()  # danh sách tên sheet luôn được đọc (rẻ)
 ```
 
-Mỗi loại điều kiện khai báo nó cần nhóm nào (`checks/<ten>.py` có hằng `REQUIRES`). Ví dụ `number_format` → `{NUMBER_FORMAT}`; `formula_consistent` → `{FORMULAS}`; `sorted_by` → `{VALUES}` trên cả bảng. Teaching Agent gộp yêu cầu của mọi điều kiện trong bước hiện tại và `global_checks` thành **một** `ReadRequest`.
+Mỗi loại điều kiện khai báo nó cần đọc gì (`checks/<ten>.py` có hàm `reads()`). Ví dụ `number_format` → `{NUMBER_FORMAT}`; `formula_consistent` → `{FORMULAS}`; `sorted_by` → `{VALUES}` trên cả bảng. Teaching Agent gộp yêu cầu của mọi điều kiện trong bước hiện tại và `global_checks` thành **một** `ReadRequest` (`merge_requests()`).
 
 ## 4. Kiểu dữ liệu
 
@@ -169,6 +174,15 @@ class ChartInfo:
     data_ranges: tuple[str, ...]  # tách từ =SERIES(...) hoặc từ XML biểu đồ
 ```
 
+**Khác bản thiết kế ban đầu (chỉnh khi cài đặt ở T4.1, code: `excel_core/snapshot/model.py`):**
+
+- `SheetSnapshot` ghi lại **đã đọc gì**: `read_ranges` (vùng + nhóm thuộc tính) và `sheet_groups`. Nhờ vậy phân biệt được "không có bộ lọc" với "chưa đọc bộ lọc"; `sheet.require(vùng, nhóm)` báo `SnapshotMissingError` khi yêu cầu đọc thiếu.
+- `ChartInfo.series`: mỗi chuỗi có `name_ref`, `categories_ref`, `values_ref` (dạng `Tên sheet!G10:G14`), thay cho một danh sách vùng phẳng (`data_ranges` vẫn có, dạng thuộc tính).
+- `AutoFilterInfo` không giữ `visible_rows`: dòng đang hiện lấy từ `hidden_rows` (nhóm `STRUCTURE`), dùng chung cho cả dòng ẩn bằng tay.
+- `PageSetupInfo.margins_cm` theo thứ tự (trên, dưới, trái, phải); `paper_size` là `None` khi file không ghi khổ giấy.
+- Số luôn là `float` (openpyxl trả `int` cho số nguyên, COM trả `float`).
+- Snapshot chuyển được sang JSON và ngược lại (`snapshot_to_dict`, `snapshot_from_dict`).
+
 Trường nào không có trong `ReadRequest` thì là `None` / rỗng. Điều kiện gặp trường cần mà là `None` → **lỗi lập trình** (yêu cầu đọc thiếu), không phải "không đạt".
 
 ## 5. Mỗi trường đọc từ đâu, chuẩn hóa thế nào
@@ -230,6 +244,8 @@ class Observation:
 ```
 
 Snapshot và Observation đều ghi được vào **nhật ký thực hành** (dạng JSON gọn) để phân tích sau (đề cương: các bước học viên hay vướng).
+
+**Snapshot tham chiếu cho Desktop.** Desktop không có file đáp án, nhưng điều kiện `expected: {from: solution}` cần giá trị đáp án và `data_unchanged` cần giá trị file đề. Khi phát hành, Backend đọc **đúng các vùng mà kịch bản cần** trên file đề và file đáp án (`excel_core.checks.reference_requests()`), chuyển sang JSON và gửi kèm kịch bản. Desktop dựng lại bằng `snapshot_from_dict()`. Đây là bài luyện tập, không phải bài thi, nên việc gói này chứa giá trị đáp án của vùng mục tiêu được chấp nhận; chỉ gửi vùng cần, không gửi cả file.
 
 ## 8. Kiểm thử
 

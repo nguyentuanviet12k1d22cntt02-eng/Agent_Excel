@@ -4,7 +4,8 @@ Thư viện Python dùng chung cho Backend và Desktop.
 
 | Module | Việc | Task |
 |---|---|---|
-| `snapshot/` | Mô hình dữ liệu chung: giá trị, công thức, định dạng, trang in, bộ lọc, biểu đồ | T3.3, T4.1 |
+| `address.py` | Địa chỉ A1: chữ cột, vùng liền kề, duyệt ô | T4.1 |
+| `snapshot/` | Mô hình dữ liệu chung (`model.py`), yêu cầu đọc (`request.py`), phân tích mã định dạng số (`number_format.py`), chuyển JSON (`serialize.py`) | T3.3, T4.1 |
 | `readers/` | Đọc workbook thành snapshot: `openpyxl_reader.py` (file `.xlsx`, Backend), `com_reader.py` (Excel đang chạy, Desktop) | T4.2, T7.2 |
 | `diff/` | So sánh file đề với file kết quả mẫu | T4.3 |
 | `checks/` | Kiểm tra điều kiện kiểm chứng, mỗi loại một file | T4.4 |
