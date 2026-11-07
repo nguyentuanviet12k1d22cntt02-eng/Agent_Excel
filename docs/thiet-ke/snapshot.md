@@ -27,26 +27,28 @@ Nếu mỗi bên tự viết điều kiện thì sẽ có lúc Backend nói "đ�
 
 ```python
 class PropertyGroup(StrEnum):
-    VALUES = "values"            # giá trị, kiểu dữ liệu
-    FORMULAS = "formulas"        # công thức A1 + R1C1
+    VALUES = "values"  # giá trị, kiểu dữ liệu
+    FORMULAS = "formulas"  # công thức A1 + R1C1
     NUMBER_FORMAT = "number_format"
-    STYLE = "style"              # font, nền, viền, căn lề  (chậm qua COM: chỉ vùng nhỏ)
-    STRUCTURE = "structure"      # ô gộp, dòng/cột ẩn, kích thước
-    FILTER = "filter"            # AutoFilter, dòng đang hiện
-    PAGE_SETUP = "page_setup"    # hướng, khổ, lề, đầu/cuối trang (COM: chỉ khi cần)
+    STYLE = "style"  # font, nền, viền, căn lề  (chậm qua COM: chỉ vùng nhỏ)
+    STRUCTURE = "structure"  # ô gộp, dòng/cột ẩn, kích thước
+    FILTER = "filter"  # AutoFilter, dòng đang hiện
+    PAGE_SETUP = "page_setup"  # hướng, khổ, lề, đầu/cuối trang (COM: chỉ khi cần)
     CHARTS = "charts"
+
 
 @dataclass(frozen=True)
 class RangeRequest:
     sheet: str
-    range: str                   # "F10:F14" — một vùng liền kề
+    range: str  # "F10:F14" — một vùng liền kề
     groups: frozenset[PropertyGroup]
+
 
 @dataclass(frozen=True)
 class ReadRequest:
     ranges: tuple[RangeRequest, ...]
-    sheet_groups: frozenset[PropertyGroup] = frozenset()   # filter, page_setup, charts theo sheet
-    include_sheet_list: bool = False                        # cho sheet_exists
+    sheet_groups: frozenset[PropertyGroup] = frozenset()  # filter, page_setup, charts theo sheet
+    include_sheet_list: bool = False  # cho sheet_exists
 ```
 
 Mỗi loại điều kiện khai báo nó cần nhóm nào (`checks/<ten>.py` có hằng `REQUIRES`). Ví dụ `number_format` → `{NUMBER_FORMAT}`; `formula_consistent` → `{FORMULAS}`; `sorted_by` → `{VALUES}` trên cả bảng. Teaching Agent gộp yêu cầu của mọi điều kiện trong bước hiện tại và `global_checks` thành **một** `ReadRequest`.
@@ -58,82 +60,113 @@ Mỗi loại điều kiện khai báo nó cần nhóm nào (`checks/<ten>.py` c�
 class WorkbookSnapshot:
     source: Literal["openpyxl", "com"]
     taken_at: datetime
-    exercise_id: str | None                  # thuộc tính tùy chỉnh tutor_exercise_id
+    exercise_id: str | None  # thuộc tính tùy chỉnh tutor_exercise_id
     sheet_names: tuple[str, ...]
-    active_sheet: str | None                 # COM: ActiveSheet; openpyxl: sheet đang chọn khi lưu
-    sheets: Mapping[str, SheetSnapshot]      # chỉ các sheet có trong ReadRequest
+    active_sheet: str | None  # COM: ActiveSheet; openpyxl: sheet đang chọn khi lưu
+    sheets: Mapping[str, SheetSnapshot]  # chỉ các sheet có trong ReadRequest
+
 
 @dataclass(frozen=True)
 class SheetSnapshot:
     name: str
-    cells: Mapping[str, CellSnapshot]        # khóa: "F10" (A1, không $)
-    merged: tuple[str, ...]                  # ("A1:D1", ...)
+    cells: Mapping[str, CellSnapshot]  # khóa: "F10" (A1, không $)
+    merged: tuple[str, ...]  # ("A1:D1", ...)
     hidden_rows: frozenset[int]
     hidden_cols: frozenset[str]
-    row_heights: Mapping[int, float]         # điểm (pt)
-    col_widths: Mapping[str, float]          # đơn vị ký tự như Excel
+    row_heights: Mapping[int, float]  # điểm (pt)
+    col_widths: Mapping[str, float]  # đơn vị ký tự như Excel
     autofilter: AutoFilterInfo | None
     page_setup: PageSetupInfo | None
     charts: tuple[ChartInfo, ...]
 
+
 @dataclass(frozen=True)
 class CellSnapshot:
-    value: CellValue                          # None | float | str | bool | datetime | ErrorValue
+    value: CellValue  # None | float | str | bool | datetime | ErrorValue
     value_kind: Literal["empty", "number", "text", "logical", "date", "error"]
-    formula: str | None                       # "=SUM(C9:E9)", cú pháp tiếng Anh
-    formula_r1c1: str | None                  # "=SUM(RC[-3]:RC[-1])"
+    formula: str | None  # "=SUM(C9:E9)", cú pháp tiếng Anh
+    formula_r1c1: str | None  # "=SUM(RC[-3]:RC[-1])"
     number_format: NumberFormatInfo | None
     font: FontInfo | None
     fill: FillInfo | None
     border: BorderInfo | None
     alignment: AlignmentInfo | None
 
+
 @dataclass(frozen=True)
 class NumberFormatInfo:
-    code: str                                 # mã en-US, ví dụ "#,##0.00" (COM: LCID 1033)
-    category: Literal["general", "number", "currency", "accounting", "percent",
-                      "date", "time", "text", "scientific", "fraction", "custom"]
+    code: str  # mã en-US, ví dụ "#,##0.00" (COM: LCID 1033)
+    category: Literal[
+        "general",
+        "number",
+        "currency",
+        "accounting",
+        "percent",
+        "date",
+        "time",
+        "text",
+        "scientific",
+        "fraction",
+        "custom",
+    ]
     decimals: int | None
     thousands_separator: bool
-    date_pattern: str | None                  # đã chuẩn hóa, "short_date" cho định dạng ngày dựng sẵn
+    date_pattern: str | None  # đã chuẩn hóa, "short_date" cho định dạng ngày dựng sẵn
+
 
 @dataclass(frozen=True)
 class FontInfo:
-    name: str; size: float; bold: bool; italic: bool; underline: bool; color: str | None   # "#RRGGBB"
+    name: str
+    size: float
+    bold: bool
+    italic: bool
+    underline: bool
+    color: str | None  # "#RRGGBB"
+
 
 @dataclass(frozen=True)
 class FillInfo:
-    color: str | None                         # None = không tô
+    color: str | None  # None = không tô
+
 
 @dataclass(frozen=True)
 class BorderInfo:
-    top: str | None; bottom: str | None; left: str | None; right: str | None   # kiểu: "thin", "medium"…
+    top: str | None
+    bottom: str | None
+    left: str | None
+    right: str | None  # kiểu: "thin", "medium"…
+
 
 @dataclass(frozen=True)
 class AlignmentInfo:
-    horizontal: str; vertical: str; wrap_text: bool
+    horizontal: str
+    vertical: str
+    wrap_text: bool
+
 
 @dataclass(frozen=True)
 class AutoFilterInfo:
     range: str
-    columns: Mapping[str, tuple[str, ...]]    # tiêu đề cột → tiêu chí (đã bỏ dấu "=" đầu của COM)
+    columns: Mapping[str, tuple[str, ...]]  # tiêu đề cột → tiêu chí (đã bỏ dấu "=" đầu của COM)
     visible_rows: frozenset[int] | None
+
 
 @dataclass(frozen=True)
 class PageSetupInfo:
     orientation: Literal["portrait", "landscape"]
-    paper_size: str                           # "A4", "A5", "letter"…
+    paper_size: str  # "A4", "A5", "letter"…
     margins_cm: tuple[float, float, float, float]
     fit_to_pages: tuple[int | None, int | None]
     center_horizontally: bool
     print_area: str | None
-    header_footer: Mapping[str, str]          # "header_center" → "&P"…
+    header_footer: Mapping[str, str]  # "header_center" → "&P"…
+
 
 @dataclass(frozen=True)
 class ChartInfo:
-    chart_type: str                           # "column", "bar", "line", "pie"…
+    chart_type: str  # "column", "bar", "line", "pie"…
     title: str | None
-    data_ranges: tuple[str, ...]              # tách từ =SERIES(...) hoặc từ XML biểu đồ
+    data_ranges: tuple[str, ...]  # tách từ =SERIES(...) hoặc từ XML biểu đồ
 ```
 
 Trường nào không có trong `ReadRequest` thì là `None` / rỗng. Điều kiện gặp trường cần mà là `None` → **lỗi lập trình** (yêu cầu đọc thiếu), không phải "không đạt".

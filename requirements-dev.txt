@@ -10,3 +10,4 @@
 # Công cụ phát triển
 pytest==9.2.0
 ruff==0.17.4
+openapi-spec-validator==0.7.2   # kiểm docs/thiet-ke/openapi.yaml (T3.7)

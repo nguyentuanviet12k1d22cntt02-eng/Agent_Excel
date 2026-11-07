@@ -1,0 +1,919 @@
+openapi: 3.1.0
+info:
+  title: Gia sư AI Excel — REST API
+  version: 1.0.0
+  description: |
+    API của Backend (FastAPI) cho Web quản trị và Desktop gia sư (T3.7).
+    Thiết kế: docs/thiet-ke/kien-truc.md, docs/thiet-ke/csdl.md.
+
+    - Mọi API (trừ đăng nhập) cần `Authorization: Bearer <access_token>`.
+    - Vai trò: `admin`, `teacher`, `student`. Mỗi thao tác ghi vai trò được phép trong `x-roles`.
+    - Lỗi trả về dạng `Problem` với `code` ổn định (để Web/Desktop hiện thông báo tiếng Việt).
+    - Nội dung kịch bản tuân theo `schemas/tutor-script/v1/tutor-script.schema.json`.
+servers:
+  - url: /api/v1
+security:
+  - bearerAuth: []
+tags:
+  - name: auth
+  - name: accounts
+    description: Tài khoản, lớp, nhóm thực nghiệm
+  - name: materials
+    description: Giáo trình, bài tập
+  - name: scripts
+    description: Sinh, sửa, duyệt, phát hành kịch bản
+  - name: reports
+    description: Tiến độ, xuất dữ liệu thực nghiệm
+  - name: desktop
+    description: API cho Desktop gia sư
+
+paths:
+  /auth/login:
+    post:
+      tags: [auth]
+      summary: Đăng nhập
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+      responses:
+        "200":
+          description: Đăng nhập thành công
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenPair" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /auth/refresh:
+    post:
+      tags: [auth]
+      summary: Lấy access token mới bằng refresh token
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [refresh_token]
+              properties:
+                refresh_token: { type: string }
+      responses:
+        "200":
+          description: Token mới
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TokenPair" }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /auth/me:
+    get:
+      tags: [auth]
+      summary: Thông tin người đang đăng nhập
+      responses:
+        "200":
+          description: Người dùng
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+
+  /users:
+    get:
+      tags: [accounts]
+      summary: Danh sách tài khoản
+      x-roles: [admin]
+      parameters:
+        - { name: role, in: query, schema: { $ref: "#/components/schemas/Role" } }
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/PageSize"
+      responses:
+        "200":
+          description: Trang kết quả
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items, total]
+                properties:
+                  items: { type: array, items: { $ref: "#/components/schemas/User" } }
+                  total: { type: integer }
+    post:
+      tags: [accounts]
+      summary: Tạo tài khoản
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/UserCreate" }
+      responses:
+        "201":
+          description: Đã tạo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/User" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /users/import:
+    post:
+      tags: [accounts]
+      summary: Nhập danh sách tài khoản từ CSV (email, full_name, role)
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, contentMediaType: text/csv }
+      responses:
+        "200":
+          description: Kết quả nhập
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  created: { type: integer }
+                  skipped: { type: array, items: { type: object, properties: { line: { type: integer }, reason: { type: string } } } }
+
+  /classes:
+    get:
+      tags: [accounts]
+      summary: Danh sách lớp (giảng viên chỉ thấy lớp mình)
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Các lớp
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Class" } }
+    post:
+      tags: [accounts]
+      summary: Tạo lớp
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, teacher_id]
+              properties:
+                name: { type: string }
+                teacher_id: { $ref: "#/components/schemas/Id" }
+                starts_on: { type: string, format: date }
+                ends_on: { type: string, format: date }
+      responses:
+        "201":
+          description: Đã tạo
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Class" }
+  /classes/{class_id}/members:
+    parameters: [{ $ref: "#/components/parameters/ClassId" }]
+    put:
+      tags: [accounts]
+      summary: Đặt danh sách học viên của lớp và nhóm thực nghiệm (thay toàn bộ)
+      x-roles: [admin]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                required: [student_id, study_group]
+                properties:
+                  student_id: { $ref: "#/components/schemas/Id" }
+                  study_group: { $ref: "#/components/schemas/StudyGroup" }
+      responses:
+        "204": { description: Đã cập nhật }
+  /classes/{class_id}/exercises:
+    parameters: [{ $ref: "#/components/parameters/ClassId" }]
+    post:
+      tags: [accounts]
+      summary: Giao bài cho lớp
+      x-roles: [admin, teacher]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [exercise_id]
+              properties:
+                exercise_id: { $ref: "#/components/schemas/Id" }
+                due_at: { type: string, format: date-time }
+      responses:
+        "204": { description: Đã giao }
+
+  /textbooks:
+    get:
+      tags: [materials]
+      summary: Danh sách giáo trình
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Giáo trình
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Textbook" } }
+    post:
+      tags: [materials]
+      summary: Tải lên giáo trình (PDF/DOCX); lập chỉ mục chạy nền
+      x-roles: [admin, teacher]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [title, file]
+              properties:
+                title: { type: string, maxLength: 200 }
+                file: { type: string, contentMediaType: application/octet-stream }
+      responses:
+        "202":
+          description: Đã nhận, đang lập chỉ mục (theo dõi `status`)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Textbook" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /textbooks/{textbook_id}:
+    parameters: [{ name: textbook_id, in: path, required: true, schema: { $ref: "#/components/schemas/Id" } }]
+    get:
+      tags: [materials]
+      summary: Chi tiết giáo trình
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Giáo trình
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Textbook" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    delete:
+      tags: [materials]
+      summary: Xóa giáo trình
+      x-roles: [admin, teacher]
+      responses:
+        "204": { description: Đã xóa }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /exercises:
+    get:
+      tags: [materials]
+      summary: Danh sách bài tập
+      x-roles: [admin, teacher]
+      parameters:
+        - { name: q, in: query, description: Tìm theo tên hoặc mã bài, schema: { type: string } }
+      responses:
+        "200":
+          description: Bài tập
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Exercise" } }
+    post:
+      tags: [materials]
+      summary: Tạo bài tập (file đề, file đáp án cùng bố cục, đề bài, giáo trình liên quan)
+      description: Backend kiểm định dạng `.xlsx`, file đáp án có giá trị đã tính, hai file cùng bố cục (FR-W05).
+      x-roles: [admin, teacher]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [code, title, sheet_name, starter_file, solution_file]
+              properties:
+                code: { $ref: "#/components/schemas/ExerciseCode" }
+                title: { type: string, maxLength: 200 }
+                sheet_name: { type: string, maxLength: 31 }
+                starter_file: { type: string, contentMediaType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet }
+                solution_file: { type: string, contentMediaType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet }
+                prompt_file: { type: string, contentMediaType: application/octet-stream, description: Đề bài PDF/ảnh (tùy chọn) }
+                prompt_text: { type: string, description: Đề bài dạng văn bản (tùy chọn) }
+                textbook_ids: { type: array, items: { $ref: "#/components/schemas/Id" } }
+      responses:
+        "201":
+          description: Đã tạo; `warnings` liệt kê điểm cần xem (ví dụ bố cục lệch)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Exercise" }
+        "409": { $ref: "#/components/responses/Conflict" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /exercises/{exercise_id}:
+    parameters: [{ $ref: "#/components/parameters/ExerciseId" }]
+    get:
+      tags: [materials]
+      summary: Chi tiết bài tập (kèm revision mới nhất và bản đang phát hành)
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Bài tập
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Exercise" }
+        "404": { $ref: "#/components/responses/NotFound" }
+    patch:
+      tags: [materials]
+      summary: Sửa thông tin bài tập (không đổi được `code` sau khi đã phát hành)
+      x-roles: [admin, teacher]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                prompt_text: { type: string }
+                textbook_ids: { type: array, items: { $ref: "#/components/schemas/Id" } }
+      responses:
+        "200":
+          description: Đã sửa
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Exercise" }
+    delete:
+      tags: [materials]
+      summary: Xóa bài tập (chỉ khi chưa có phiên thực hành)
+      x-roles: [admin, teacher]
+      responses:
+        "204": { description: Đã xóa }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /exercises/{exercise_id}/starter-file:
+    parameters: [{ $ref: "#/components/parameters/ExerciseId" }]
+    get:
+      tags: [scripts]
+      summary: Tải file đề ĐÃ NHÚNG mã bài (chỉ có khi đã phát hành) để phát cho học viên
+      x-roles: [admin, teacher, student]
+      responses:
+        "200":
+          description: File .xlsx
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, contentMediaType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet }
+        "404": { $ref: "#/components/responses/NotFound" }
+
+  /exercises/{exercise_id}/generation-jobs:
+    parameters: [{ $ref: "#/components/parameters/ExerciseId" }]
+    post:
+      tags: [scripts]
+      summary: Yêu cầu AI sinh kịch bản (chạy nền)
+      x-roles: [admin, teacher]
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                model: { type: string, description: Ghi đè mô hình mặc định, ví dụ mercury-2 }
+                instructions: { type: string, maxLength: 2000, description: Lưu ý thêm của giảng viên cho AI }
+      responses:
+        "202":
+          description: Đã xếp hàng
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GenerationJob" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /generation-jobs/{job_id}:
+    parameters: [{ name: job_id, in: path, required: true, schema: { $ref: "#/components/schemas/Id" } }]
+    get:
+      tags: [scripts]
+      summary: Trạng thái job sinh kịch bản (Web hỏi định kỳ)
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/GenerationJob" }
+
+  /exercises/{exercise_id}/scripts:
+    parameters: [{ $ref: "#/components/parameters/ExerciseId" }]
+    get:
+      tags: [scripts]
+      summary: Các revision kịch bản của bài (không kèm nội dung)
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Revision mới nhất trước
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/ScriptVersionSummary" } }
+    post:
+      tags: [scripts]
+      summary: Lưu một revision mới (giảng viên tạo hoặc sửa)
+      description: Kiểm tầng 1–2 (lược đồ, tham chiếu chéo) trước khi lưu; lỗi trả 422 kèm đường dẫn tới trường lỗi.
+      x-roles: [admin, teacher]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                parent_version_id: { $ref: "#/components/schemas/Id" }
+                content: { $ref: "#/components/schemas/TutorScript" }
+      responses:
+        "201":
+          description: Đã lưu (status draft)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScriptVersion" }
+        "422": { $ref: "#/components/responses/Invalid" }
+  /scripts/{version_id}:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    get:
+      tags: [scripts]
+      summary: Một revision, kèm nội dung và báo cáo tự kiểm
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Revision
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ScriptVersion" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /scripts/{version_id}/self-check:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [scripts]
+      summary: Chạy lại tự kiểm tầng 3 trên file đề và đáp án
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Báo cáo tự kiểm
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SelfCheckReport" }
+  /scripts/{version_id}/submit:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [scripts]
+      summary: Gửi duyệt (draft → pending_review)
+      x-roles: [admin, teacher]
+      responses:
+        "200": { $ref: "#/components/responses/VersionOk" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /scripts/{version_id}/approve:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [scripts]
+      summary: Duyệt (pending_review → approved)
+      x-roles: [admin, teacher]
+      responses:
+        "200": { $ref: "#/components/responses/VersionOk" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /scripts/{version_id}/reject:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [scripts]
+      summary: Từ chối kèm góp ý (pending_review → draft)
+      x-roles: [admin, teacher]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [note]
+              properties:
+                note: { type: string, minLength: 1, maxLength: 2000 }
+      responses:
+        "200": { $ref: "#/components/responses/VersionOk" }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /scripts/{version_id}/publish:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [scripts]
+      summary: Phát hành (approved → published); nhúng mã bài vào file đề; bản phát hành cũ → archived
+      x-roles: [admin, teacher]
+      responses:
+        "200": { $ref: "#/components/responses/VersionOk" }
+        "409": { $ref: "#/components/responses/Conflict" }
+
+  /exercises/{exercise_id}/progress:
+    parameters: [{ $ref: "#/components/parameters/ExerciseId" }]
+    get:
+      tags: [reports]
+      summary: Tiến độ học viên theo bước (bảng theo dõi của giảng viên)
+      x-roles: [admin, teacher]
+      parameters:
+        - { name: class_id, in: query, schema: { $ref: "#/components/schemas/Id" } }
+      responses:
+        "200":
+          description: Tiến độ
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  steps:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        step_id: { type: string }
+                        title: { type: string }
+                        done_rate: { type: number }
+                        median_seconds: { type: number }
+                        avg_fail_count: { type: number }
+                        hint_level_counts: { type: object, additionalProperties: { type: integer } }
+                  students:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        student_id: { $ref: "#/components/schemas/Id" }
+                        full_name: { type: string }
+                        status: { $ref: "#/components/schemas/SessionStatus" }
+                        current_step_id: { type: string }
+  /reports/export:
+    get:
+      tags: [reports]
+      summary: Xuất dữ liệu thực nghiệm (CSV, đã ẩn danh)
+      x-roles: [admin]
+      parameters:
+        - { name: class_id, in: query, required: true, schema: { $ref: "#/components/schemas/Id" } }
+        - { name: dataset, in: query, required: true, schema: { enum: [sessions, steps, events, surveys] } }
+      responses:
+        "200":
+          description: File CSV
+          content:
+            text/csv:
+              schema: { type: string }
+
+  /desktop/assignments:
+    get:
+      tags: [desktop]
+      summary: Bài được giao cho học viên, kèm bản phát hành hiện tại
+      x-roles: [student]
+      responses:
+        "200":
+          description: Bài được giao
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [exercise_code, title, revision]
+                  properties:
+                    exercise_code: { $ref: "#/components/schemas/ExerciseCode" }
+                    title: { type: string }
+                    revision: { type: integer }
+                    due_at: { type: string, format: date-time }
+                    starter_file_url: { type: string }
+                    mode: { $ref: "#/components/schemas/SessionMode" }
+  /desktop/exercises/{exercise_code}/script:
+    parameters:
+      - { name: exercise_code, in: path, required: true, schema: { $ref: "#/components/schemas/ExerciseCode" } }
+    get:
+      tags: [desktop]
+      summary: Kịch bản ĐANG PHÁT HÀNH của bài (theo mã bài đọc từ file đề)
+      description: Hỗ trợ `If-None-Match` với ETag = `"<version_id>"`; trả 304 nếu Desktop đã có bản này.
+      x-roles: [student]
+      parameters:
+        - { name: If-None-Match, in: header, schema: { type: string } }
+      responses:
+        "200":
+          description: Kịch bản
+          headers:
+            ETag: { schema: { type: string } }
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [version_id, content, mode]
+                properties:
+                  version_id: { $ref: "#/components/schemas/Id" }
+                  mode: { $ref: "#/components/schemas/SessionMode" }
+                  content: { $ref: "#/components/schemas/TutorScript" }
+        "304": { description: Bản Desktop đang có vẫn là bản mới nhất }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /desktop/skill-states:
+    get:
+      tags: [desktop]
+      summary: Mức hỗ trợ theo kỹ năng của học viên (cho luật giảm dần trợ giúp)
+      x-roles: [student]
+      responses:
+        "200":
+          description: Theo kỹ năng
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: { $ref: "#/components/schemas/SupportState" }
+
+  /sessions/{session_id}:
+    parameters: [{ $ref: "#/components/parameters/SessionId" }]
+    put:
+      tags: [desktop]
+      summary: Tạo hoặc cập nhật phiên thực hành (id do Desktop sinh, gọi lại nhiều lần không sao)
+      x-roles: [student]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SessionUpsert" }
+      responses:
+        "200": { description: Đã cập nhật }
+        "201": { description: Đã tạo }
+        "409": { $ref: "#/components/responses/Conflict" }
+  /sessions/{session_id}/steps/{step_id}:
+    parameters:
+      - $ref: "#/components/parameters/SessionId"
+      - { name: step_id, in: path, required: true, schema: { type: string, pattern: "^[a-z][a-z0-9_]{0,39}$" } }
+    put:
+      tags: [desktop]
+      summary: Ghi kết quả một bước (Backend cập nhật skill_states khi bước xong)
+      x-roles: [student]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StepProgress" }
+      responses:
+        "204": { description: Đã ghi }
+  /sessions/{session_id}/events:
+    parameters: [{ $ref: "#/components/parameters/SessionId" }]
+    post:
+      tags: [desktop]
+      summary: Gửi nhật ký theo lô; sự kiện trùng `seq` bị bỏ qua (gửi lại an toàn)
+      x-roles: [student]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [events]
+              properties:
+                events:
+                  type: array
+                  maxItems: 500
+                  items: { $ref: "#/components/schemas/EventLog" }
+      responses:
+        "200":
+          description: Kết quả nhận
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted: { type: integer }
+                  duplicates: { type: integer }
+  /surveys:
+    post:
+      tags: [desktop]
+      summary: Gửi phiếu Paas / SUS / hài lòng
+      x-roles: [student, teacher]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/SurveyResponse" }
+      responses:
+        "201": { description: Đã ghi }
+        "422": { $ref: "#/components/responses/Invalid" }
+
+components:
+  securitySchemes:
+    bearerAuth: { type: http, scheme: bearer, bearerFormat: JWT }
+  parameters:
+    Page: { name: page, in: query, schema: { type: integer, minimum: 1, default: 1 } }
+    PageSize: { name: page_size, in: query, schema: { type: integer, minimum: 1, maximum: 200, default: 50 } }
+    ClassId: { name: class_id, in: path, required: true, schema: { $ref: "#/components/schemas/Id" } }
+    ExerciseId: { name: exercise_id, in: path, required: true, schema: { $ref: "#/components/schemas/Id" } }
+    VersionId: { name: version_id, in: path, required: true, schema: { $ref: "#/components/schemas/Id" } }
+    SessionId: { name: session_id, in: path, required: true, schema: { $ref: "#/components/schemas/Id" } }
+  responses:
+    Unauthorized:
+      description: Chưa đăng nhập hoặc token hết hạn
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    NotFound:
+      description: Không tìm thấy
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    Conflict:
+      description: Xung đột trạng thái (ví dụ duyệt bản không ở pending_review, mã bài đã tồn tại)
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    Invalid:
+      description: Dữ liệu không hợp lệ (file sai, kịch bản không qua lược đồ)
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    VersionOk:
+      description: Revision sau khi chuyển trạng thái
+      content: { application/json: { schema: { $ref: "#/components/schemas/ScriptVersionSummary" } } }
+  schemas:
+    Id: { type: string, format: uuid }
+    Role: { enum: [admin, teacher, student] }
+    StudyGroup: { enum: [experimental, control] }
+    SessionMode:
+      description: tutor = có gia sư; control = nhóm đối chứng, chỉ ghi nhật ký (FR-D15)
+      enum: [tutor, control]
+    SessionStatus: { enum: [not_started, in_progress, completed, abandoned] }
+    SupportState: { enum: [struggling, developing, proficient] }
+    ExerciseCode: { type: string, pattern: "^[a-z0-9][a-z0-9-]{2,63}$" }
+    Problem:
+      type: object
+      required: [code, message]
+      properties:
+        code: { type: string, description: "Mã lỗi ổn định, ví dụ script_invalid, invalid_transition, layout_mismatch" }
+        message: { type: string, description: Thông báo tiếng Việt }
+        errors:
+          type: array
+          description: Chi tiết từng lỗi (ví dụ đường dẫn JSON tới trường sai trong kịch bản)
+          items:
+            type: object
+            properties:
+              path: { type: string }
+              message: { type: string }
+    TokenPair:
+      type: object
+      required: [access_token, refresh_token, expires_in]
+      properties:
+        access_token: { type: string }
+        refresh_token: { type: string }
+        expires_in: { type: integer, description: Giây }
+    User:
+      type: object
+      required: [id, email, full_name, role]
+      properties:
+        id: { $ref: "#/components/schemas/Id" }
+        email: { type: string, format: email }
+        full_name: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        is_active: { type: boolean }
+    UserCreate:
+      type: object
+      required: [email, full_name, role, password]
+      properties:
+        email: { type: string, format: email }
+        full_name: { type: string }
+        role: { $ref: "#/components/schemas/Role" }
+        password: { type: string, minLength: 8 }
+    Class:
+      type: object
+      required: [id, name, teacher_id]
+      properties:
+        id: { $ref: "#/components/schemas/Id" }
+        name: { type: string }
+        teacher_id: { $ref: "#/components/schemas/Id" }
+        starts_on: { type: string, format: date }
+        ends_on: { type: string, format: date }
+        member_count: { type: integer }
+    Textbook:
+      type: object
+      required: [id, title, status]
+      properties:
+        id: { $ref: "#/components/schemas/Id" }
+        title: { type: string }
+        file_type: { enum: [pdf, docx] }
+        status: { enum: [uploaded, indexing, ready, failed] }
+        chunk_count: { type: integer }
+        error: { type: string }
+    Exercise:
+      type: object
+      required: [id, code, title, sheet_name]
+      properties:
+        id: { $ref: "#/components/schemas/Id" }
+        code: { $ref: "#/components/schemas/ExerciseCode" }
+        title: { type: string }
+        sheet_name: { type: string }
+        prompt_text: { type: string }
+        textbook_ids: { type: array, items: { $ref: "#/components/schemas/Id" } }
+        latest_version: { $ref: "#/components/schemas/ScriptVersionSummary" }
+        published_version: { $ref: "#/components/schemas/ScriptVersionSummary" }
+        warnings: { type: array, items: { type: string } }
+    GenerationJob:
+      type: object
+      required: [id, exercise_id, status]
+      properties:
+        id: { $ref: "#/components/schemas/Id" }
+        exercise_id: { $ref: "#/components/schemas/Id" }
+        status: { enum: [queued, running, succeeded, failed] }
+        stage: { type: string, description: "Bước đang chạy: diff, rag, llm, self_check" }
+        attempts: { type: integer }
+        model: { type: string }
+        prompt_tokens: { type: integer }
+        completion_tokens: { type: integer }
+        duration_ms: { type: integer }
+        result_version_id: { $ref: "#/components/schemas/Id" }
+        error: { type: string }
+    ScriptVersionSummary:
+      type: object
+      required: [id, exercise_id, revision, status, origin]
+      properties:
+        id: { $ref: "#/components/schemas/Id" }
+        exercise_id: { $ref: "#/components/schemas/Id" }
+        revision: { type: integer, minimum: 1 }
+        status: { enum: [draft, pending_review, approved, published, archived] }
+        origin: { enum: [ai, teacher, ai_edited] }
+        parent_version_id: { $ref: "#/components/schemas/Id" }
+        created_at: { type: string, format: date-time }
+        created_by: { $ref: "#/components/schemas/Id" }
+        reviewed_by: { $ref: "#/components/schemas/Id" }
+        review_note: { type: string }
+        published_at: { type: string, format: date-time }
+    ScriptVersion:
+      allOf:
+        - $ref: "#/components/schemas/ScriptVersionSummary"
+        - type: object
+          required: [content]
+          properties:
+            content: { $ref: "#/components/schemas/TutorScript" }
+            self_check_report: { $ref: "#/components/schemas/SelfCheckReport" }
+    SelfCheckReport:
+      type: object
+      description: Kết quả kiểm 3 tầng (luoc-do-kich-ban.md mục 3)
+      properties:
+        schema_ok: { type: boolean }
+        cross_reference_errors: { type: array, items: { type: string } }
+        checks:
+          type: array
+          items:
+            type: object
+            properties:
+              step_id: { type: string }
+              check_index: { type: integer }
+              passes_on_solution: { type: boolean }
+              fails_on_starter: { type: boolean }
+        diff_coverage: { type: number, minimum: 0, maximum: 1 }
+        uncovered_ranges: { type: array, items: { type: string } }
+        hint_text_issues:
+          type: array
+          description: Số liệu hoặc địa chỉ ô trong chữ gợi ý không có thật
+          items:
+            type: object
+            properties:
+              step_id: { type: string }
+              level: { type: integer }
+              issue: { type: string }
+    TutorScript:
+      $ref: "../../schemas/tutor-script/v1/tutor-script.schema.json"
+    SessionUpsert:
+      type: object
+      required: [exercise_code, script_version_id, mode, status, started_at]
+      properties:
+        exercise_code: { $ref: "#/components/schemas/ExerciseCode" }
+        script_version_id: { $ref: "#/components/schemas/Id" }
+        mode: { $ref: "#/components/schemas/SessionMode" }
+        status: { $ref: "#/components/schemas/SessionStatus" }
+        started_at: { type: string, format: date-time }
+        ended_at: { type: string, format: date-time }
+        client_info:
+          type: object
+          properties:
+            app_version: { type: string }
+            windows_version: { type: string }
+            excel_version: { type: string }
+            office_ui_language: { type: integer, description: "LanguageID, ví dụ 1066 = tiếng Việt" }
+            dpi: { type: integer }
+            monitor_count: { type: integer }
+        policy_params: { type: object, description: Tham số luật gợi ý của phiên }
+    StepProgress:
+      type: object
+      required: [status]
+      properties:
+        status: { enum: [in_progress, done, skipped] }
+        started_at: { type: string, format: date-time }
+        done_at: { type: string, format: date-time }
+        fail_count: { type: integer, minimum: 0 }
+        max_hint_level: { type: integer, minimum: 0, maximum: 4 }
+        help_count: { type: integer, minimum: 0 }
+        idle_seconds: { type: integer, minimum: 0 }
+        score: { type: integer, minimum: 0, maximum: 2 }
+    EventLog:
+      type: object
+      required: [seq, occurred_at, kind]
+      properties:
+        seq: { type: integer, minimum: 0, description: Số thứ tự tăng dần trong phiên, để chống ghi trùng }
+        occurred_at: { type: string, format: date-time }
+        kind:
+          type: string
+          description: "Ví dụ: observation, check_result, signal, hint_shown, feedback_shown, help_request, step_done"
+        step_id: { type: string }
+        data: { type: object }
+    SurveyResponse:
+      type: object
+      required: [instrument, answers]
+      properties:
+        instrument: { enum: [paas, sus, satisfaction] }
+        session_id: { $ref: "#/components/schemas/Id" }
+        answers:
+          description: "paas: một số nguyên 1–9; sus: 10 số nguyên 1–5; satisfaction: đối tượng tự do"
+          oneOf:
+            - { type: integer, minimum: 1, maximum: 9 }
+            - { type: array, minItems: 10, maxItems: 10, items: { type: integer, minimum: 1, maximum: 5 } }
+            - { type: object }
