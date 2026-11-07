@@ -1,7 +1,7 @@
 # Kế hoạch triển khai dự án
 
 **Đề tài:** Xây dựng gia sư AI hướng dẫn thực hành Excel dựa trên thao tác của người học
-**Thời gian:** 06/11/2026 – 31/03/2027 · **Cập nhật lần cuối:** 07/11/2026 (GĐ1)
+**Thời gian:** 06/11/2026 – 31/03/2027 · **Cập nhật lần cuối:** 07/11/2026 (GĐ2)
 **Nhóm:** Nguyễn Tuấn Việt (trưởng nhóm), Diệp Đại Lê Hoài, Nguyễn Văn Linh, Nguyễn Ngọc Hòa · **GVHD:** ThS. Ngô Thị Ngọc Dịu
 
 ---
@@ -111,13 +111,13 @@ Agent_Excel/
 
 | ID | Việc cần làm | Hoàn thành khi | Cần trước | Phụ trách | TT |
 |---|---|---|---|---|---|
-| T2.1 | **COM – đọc dữ liệu:** kết nối vào Excel đang mở; đọc giá trị, công thức, định dạng (font, nền, viền, định dạng số, gộp ô) của một vùng; đo thời gian đọc 1.000 ô | Script chạy được, có số đo thời gian | T0.3 | Linh | ⬜ |
-| T2.2 | **COM – sự kiện và lúc Excel bận:** bắt `SheetChange`, `SelectionChange`, `WorkbookActivate`; thử khi học viên đang gõ trong ô hoặc đang mở hộp thoại; xử lý lỗi "Excel bận" bằng thử lại | Script chạy 10 phút thao tác tự do không bị crash | T2.1 | Linh | ⬜ |
-| T2.3 | **COM – đối tượng khó:** biểu đồ (loại, vùng dữ liệu, tiêu đề), thiết lập trang in (đo độ trễ), AutoFilter, trạng thái sắp xếp; đọc/ghi Custom Document Property (mã bài) | Có bảng "đọc được gì, mất bao lâu" | T2.1 | Việt | ⬜ |
-| T2.4 | **UIA/MSAA – Ribbon và hộp thoại:** biết tab Ribbon đang chọn; tìm nút theo AutomationId và lấy tọa độ; phát hiện hộp thoại đang mở (Format Cells, Sort, Insert Chart, Page Setup) và tab bên trong; thử với giao diện Office tiếng Việt và tiếng Anh | Có script và danh sách nút/hộp thoại nhận diện được | T0.3 | Việt | ⬜ |
-| T2.5 | **Overlay PyQt6:** cửa sổ trong suốt, luôn nằm trên cùng, chuột bấm xuyên qua được; vẽ khung đúng quanh một ô và bám theo khi cuộn, zoom, di chuyển cửa sổ, ở mức DPI 100% / 125% / 150% | Có ảnh hoặc video minh họa | T2.1 | Linh | ⬜ |
-| T2.6 | **Thử AI bằng tay:** dùng openpyxl trích nội dung file đề và file mẫu, gửi kèm đề bài và đoạn giáo trình cho LLM để sinh các bước; so với kịch bản viết tay | Có ghi chép prompt và nhận xét chất lượng | T0.4, T1.4 | Việt | ⬜ |
-| T2.7 | **Báo cáo khả thi:** bảng "làm được / không làm được / cách thay thế"; điều chỉnh phạm vi nếu cần | Có `docs/task/t2-7-bao-cao-spike.md` (đây là "bản thử nghiệm bộ giám sát" trong đề cương) | T2.1 – T2.6 | Việt, Linh | ⬜ |
+| T2.1 | **COM – đọc dữ liệu:** kết nối vào Excel đang mở; đọc giá trị, công thức, định dạng (font, nền, viền, định dạng số, gộp ô) của một vùng; đo thời gian đọc 1.000 ô | Script chạy được, có số đo thời gian | T0.3 | Linh | ✅ |
+| T2.2 | **COM – sự kiện và lúc Excel bận:** bắt `SheetChange`, `SelectionChange`, `WorkbookActivate`; thử khi học viên đang gõ trong ô hoặc đang mở hộp thoại; xử lý lỗi "Excel bận" bằng thử lại | Script chạy 10 phút thao tác tự do không bị crash | T2.1 | Linh | 🔄 |
+| T2.3 | **COM – đối tượng khó:** biểu đồ (loại, vùng dữ liệu, tiêu đề), thiết lập trang in (đo độ trễ), AutoFilter, trạng thái sắp xếp; đọc/ghi Custom Document Property (mã bài) | Có bảng "đọc được gì, mất bao lâu" | T2.1 | Việt | ✅ |
+| T2.4 | **UIA/MSAA – Ribbon và hộp thoại:** biết tab Ribbon đang chọn; tìm nút theo AutomationId và lấy tọa độ; phát hiện hộp thoại đang mở (Format Cells, Sort, Insert Chart, Page Setup) và tab bên trong; thử với giao diện Office tiếng Việt và tiếng Anh | Có script và danh sách nút/hộp thoại nhận diện được | T0.3 | Việt | 🔄 |
+| T2.5 | **Overlay PyQt6:** cửa sổ trong suốt, luôn nằm trên cùng, chuột bấm xuyên qua được; vẽ khung đúng quanh một ô và bám theo khi cuộn, zoom, di chuyển cửa sổ, ở mức DPI 100% / 125% / 150% | Có ảnh hoặc video minh họa | T2.1 | Linh | 🔄 |
+| T2.6 | **Thử AI bằng tay:** dùng openpyxl trích nội dung file đề và file mẫu, gửi kèm đề bài và đoạn giáo trình cho LLM để sinh các bước; so với kịch bản viết tay | Có ghi chép prompt và nhận xét chất lượng | T0.4, T1.4 | Việt | ✅ |
+| T2.7 | **Báo cáo khả thi:** bảng "làm được / không làm được / cách thay thế"; điều chỉnh phạm vi nếu cần | Có `docs/task/t2-7-bao-cao-spike.md` (đây là "bản thử nghiệm bộ giám sát" trong đề cương) | T2.1 – T2.6 | Việt, Linh | ✅ |
 
 ### GĐ3 — Thiết kế hệ thống (23/11 – 06/12)
 

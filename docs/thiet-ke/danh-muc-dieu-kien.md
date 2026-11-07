@@ -93,7 +93,16 @@ Tín hiệu là lý do để gia sư **lên tiếng** (hiện gợi ý hoặc ph
 
 **Luật tăng/giảm cấp chi tiết** (bao nhiêu lần sai, bao nhiêu giây) để ở T3.4 (`luat-goi-y.md`).
 
-## 4. Việc còn mở
+## 4. Cập nhật sau GĐ2
+
+Kết quả làm thử kỹ thuật ([t2-7-bao-cao-spike.md](../task/t2-7-bao-cao-spike.md)):
+- `autofilter`, `page_setup`, `header_footer`, `chart`, thuộc tính tùy chỉnh: **đọc được bằng cả COM và openpyxl** (T2.3).
+- `sorted_by`: kiểm bằng thứ tự dữ liệu, không dùng `Sort.SortFields` (T2.3).
+- `number_format`: COM bắt buộc LCID 1033; định dạng ngày dựng sẵn phải chuẩn hóa (T2.1).
+- `alignment` căn phải cho ô số thường **đạt sẵn trên đề** (Excel tự căn phải số) → bị tự kiểm loại là vô nghĩa (T2.6). Chỉ dùng khi đề yêu cầu căn khác mặc định.
+- Vùng công thức: luôn kèm `value_equals` (AI không tự thêm, T2.6).
+
+## 5. Việc còn mở
 
 1. Đối chiếu danh mục này với **bộ tiêu chí kiểm tra và quy tắc phản hồi của GĐ1** khi nhóm xác nhận đã có (T0.5).
 2. T2.1, T2.3 đo xem COM đọc được những thuộc tính nào, nhanh không → cập nhật cột "Nguồn đọc".

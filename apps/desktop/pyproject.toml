@@ -12,7 +12,8 @@ requires-python = ">=3.14"
 dependencies = [
     "PyQt6==6.12.0",
     "pywin32==312",
-    # Thư viện UI Automation / MSAA: chọn sau spike T2.4 (ứng viên: uiautomation, comtypes)
+    # UI Automation cho Ribbon và hộp thoại (chốt ở T2.4)
+    "uiautomation==2.0.29",
 ]
 
 [project.optional-dependencies]

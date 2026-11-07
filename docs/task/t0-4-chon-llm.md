@@ -1,6 +1,6 @@
 # T0.4 — Chọn nhà cung cấp LLM và mô hình embedding
 
-**Trạng thái:** 🔄 **Đã chốt LLM: Inception Labs, mô hình `mercury-3`** (mục 6). Còn mở: giá, embedding cho RAG, chuyển key vào `.env`.
+**Trạng thái:** 🔄 **Đã chốt LLM: Inception Labs, mô hình `mercury-3`** (mục 6). Còn mở: giá, embedding cho RAG. Key đã chuyển vào `apps/backend/.env` (07/11/2026).
 
 ## 1. Hệ thống dùng LLM vào việc gì
 
