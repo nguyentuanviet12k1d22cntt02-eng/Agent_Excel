@@ -13,7 +13,7 @@ known-first-party = ["excel_core", "tutor_backend", "tutor_desktop"]
 
 [lint.per-file-ignores]
 # Spike, script tiện ích, điểm khởi động: được dùng print
-"spikes/**" = ["T20", "BLE001", "PTH"]
+"spikes/**" = ["T20", "BLE001", "PTH", "E501"]
 "scripts/**" = ["T20"]
 "**/__main__.py" = ["T20"]
 # Test: được dùng assert và tên tự do
