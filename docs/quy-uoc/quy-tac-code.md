@@ -51,7 +51,11 @@ logger = logging.getLogger(__name__)
 ### 2.3. Quy tắc riêng cho Desktop
 
 1. **Mọi lệnh COM tới Excel chạy trên một luồng riêng** (luồng của `monitor/`), không chạy trên luồng giao diện. Luồng giao diện Qt mà bị chặn thì cửa sổ gia sư sẽ treo.
-2. **Excel đang bận thì thử lại có giới hạn.** Khi gặp lỗi Excel từ chối lệnh (người học đang gõ trong ô hoặc đang mở hộp thoại), thử lại sau một khoảng ngắn, tối đa vài lần, rồi bỏ qua lượt đọc đó. **Không** vòng lặp vô hạn.
+2. **Excel đang bận thì thử lại có giới hạn.** Khi gặp lỗi Excel từ chối lệnh (người học đang gõ trong ô hoặc đang mở hộp thoại), thử lại sau một khoảng ngắn, tối đa vài lần, rồi bỏ qua lượt đọc đó. **Không** vòng lặp vô hạn. Lỗi "bận" có hai dạng (đã kiểm chứng ở T2.2):
+   - `pywintypes.com_error` với mã `0x80010001` hoặc `0x8001010A`;
+   - **`AttributeError`** khi gọi trễ (late binding) một thuộc tính có thật, ví dụ `excel.ActiveSheet.Name`: Excel từ chối bước tra tên `GetIDsOfNames` và pywin32 đổi lỗi đó thành `AttributeError`. Hàm thử lại phải bắt cả loại này.
+
+   Đọc giá trị vùng ô (`Range.Value`) vẫn chạy khi Excel bận và trả về giá trị **trước** khi người học gõ. Biết Excel có đang bận hay không: **không dùng `Excel.Ready`** (vẫn `True` khi đang sửa ô); dùng `is_excel_busy()` trong `spikes/t2-2-com-su-kien/events_busy.py`.
 3. **Không bao giờ thay đổi workbook của người học.** Desktop chỉ đọc. Việc duy nhất được ghi là mã bài khi phát hành, và việc đó do Backend làm trên file đề, trước khi học viên nhận file.
 4. **Không để sót tiến trình Excel.** Phiên Excel do code tự mở (`DispatchEx`) thì phải `Quit()` trong khối `finally`. Excel của người học thì không được đóng.
 5. `ui/` nhận dữ liệu qua **signal/slot** của Qt, không gọi COM, không gọi API trực tiếp.
@@ -59,6 +63,9 @@ logger = logging.getLogger(__name__)
 7. **Không dùng địa chỉ ghép nhiều vùng** kiểu `Range("A1:A5,C1:C5")`: Excel báo lỗi trên máy định dạng Việt Nam. Thao tác từng vùng riêng, hoặc dùng `Application.Union`.
 8. **Gọi `Range.Sort` luôn truyền `Orientation=1`** (trên xuống dưới). Không truyền thì Excel có thể sắp theo chiều ngang và xáo trộn các cột. Đã kiểm chứng ở T2.3.
 9. **Không suy ra "đã sắp xếp" từ `Sheet.Sort.SortFields`**; kiểm bằng thứ tự dữ liệu thật. Không giả định vị trí cột, tìm cột theo tiêu đề.
+10. **Tọa độ ô trên màn hình:** dùng COM `PointsToScreenPixelsX/Y` **chỉ khi** `GetDpiForWindow(Excel) == GetDpiForSystem()`. Khác nhau (Excel nằm ở màn hình phụ khác tỉ lệ) thì COM lệch hàng trăm pixel, phải dùng UIA `DataItem.BoundingRectangle`. Đã kiểm chứng ở T2.5.
+11. **Tìm nút Ribbon theo AutomationId (`idMso`), không theo tên hiển thị.** Tên đổi theo ngôn ngữ Office và có thể khác tên quen gọi (nút AutoSum có tên "Sum"). Danh mục mã: `spikes/t2-4-uia-ribbon/danh-muc-idmso.md`.
+12. **Overlay: mỗi màn hình một cửa sổ**, quy đổi pixel vật lý → logic theo `devicePixelRatio` của chính màn hình chứa điểm cần vẽ.
 
 ### 2.4. Quy tắc riêng cho Backend
 
