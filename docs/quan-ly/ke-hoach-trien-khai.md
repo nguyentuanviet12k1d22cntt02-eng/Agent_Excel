@@ -141,7 +141,7 @@ Agent_Excel/
 | ID | Việc cần làm | Hoàn thành khi | Cần trước | Phụ trách | TT |
 |---|---|---|---|---|---|
 | T4.1 | Khung package `excel_core`: kiểu dữ liệu snapshot (theo T3.3), cài đặt pytest | Import được từ `apps/backend` và `apps/desktop` | T3.3 | Linh | ✅ |
-| T4.2 | Bộ đọc bằng openpyxl: đọc file `.xlsx` thành snapshot (giá trị, công thức, định dạng, trang in, bộ lọc, biểu đồ) | Test đọc đúng trên mọi bài trong `samples/` | T4.1 | Linh | ⬜ |
+| T4.2 | Bộ đọc bằng openpyxl: đọc file `.xlsx` thành snapshot (giá trị, công thức, định dạng, trang in, bộ lọc, biểu đồ) | Test đọc đúng trên mọi bài trong `samples/` | T4.1 | Linh | 🔄 |
 | T4.3 | **Bộ so sánh (diff)** file đề với file mẫu, cho ra danh sách thay đổi có cấu trúc | Diff đúng trên mọi bài trong `samples/` | T4.2 | Việt | ⬜ |
 | T4.4 | **Bộ kiểm tra điều kiện:** mỗi loại điều kiện (theo T1.6) là một hàm kiểm tra, kèm thông báo khi sai. Phân biệt "chỉ cần đúng giá trị" với "phải dùng đúng hàm" | Mỗi loại điều kiện có test riêng | T4.1, T3.2 | Linh | ⬜ |
 | T4.5 | **Trình kiểm tra kịch bản:** kịch bản hợp lệ theo lược đồ; mọi điều kiện đúng trên file mẫu và sai trên file đề | 2 kịch bản viết tay chạy qua được | T4.3, T4.4 | Việt | ⬜ |
