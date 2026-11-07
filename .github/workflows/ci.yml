@@ -1,0 +1,29 @@
+# Kiểm tra tự động mỗi lần push hoặc mở Pull Request: định dạng, lint, test.
+# Chạy trên Windows vì Desktop dùng pywin32. Quy tắc: docs/quy-uoc/quy-tac-code.md
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  python:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+          cache: pip
+          cache-dependency-path: |
+            requirements-dev.txt
+            **/pyproject.toml
+      - name: Cài môi trường
+        run: python -m pip install -r requirements-dev.txt
+      - name: Kiểm tra định dạng (ruff format)
+        run: ruff format --check .
+      - name: Kiểm tra quy tắc code (ruff check)
+        run: ruff check .
+      - name: Chạy test (pytest)
+        run: pytest
