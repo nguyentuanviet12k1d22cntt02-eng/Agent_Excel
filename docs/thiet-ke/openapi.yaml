@@ -121,7 +121,10 @@ paths:
   /users/import:
     post:
       tags: [accounts]
-      summary: Nhập danh sách tài khoản từ CSV (email, full_name, role)
+      summary: Nhập danh sách tài khoản từ CSV (email, full_name, role, password)
+      description: |
+        CSV UTF-8 có dòng tiêu đề. `role` bỏ trống là `student`. Dòng không có `password` được tạo mật khẩu
+        ngẫu nhiên, trả về **một lần** trong `generated_passwords` để phát cho học viên (T5.2).
       x-roles: [admin]
       requestBody:
         required: true
@@ -142,6 +145,9 @@ paths:
                 properties:
                   created: { type: integer }
                   skipped: { type: array, items: { type: object, properties: { line: { type: integer }, reason: { type: string } } } }
+                  generated_passwords:
+                    type: array
+                    items: { type: object, properties: { email: { type: string }, password: { type: string } } }
 
   /classes:
     get:

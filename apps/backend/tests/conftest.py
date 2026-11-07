@@ -5,21 +5,26 @@ Lược đồ luôn tạo bằng migration Alembic thật, không dùng `create_
 """
 
 import os
-from collections.abc import Iterator
+import uuid
+from collections.abc import Callable, Iterator
 from pathlib import Path
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import Session
 
 from tutor_backend.core.config import Settings
 from tutor_backend.core.jobs import InlineJobRunner
+from tutor_backend.core.security import TokenType, create_token, hash_password
 from tutor_backend.db.base import Base
 from tutor_backend.db.migrate import downgrade_database, upgrade_database
 from tutor_backend.main import create_app
+from tutor_backend.models import User
 
 TEST_DATABASE_URL_ENV = "TUTOR_TEST_DATABASE_URL"
 TEST_JWT_SECRET = "khoa-chi-dung-cho-test-khong-dung-that"  # noqa: S105
+TEST_PASSWORD = "matkhau-test-123"  # noqa: S105
 
 
 @pytest.fixture(scope="session")
@@ -59,3 +64,42 @@ def app(settings: Settings) -> Iterator[FastAPI]:
 def client(app: FastAPI) -> Iterator[TestClient]:
     with TestClient(app) as test_client:
         yield test_client
+
+
+@pytest.fixture
+def db(app: FastAPI) -> Iterator[Session]:
+    with app.state.session_factory() as session:
+        yield session
+
+
+@pytest.fixture
+def make_user(app: FastAPI) -> Callable[..., User]:
+    """Tạo người dùng thẳng trong CSDL (mật khẩu mặc định TEST_PASSWORD)."""
+
+    def _make(
+        role: str = "teacher", email: str | None = None, password: str = TEST_PASSWORD, **extra: object
+    ) -> User:
+        with app.state.session_factory() as session:
+            user = User(
+                email=email or f"{role}-{uuid.uuid4().hex[:8]}@test.vn",
+                full_name=str(extra.pop("full_name", f"Người dùng {role}")),
+                role=role,
+                password_hash=hash_password(password),
+                **extra,
+            )
+            session.add(user)
+            session.commit()
+            return user
+
+    return _make
+
+
+@pytest.fixture
+def auth(app: FastAPI) -> Callable[[User], dict[str, str]]:
+    """Header Authorization cho một người dùng (không đi qua API đăng nhập)."""
+
+    def _headers(user: User) -> dict[str, str]:
+        token = create_token(user.id, user.role, TokenType.ACCESS, app.state.settings)
+        return {"Authorization": f"Bearer {token}"}
+
+    return _headers
