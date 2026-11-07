@@ -57,6 +57,8 @@ logger = logging.getLogger(__name__)
 5. `ui/` nhận dữ liệu qua **signal/slot** của Qt, không gọi COM, không gọi API trực tiếp.
 6. **Đọc/ghi `NumberFormat` qua COM luôn dùng LCID 1033 (en-US).** pywin32 mặc định gọi COM theo cài đặt vùng của người dùng; trên máy định dạng Việt Nam (dấu thập phân `,`), Excel dịch mã định dạng: ghi `"#,##0"` bị lưu thành `"#.##0"`, đọc ra cũng bị dịch. Gọi `Invoke(dispid, 1033, ...)` thì đọc/ghi đúng mã chuẩn, còn hiển thị trên Excel vẫn theo kiểu Việt Nam. Đã kiểm chứng ở T1.2 (`scripts/build_solutions.py`). `Formula` không bị ảnh hưởng (luôn dùng cú pháp tiếng Anh).
 7. **Không dùng địa chỉ ghép nhiều vùng** kiểu `Range("A1:A5,C1:C5")`: Excel báo lỗi trên máy định dạng Việt Nam. Thao tác từng vùng riêng, hoặc dùng `Application.Union`.
+8. **Gọi `Range.Sort` luôn truyền `Orientation=1`** (trên xuống dưới). Không truyền thì Excel có thể sắp theo chiều ngang và xáo trộn các cột. Đã kiểm chứng ở T2.3.
+9. **Không suy ra "đã sắp xếp" từ `Sheet.Sort.SortFields`**; kiểm bằng thứ tự dữ liệu thật. Không giả định vị trí cột, tìm cột theo tiêu đề.
 
 ### 2.4. Quy tắc riêng cho Backend
 
