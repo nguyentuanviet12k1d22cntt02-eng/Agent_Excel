@@ -6,6 +6,7 @@ Thư viện Python dùng chung cho Backend và Desktop.
 |---|---|---|
 | `address.py` | Địa chỉ A1: chữ cột, vùng liền kề, duyệt ô | T4.1 |
 | `snapshot/` | Mô hình dữ liệu chung (`model.py`), yêu cầu đọc (`request.py`), phân tích mã định dạng số (`number_format.py`), chuyển JSON (`serialize.py`) | T3.3, T4.1 |
+| `package_props.py` | Ghi thuộc tính tùy chỉnh (mã bài) vào file .xlsx bằng cách sửa gói ZIP, không mở/lưu bằng openpyxl (giữ text box, hình) | T5.6 |
 | `formula.py` | Phân tích công thức: A1 → R1C1, tên hàm, phép tính | T4.2 |
 | `readers/` | Đọc workbook thành snapshot: `openpyxl_reader.py` (file `.xlsx`, Backend; màu theme ở `colors.py`, bộ lọc/trang in/biểu đồ ở `openpyxl_objects.py`), `com_reader.py` (Excel đang chạy, Desktop) | T4.2, T7.2 |
 | `diff/` | So sánh file đề với file kết quả mẫu, gom ô cùng loại thay đổi thành vùng. Xem nhanh: `python -m excel_core.diff de.xlsx dap-an.xlsx` | T4.3 |

@@ -157,7 +157,7 @@ Agent_Excel/
 | T5.3 | API học liệu: tải lên giáo trình, đề bài, file đề, file mẫu; lưu trữ file | Tải lên và tải về được qua Swagger | T5.1 | Hoài | ✅ |
 | T5.4 | **Lập chỉ mục giáo trình (RAG):** tách PDF/DOCX theo mục, tạo embedding, lưu vector; API tìm đoạn liên quan | Truy vấn "hàm VLOOKUP" trả về đúng mục trong giáo trình | T5.3, T0.4 | Việt | ✅ |
 | T5.5 | **Tác tử sinh kịch bản:** đầu vào là diff + đề bài + đoạn giáo trình, đầu ra là kịch bản JSON; chạy T4.5, nếu sai thì tự sửa (có giới hạn số lần) | Sinh được kịch bản hợp lệ cho ít nhất 4 bài mẫu | T4.5, T5.4 | Việt | ✅ |
-| T5.6 | Vòng đời kịch bản: nháp → chờ duyệt → đã duyệt → phát hành; lưu lịch sử phiên bản; khi phát hành thì nhúng mã bài và phiên bản vào file đề | API chuyển trạng thái chạy được; file đề tải về có mã bài | T5.5 | Việt | ⬜ |
+| T5.6 | Vòng đời kịch bản: nháp → chờ duyệt → đã duyệt → phát hành; lưu lịch sử phiên bản; khi phát hành thì nhúng mã bài và phiên bản vào file đề | API chuyển trạng thái chạy được; file đề tải về có mã bài | T5.5 | Việt | ✅ |
 | T5.7 | API cho Desktop: danh sách bài, tải kịch bản theo mã bài + phiên bản, tải file đề, nhận tiến độ và nhật ký | Kiểm tra được bằng một client giả | T5.6 | Hoài | ⬜ |
 | T5.8 | **Đánh giá chất lượng sinh kịch bản:** so kịch bản AI với kịch bản viết tay (tỷ lệ bước đúng, tỷ lệ bước phải sửa) | Có bảng số liệu cho mục 5.2 của báo cáo | T5.5 | Việt | ⬜ |
 

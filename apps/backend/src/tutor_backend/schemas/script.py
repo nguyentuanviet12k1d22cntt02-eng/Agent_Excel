@@ -4,6 +4,8 @@ import uuid
 from datetime import datetime
 from typing import Any
 
+from pydantic import BaseModel, Field
+
 from tutor_backend.models.enums import ScriptOrigin, ScriptStatus
 from tutor_backend.schemas.common import ApiModel
 
@@ -25,3 +27,14 @@ class ScriptVersionSummary(ApiModel):
 class ScriptVersionOut(ScriptVersionSummary):
     content: dict[str, Any]
     self_check_report: dict[str, Any] | None = None
+
+
+class ScriptCreate(BaseModel):
+    """Lưu revision mới; nội dung kiểm theo lược đồ v1 ở service (lỗi trả về kèm đường dẫn JSON)."""
+
+    parent_version_id: uuid.UUID | None = None
+    content: dict[str, Any]
+
+
+class RejectRequest(BaseModel):
+    note: str = Field(min_length=1, max_length=2000)
