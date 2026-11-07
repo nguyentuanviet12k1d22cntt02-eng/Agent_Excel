@@ -1,3 +1,12 @@
-# Công cụ phát triển dùng chung — cài thêm vào môi trường ảo của backend/ hoặc desktop/
+# Môi trường phát triển chung cho mọi phần Python của repo (một .venv ở gốc repo).
+#   py -3.14 -m venv .venv
+#   .venv\Scripts\python -m pip install -r requirements-dev.txt
+
+# Các project trong repo, cài dạng editable (sửa code là có hiệu lực ngay)
+-e packages/excel_core
+-e apps/backend
+-e apps/desktop[build]
+
+# Công cụ phát triển
 pytest==9.2.0
 ruff==0.17.4

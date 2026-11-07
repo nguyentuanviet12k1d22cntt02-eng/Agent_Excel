@@ -29,7 +29,7 @@ spikes/**/*.spec
 
 # ===== Node / Web =====
 node_modules/
-web/dist/
+apps/web/dist/
 *.log
 npm-debug.log*
 
@@ -42,16 +42,24 @@ Thumbs.db
 desktop.ini
 .DS_Store
 .idea/
+# VS Code: chỉ chia sẻ cấu hình chung của nhóm
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
 
 # ===== Dữ liệu chạy thử, không đưa lên repo =====
-backend/storage/
-desktop/cache/
+apps/backend/storage/
+apps/desktop/cache/
+logs/
 *.sqlite3
 *.db
+
+# ===== Bài tập chưa được phép công khai (repo là public) =====
+samples/_local/
 
 # ===== Đề cương: chứa số điện thoại, MSSV — không đưa lên repo =====
 nckh/
 
 # ===== Tài liệu gốc của trung tâm (chưa chuẩn hóa) =====
-# Bản chuẩn hóa nằm trong samples/ (T1.2). Mở dòng này nếu nhóm quyết định đưa bản gốc lên repo riêng tư.
+# Repo là public: tài liệu gốc của trung tâm không đưa lên. Bản chuẩn hóa nằm trong samples/ (T1.2).
 Cơ bản/

@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "excel-core"
+version = "0.1.0"
+description = "Lõi Excel dùng chung: snapshot workbook, so sánh file, kiểm tra điều kiện"
+requires-python = ">=3.14"
+# Thư viện dùng chung: khai báo khoảng phiên bản tương thích, không ghim cứng (==)
+dependencies = [
+    "openpyxl>=3.1,<4",
+]

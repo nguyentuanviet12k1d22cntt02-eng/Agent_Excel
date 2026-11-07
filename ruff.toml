@@ -1,12 +1,20 @@
-# Cấu hình ruff dùng chung cho mọi phần Python trong repo. Xem docs/QUY_UOC.md mục 5.
+# Cấu hình ruff dùng chung cho mọi phần Python. Quy tắc: docs/quy-uoc/quy-tac-code.md
 target-version = "py314"
 line-length = 110
-extend-exclude = ["nckh", "Cơ bản"]
+extend-exclude = ["nckh", "Cơ bản", "samples/_local"]
 
 [lint]
-# E/F: lỗi cơ bản · I: sắp xếp import · B: lỗi hay gặp · UP: cú pháp Python mới · SIM: đơn giản hóa
-select = ["E", "F", "I", "B", "UP", "SIM"]
+# E/W/F: lỗi cơ bản · I: sắp xếp import · N: đặt tên PEP 8 · B: lỗi hay gặp
+# UP: cú pháp Python mới · SIM: đơn giản hóa · PTH: dùng pathlib · T20: cấm print · BLE: cấm bắt Exception chung
+select = ["E", "W", "F", "I", "N", "B", "UP", "SIM", "PTH", "T20", "BLE"]
+
+[lint.isort]
+known-first-party = ["excel_core", "tutor_backend", "tutor_desktop"]
 
 [lint.per-file-ignores]
-# Spike là code thử nghiệm, cho phép bắt mọi lỗi
-"spikes/**" = ["BLE001"]
+# Spike, script tiện ích, điểm khởi động: được dùng print
+"spikes/**" = ["T20", "BLE001", "PTH"]
+"scripts/**" = ["T20"]
+"**/__main__.py" = ["T20"]
+# Test: được dùng assert và tên tự do
+"**/tests/**" = ["N802"]

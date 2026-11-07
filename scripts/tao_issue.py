@@ -1,4 +1,4 @@
-"""T0.6 — Tạo issue GitHub cho từng task trong docs/KE_HOACH_TRIEN_KHAI.md.
+"""T0.6 — Tạo issue GitHub cho từng task trong docs/quan-ly/ke-hoach-trien-khai.md.
 
 Mặc định chỉ IN RA những gì sẽ tạo (chạy thử). Thêm --apply để tạo thật bằng GitHub CLI (`gh`).
 
@@ -26,7 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PLAN = ROOT / "docs" / "KE_HOACH_TRIEN_KHAI.md"
+PLAN = ROOT / "docs" / "quan-ly" / "ke-hoach-trien-khai.md"
 MEMBERS_FILE = ROOT / "scripts" / "thanh_vien.json"
 MEMBER_NAMES = ["Việt", "Hoài", "Linh", "Hòa"]
 
@@ -61,7 +61,7 @@ class Task:
             f"**Hoàn thành khi:** {self.done_when}\n\n"
             f"**Cần trước:** {self.depends_on}\n\n"
             f"**Phụ trách:** {self.owners_raw}\n\n"
-            f"---\nNguồn: `docs/KE_HOACH_TRIEN_KHAI.md`. "
+            f"---\nNguồn: `docs/quan-ly/ke-hoach-trien-khai.md`. "
             f"Nhánh gợi ý: `feature/{self.task_id}-<mo-ta>`. "
             f"Xong thì đổi cột TT của {self.task_id} sang ✅ trong cùng Pull Request."
         )

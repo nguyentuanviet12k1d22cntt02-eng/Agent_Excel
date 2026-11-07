@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tutor-desktop"
+version = "0.1.0"
+description = "Ứng dụng Desktop gia sư Excel trên Windows"
+requires-python = ">=3.14"
+# Ứng dụng: ghim cứng phiên bản (==). Thêm thư viện thì nêu lý do trong Pull Request.
+# excel-core được cài dạng editable qua requirements-dev.txt ở gốc repo.
+dependencies = [
+    "PyQt6==6.12.0",
+    "pywin32==312",
+    # Thư viện UI Automation / MSAA: chọn sau spike T2.4 (ứng viên: uiautomation, comtypes)
+]
+
+[project.optional-dependencies]
+build = ["pyinstaller==6.22.3"]
+
+[project.gui-scripts]
+gia-su-excel = "tutor_desktop.__main__:main"
