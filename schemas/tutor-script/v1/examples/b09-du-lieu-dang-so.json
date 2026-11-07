@@ -1,0 +1,313 @@
+{
+  "schema_version": "1",
+  "exercise": {
+    "id": "b09-du-lieu-dang-so",
+    "title": "Định dạng dữ liệu số",
+    "summary": "Chép số liệu thô ở bảng dưới lên bảng chính, rồi định dạng các cột số theo yêu cầu.",
+    "sheet": "2. Bang_Ke_Ban_Hang",
+    "skills": ["data_entry", "number_formatting"]
+  },
+  "revision": 1,
+  "meta": {
+    "origin": "teacher",
+    "notes": "Chuyển từ docs/kich-ban-tay/b09-du-lieu-dang-so.md (T1.4)."
+  },
+  "references": [
+    {
+      "id": "ref_comma_style",
+      "kind": "exercise_file",
+      "title": "Hướng dẫn dấu phân cách hàng nghìn",
+      "location": "Sheet 1. Thuc_Hanh_Tung_Buoc, ô B5",
+      "quote": "Quét chọn cột ➔ Chọn thẻ Home ➔ Tại nhóm Number ➔ Tích vào dấu , (Comma Style)"
+    },
+    {
+      "id": "ref_decimals",
+      "kind": "exercise_file",
+      "title": "Hướng dẫn tăng/giảm chữ số thập phân",
+      "location": "Sheet 1. Thuc_Hanh_Tung_Buoc, ô B13",
+      "quote": "Dùng 2 nút Increase/Decrease Decimal trên thẻ Home ➔ Tại nhóm Number"
+    }
+  ],
+  "global_checks": [
+    {
+      "type": "data_unchanged",
+      "id": "raw_table_kept",
+      "range": "B17:I22",
+      "description": "Không sửa bảng số liệu thô."
+    },
+    {
+      "type": "is_formula",
+      "id": "amount_formula_kept",
+      "range": "H10:H14",
+      "description": "Không gõ đè lên công thức Thành tiền."
+    }
+  ],
+  "steps": [
+    {
+      "id": "s1_quantity_values",
+      "title": "Nhập Số lượng",
+      "task": "Nhập số lượng của 5 mặt hàng vào cột Số lượng, lấy từ bảng số liệu thô bên dưới.",
+      "targets": {
+        "cells": [
+          { "range": "F10:F14", "role": "target", "label": "cột Số lượng" },
+          { "range": "F18:F22", "role": "source", "label": "Số lượng ở bảng thô" }
+        ]
+      },
+      "checks": [
+        { "type": "value_equals", "range": "F10:F14", "expected": { "from": "range", "range": "F18:F22" } },
+        { "type": "value_type", "range": "F10:F14", "kind": "number" }
+      ],
+      "feedback": [
+        {
+          "code": "stored_as_text",
+          "message": "Số bạn nhập đang được Excel hiểu là chữ. Hãy xóa dấu nháy ' hoặc khoảng trắng ở đầu rồi gõ lại."
+        }
+      ],
+      "hints": [
+        { "level": 1, "text": "Số lượng của từng mặt hàng có sẵn ở bảng số liệu thô phía dưới. Bạn chỉ cần đưa chúng lên đúng dòng." },
+        { "level": 2, "text": "Có thể gõ lại từng số, hoặc sao chép (Ctrl+C) cột Số lượng ở bảng thô rồi dán (Ctrl+V) vào cột Số lượng của bảng chính." },
+        {
+          "level": 3,
+          "text": "Lấy số ở vùng được khoanh bên dưới, đưa lên vùng được khoanh bên trên.",
+          "highlight": [
+            { "cells": { "range": "F18:F22", "role": "source" } },
+            { "cells": { "range": "F10:F14", "role": "target" } }
+          ]
+        },
+        {
+          "level": 4,
+          "text": "Làm theo các bước:",
+          "actions": [
+            "Chọn vùng Số lượng ở bảng thô, bấm Ctrl+C.",
+            "Chọn ô đầu tiên của cột Số lượng ở bảng chính, bấm Ctrl+V.",
+            "Kiểm tra 5 số đã nằm đúng dòng của từng mặt hàng."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s2_quantity_format",
+      "title": "Định dạng Số lượng",
+      "task": "Cột Số lượng hiển thị số nguyên, có dấu phân cách hàng nghìn.",
+      "targets": {
+        "cells": [{ "range": "F10:F14", "role": "target", "label": "cột Số lượng" }],
+        "ui": [
+          { "tab": "TabHome", "control": "CommaStyle", "label": "Comma Style" },
+          { "tab": "TabHome", "control": "DecimalsDecrease", "label": "Decrease Decimal" }
+        ]
+      },
+      "checks": [
+        {
+          "type": "number_format",
+          "range": "F10:F14",
+          "categories": ["number", "accounting"],
+          "decimals": 0,
+          "thousands_separator": true
+        }
+      ],
+      "feedback": [
+        { "code": "wrong_decimals", "message": "Đã có dấu phân cách hàng nghìn rồi, nhưng số lượng không cần phần thập phân." },
+        { "code": "missing_separator", "message": "Còn thiếu dấu phân cách hàng nghìn." }
+      ],
+      "hints": [
+        { "level": 1, "text": "Cách số được hiển thị (dấu phân cách, số chữ số thập phân) được điều chỉnh ở nhóm lệnh Number." },
+        {
+          "level": 2,
+          "text": "Nút Comma Style (dấu phẩy) thêm dấu phân cách hàng nghìn. Sau đó dùng Decrease Decimal để bỏ phần thập phân.",
+          "reference_ids": ["ref_comma_style"]
+        },
+        {
+          "level": 3,
+          "text": "Chọn vùng được khoanh, rồi bấm lần lượt hai nút được khoanh.",
+          "highlight": [
+            { "cells": { "range": "F10:F14", "role": "target" } },
+            { "ui": { "tab": "TabHome", "control": "CommaStyle" } },
+            { "ui": { "tab": "TabHome", "control": "DecimalsDecrease" } }
+          ]
+        },
+        {
+          "level": 4,
+          "text": "Làm theo các bước:",
+          "actions": [
+            "Chọn cột Số lượng (5 ô).",
+            "Thẻ Home → nhóm Number → bấm Comma Style.",
+            "Bấm Decrease Decimal 2 lần cho tới khi không còn số lẻ."
+          ],
+          "alternative": "Chuột phải → Format Cells → Number → Decimal places = 0 → tích Use 1000 Separator."
+        }
+      ],
+      "reference_ids": ["ref_comma_style"]
+    },
+    {
+      "id": "s3_unit_price",
+      "title": "Nhập và định dạng Đơn giá",
+      "task": "Nhập Đơn giá từ bảng thô và hiển thị đúng 2 chữ số thập phân.",
+      "targets": {
+        "cells": [
+          { "range": "G10:G14", "role": "target", "label": "cột Đơn giá" },
+          { "range": "G18:G22", "role": "source", "label": "Đơn giá ở bảng thô" }
+        ],
+        "ui": [{ "tab": "TabHome", "control": "DecimalsIncrease", "label": "Increase Decimal" }]
+      },
+      "checks": [
+        { "type": "value_equals", "range": "G10:G14", "expected": { "from": "range", "range": "G18:G22" } },
+        { "type": "value_type", "range": "G10:G14", "kind": "number" },
+        { "type": "number_format", "range": "G10:G14", "categories": ["number", "accounting", "currency"], "decimals": 2 }
+      ],
+      "feedback": [
+        { "code": "stored_as_text", "message": "Số bạn nhập đang được Excel hiểu là chữ. Hãy gõ lại dưới dạng số." },
+        {
+          "code": "wrong_category",
+          "message": "Số đang hiện đủ 2 số lẻ chỉ vì giá trị gốc có 2 số lẻ. Hãy đặt định dạng để mọi số luôn hiện 2 số lẻ, kể cả số tròn."
+        }
+      ],
+      "hints": [
+        { "level": 1, "text": "Một đơn giá tròn cũng phải hiện kèm 2 chữ số 0 ở phần thập phân. Đó là việc của định dạng, không phải của giá trị." },
+        { "level": 2, "text": "Dùng Increase Decimal để tăng số chữ số thập phân hiển thị.", "reference_ids": ["ref_decimals"] },
+        {
+          "level": 3,
+          "text": "Đưa số liệu từ vùng nguồn lên, chọn vùng đích rồi bấm nút được khoanh.",
+          "highlight": [
+            { "cells": { "range": "G18:G22", "role": "source" } },
+            { "cells": { "range": "G10:G14", "role": "target" } },
+            { "ui": { "tab": "TabHome", "control": "DecimalsIncrease" } }
+          ]
+        },
+        {
+          "level": 4,
+          "text": "Làm theo các bước:",
+          "actions": [
+            "Sao chép Đơn giá ở bảng thô sang cột Đơn giá của bảng chính.",
+            "Chọn cột Đơn giá (5 ô).",
+            "Thẻ Home → nhóm Number → bấm Increase Decimal cho tới khi mọi ô có đúng 2 số lẻ."
+          ],
+          "alternative": "Format Cells → Number → Decimal places = 2."
+        }
+      ],
+      "reference_ids": ["ref_decimals"]
+    },
+    {
+      "id": "s4_amount_format",
+      "title": "Định dạng Thành tiền",
+      "task": "Cột Thành tiền hiển thị đúng 2 chữ số thập phân. Không sửa công thức có sẵn.",
+      "targets": {
+        "cells": [{ "range": "H10:H14", "role": "target", "label": "cột Thành tiền" }]
+      },
+      "checks": [
+        { "type": "formula_matches_r1c1", "range": "H10:H14", "r1c1": "=RC[-2]*RC[-1]" },
+        { "type": "value_equals", "range": "H10:H14", "expected": { "from": "solution" }, "tolerance": 0.005 },
+        { "type": "number_format", "range": "H10:H14", "categories": ["number", "accounting", "currency"], "decimals": 2 }
+      ],
+      "signals": { "immediate_codes": ["wrong_formula", "hardcoded_value"] },
+      "feedback": [
+        {
+          "code": "wrong_formula",
+          "message": "Ô Thành tiền cần giữ công thức để tự tính lại khi Số lượng hoặc Đơn giá thay đổi. Hãy bấm Ctrl+Z để khôi phục."
+        },
+        {
+          "code": "hardcoded_value",
+          "message": "Ô Thành tiền cần giữ công thức để tự tính lại khi Số lượng hoặc Đơn giá thay đổi. Hãy bấm Ctrl+Z để khôi phục."
+        }
+      ],
+      "hints": [
+        { "level": 1, "text": "Thành tiền cũng là tiền như Đơn giá, nên cần cùng kiểu hiển thị." },
+        { "level": 2, "text": "Cách làm giống Đơn giá: dùng Increase/Decrease Decimal. Chỉ đổi định dạng, không gõ vào ô." },
+        {
+          "level": 3,
+          "text": "Chỉ chọn vùng được khoanh và đổi định dạng.",
+          "highlight": [{ "cells": { "range": "H10:H14", "role": "target" } }]
+        },
+        {
+          "level": 4,
+          "text": "Làm theo các bước:",
+          "actions": [
+            "Chọn cột Thành tiền (5 ô).",
+            "Thẻ Home → nhóm Number → chỉnh Increase/Decrease Decimal tới đúng 2 số lẻ.",
+            "Bấm vào ô đầu tiên, kiểm tra thanh công thức vẫn là phép nhân Số lượng với Đơn giá."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s5_discount_rate",
+      "title": "Nhập và định dạng Tỉ lệ giảm giá",
+      "task": "Nhập Tỉ lệ giảm giá và hiển thị đúng 3 chữ số thập phân.",
+      "targets": {
+        "cells": [
+          { "range": "I10:I14", "role": "target", "label": "cột Tỉ lệ giảm giá" },
+          { "range": "I18:I22", "role": "source", "label": "Tỉ lệ giảm giá ở bảng thô" }
+        ],
+        "ui": [{ "tab": "TabHome", "control": "DecimalsIncrease", "label": "Increase Decimal" }]
+      },
+      "checks": [
+        { "type": "value_equals", "range": "I10:I14", "expected": { "from": "range", "range": "I18:I22" } },
+        { "type": "value_type", "range": "I10:I14", "kind": "number" },
+        { "type": "number_format", "range": "I10:I14", "categories": ["number"], "decimals": 3 }
+      ],
+      "feedback": [
+        { "code": "wrong_category", "message": "Bài yêu cầu hiển thị dạng số thập phân (3 số lẻ), không phải phần trăm." },
+        { "code": "wrong_decimals", "message": "Cần đúng 3 chữ số thập phân cho mọi ô, kể cả ô có giá trị 0." }
+      ],
+      "hints": [
+        { "level": 1, "text": "Tỉ lệ cần hiện với đủ 3 chữ số sau dấu thập phân, kể cả dòng có tỉ lệ bằng 0." },
+        { "level": 2, "text": "Bấm Increase Decimal cho tới khi đủ 3 số lẻ. Không dùng nút phần trăm (%)." },
+        {
+          "level": 3,
+          "text": "Đưa số liệu từ vùng nguồn lên, chọn vùng đích rồi bấm nút được khoanh.",
+          "highlight": [
+            { "cells": { "range": "I18:I22", "role": "source" } },
+            { "cells": { "range": "I10:I14", "role": "target" } },
+            { "ui": { "tab": "TabHome", "control": "DecimalsIncrease" } }
+          ]
+        },
+        {
+          "level": 4,
+          "text": "Làm theo các bước:",
+          "actions": [
+            "Sao chép Tỉ lệ giảm giá ở bảng thô sang bảng chính.",
+            "Chọn cột Tỉ lệ giảm giá (5 ô) → chuột phải → Format Cells → Number → Decimal places = 3."
+          ]
+        }
+      ]
+    },
+    {
+      "id": "s6_align_right",
+      "title": "Căn phải các cột số",
+      "task": "Các cột Số lượng, Đơn giá, Thành tiền, Tỉ lệ giảm giá được căn phải.",
+      "targets": {
+        "cells": [{ "range": "F10:I14", "role": "target", "label": "4 cột số" }],
+        "ui": [{ "tab": "TabHome", "control": "AlignRight", "label": "Align Right" }]
+      },
+      "checks": [
+        {
+          "type": "alignment",
+          "range": "F10:I14",
+          "horizontal": ["general", "right"],
+          "description": "General cũng đạt vì Excel tự căn phải số."
+        }
+      ],
+      "feedback": [{ "code": "wrong_alignment", "message": "Số liệu nên căn phải để các hàng đơn vị thẳng cột, dễ so sánh." }],
+      "hints": [
+        { "level": 1, "text": "Số liệu nên căn phải để các hàng đơn vị thẳng cột." },
+        { "level": 2, "text": "Nhóm Alignment trên thẻ Home có nút căn phải." },
+        {
+          "level": 3,
+          "text": "Chọn vùng được khoanh rồi bấm nút được khoanh.",
+          "highlight": [
+            { "cells": { "range": "F10:I14", "role": "target" } },
+            { "ui": { "tab": "TabHome", "control": "AlignRight" } }
+          ]
+        },
+        { "level": 4, "text": "Làm theo các bước:", "actions": ["Chọn 4 cột số của bảng chính.", "Thẻ Home → nhóm Alignment → bấm Align Right."] }
+      ]
+    }
+  ],
+  "completion": {
+    "message": "Bạn đã hoàn thành bài định dạng dữ liệu số!",
+    "criteria": [
+      { "text": "Số lượng hiển thị số nguyên, có dấu phân cách hàng nghìn, căn phải", "step_ids": ["s1_quantity_values", "s2_quantity_format", "s6_align_right"] },
+      { "text": "Đơn giá và Thành tiền hiển thị đúng 2 chữ số thập phân, căn phải", "step_ids": ["s3_unit_price", "s4_amount_format", "s6_align_right"] },
+      { "text": "Tỉ lệ giảm giá hiển thị đúng 3 chữ số thập phân, căn phải", "step_ids": ["s5_discount_rate", "s6_align_right"] }
+    ]
+  }
+}

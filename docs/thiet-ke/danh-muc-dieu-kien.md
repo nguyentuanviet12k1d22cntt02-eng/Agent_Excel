@@ -69,7 +69,13 @@ Tên loại (`check`, `signal`) viết tiếng Anh theo [bảng thuật ngữ](.
 | `page_setup` | Hướng giấy, khổ giấy, lề, vừa trang, vùng in | các thuộc tính cần kiểm | `wrong_orientation`, `wrong_paper_size` | b13 | COM: đọc `PageSetup` **chậm** (gọi driver máy in), chỉ đọc khi bước hiện tại cần (T2.3 đo) |
 | `header_footer` | Số trang ở đầu/cuối trang, vị trí trái/giữa/phải | `position`, `contains` (`&P`) | `missing_page_number`, `wrong_position` | b13 | Cả hai |
 
-### 2.7. Ngoài workbook (chưa hỗ trợ ở v1)
+### 2.7. Biểu đồ
+
+| `type` | Ý nghĩa | Tham số chính | Mã lỗi | Bài dùng | Nguồn đọc |
+|---|---|---|---|---|---|
+| `chart` | Có biểu đồ đúng loại, đúng vùng dữ liệu, có tiêu đề | `chart_types`, `data_range`, `has_title`, `title_contains` | `missing_chart`, `wrong_chart_type`, `wrong_data_range`, `missing_title` | bài trung cấp (chờ T1.1) | Cả hai (T2.3) |
+
+### 2.8. Ngoài workbook
 
 | `type` | Ý nghĩa | Bài | Ghi chú |
 |---|---|---|---|

@@ -1,0 +1,735 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/nguyentuanviet12k1d22cntt02-eng/Agent_Excel/schemas/tutor-script/v1/tutor-script.schema.json",
+  "title": "Kịch bản hướng dẫn thực hành Excel (v1)",
+  "description": "Hợp đồng dữ liệu giữa Backend (sinh, duyệt, phát hành), Web quản trị (xem, sửa) và Desktop (chạy kịch bản). Thiết kế: docs/thiet-ke/luoc-do-kich-ban.md.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "exercise", "revision", "steps"],
+  "properties": {
+    "schema_version": {
+      "description": "Phiên bản lược đồ. Luôn là \"1\" với lược đồ này.",
+      "const": "1"
+    },
+    "exercise": { "$ref": "#/$defs/exercise" },
+    "revision": {
+      "description": "Số phiên bản kịch bản của bài tập này, Backend tăng mỗi lần lưu bản mới. Desktop dùng để biết bản đã tải còn mới không.",
+      "type": "integer",
+      "minimum": 1
+    },
+    "meta": { "$ref": "#/$defs/meta" },
+    "references": {
+      "description": "Nguồn trích dẫn (giáo trình, hướng dẫn có trong file bài tập). Bước và gợi ý trỏ tới bằng id.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/reference" }
+    },
+    "global_checks": {
+      "description": "Điều kiện toàn bài, kiểm ở mọi bước (ví dụ: không sửa dữ liệu gốc, không xóa công thức có sẵn). Không đạt thì phát tín hiệu destructive_change.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/global_check" }
+    },
+    "steps": {
+      "description": "Các bước theo thứ tự học viên nên làm.",
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 30,
+      "items": { "$ref": "#/$defs/step" }
+    },
+    "completion": { "$ref": "#/$defs/completion" }
+  },
+  "$defs": {
+    "id": {
+      "description": "Mã định danh trong kịch bản: chữ thường, số, gạch dưới.",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{0,39}$"
+    },
+    "error_code": {
+      "description": "Mã lỗi do điều kiện kiểm chứng trả về (danh sách: docs/thiet-ke/danh-muc-dieu-kien.md).",
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_]{1,39}$"
+    },
+    "message": {
+      "description": "Câu chữ hiện cho học viên. Ngắn gọn, tiếng Việt.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 600
+    },
+    "sheet_name": {
+      "description": "Tên trang tính. Bỏ trống thì dùng exercise.sheet.",
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 31
+    },
+    "range": {
+      "description": "Địa chỉ một vùng liền kề kiểu A1, không có tên sheet, không ghép nhiều vùng (quy tắc code 2.3 mục 7). Ví dụ: F10:F14, H10.",
+      "type": "string",
+      "pattern": "^\\$?[A-Z]{1,3}\\$?[1-9][0-9]{0,6}(:\\$?[A-Z]{1,3}\\$?[1-9][0-9]{0,6})?$"
+    },
+    "rows": {
+      "description": "Dải dòng, ví dụ 5:7.",
+      "type": "string",
+      "pattern": "^[1-9][0-9]{0,6}(:[1-9][0-9]{0,6})?$"
+    },
+    "cols": {
+      "description": "Dải cột, ví dụ C:D.",
+      "type": "string",
+      "pattern": "^[A-Z]{1,3}(:[A-Z]{1,3})?$"
+    },
+    "color": {
+      "description": "Màu RGB dạng #RRGGBB (màu theme được quy đổi khi đọc).",
+      "type": "string",
+      "pattern": "^#[0-9A-Fa-f]{6}$"
+    },
+    "cell_target": {
+      "description": "Vùng trên trang tính liên quan tới bước.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["range", "role"],
+      "properties": {
+        "sheet": { "$ref": "#/$defs/sheet_name" },
+        "range": { "$ref": "#/$defs/range" },
+        "role": {
+          "description": "target: nơi học viên phải làm; source: dữ liệu nguồn để tham chiếu (chỉ đọc).",
+          "enum": ["target", "source"]
+        },
+        "label": { "description": "Tên gọi để hiện cho học viên, ví dụ \"cột Số lượng\".", "type": "string", "maxLength": 60 }
+      }
+    },
+    "ui_target": {
+      "description": "Thành phần giao diện Excel. Lưu bằng AutomationId (= idMso) để không phụ thuộc ngôn ngữ Office. Danh mục: spikes/t2-4-uia-ribbon/danh-muc-idmso.md.",
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["control"],
+      "properties": {
+        "tab": { "description": "AutomationId của tab Ribbon chứa nút, ví dụ TabHome.", "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{1,63}$" },
+        "control": { "description": "AutomationId của nút, ví dụ CommaStyle.", "type": "string", "pattern": "^[A-Za-z][A-Za-z0-9_]{1,63}$" },
+        "label": { "description": "Tên tiếng Việt để hiện cho học viên.", "type": "string", "maxLength": 60 }
+      }
+    },
+    "exercise": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "sheet"],
+      "properties": {
+        "id": {
+          "description": "Mã bài, trùng với thuộc tính tùy chỉnh tutor_exercise_id nhúng trong file đề khi phát hành.",
+          "type": "string",
+          "pattern": "^[a-z0-9][a-z0-9-]{2,63}$"
+        },
+        "title": { "type": "string", "minLength": 1, "maxLength": 200 },
+        "summary": { "description": "Học viên cần làm gì, 1–3 câu.", "type": "string", "maxLength": 1000 },
+        "sheet": { "description": "Trang tính làm bài mặc định.", "$ref": "#/$defs/sheet_name" },
+        "skills": {
+          "description": "Nhóm kỹ năng (ma trận T1.3), dùng cho luật giảm dần trợ giúp theo kỹ năng.",
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "enum": [
+              "data_entry",
+              "cell_formatting",
+              "number_formatting",
+              "sheet_structure",
+              "page_setup",
+              "formula_basics",
+              "function_math_stat",
+              "function_logical",
+              "function_text",
+              "function_datetime",
+              "function_lookup",
+              "sort",
+              "filter",
+              "chart"
+            ]
+          }
+        }
+      }
+    },
+    "meta": {
+      "description": "Thông tin nguồn gốc kịch bản (không ảnh hưởng cách chạy).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "origin": { "enum": ["ai", "teacher", "ai_edited"] },
+        "model": { "description": "Mô hình LLM đã sinh, ví dụ mercury-3.", "type": "string", "maxLength": 80 },
+        "generated_at": { "type": "string", "format": "date-time" },
+        "notes": { "type": "string", "maxLength": 2000 }
+      }
+    },
+    "reference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "title"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "kind": {
+          "description": "textbook: đoạn giáo trình (RAG); exercise_file: hướng dẫn có sẵn trong file bài tập; teacher_note: ghi chú của giảng viên.",
+          "enum": ["textbook", "exercise_file", "teacher_note"]
+        },
+        "title": { "type": "string", "maxLength": 200 },
+        "location": { "description": "Trang, mục, hoặc sheet/ô chứa đoạn trích.", "type": "string", "maxLength": 200 },
+        "quote": { "description": "Đoạn trích nguyên văn, ngắn.", "type": "string", "maxLength": 1000 }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "title", "task", "targets", "checks", "hints"],
+      "properties": {
+        "id": { "$ref": "#/$defs/id" },
+        "title": { "type": "string", "minLength": 1, "maxLength": 120 },
+        "task": {
+          "description": "Thẻ yêu cầu: nói học viên phải đạt gì, KHÔNG nói cách làm. Luôn hiện khi đang ở bước này.",
+          "$ref": "#/$defs/message"
+        },
+        "skills": { "description": "Ghi đè exercise.skills cho riêng bước này.", "$ref": "#/$defs/exercise/properties/skills" },
+        "targets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["cells"],
+          "properties": {
+            "cells": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/cell_target" } },
+            "ui": { "type": "array", "items": { "$ref": "#/$defs/ui_target" } }
+          }
+        },
+        "checks": {
+          "description": "Điều kiện kiểm chứng. Bước đạt khi MỌI điều kiện đạt.",
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/check" }
+        },
+        "signals": { "$ref": "#/$defs/step_signals" },
+        "feedback": {
+          "description": "Phản hồi riêng cho lỗi hay gặp, theo mã lỗi của điều kiện.",
+          "type": "array",
+          "items": { "$ref": "#/$defs/feedback" }
+        },
+        "hints": {
+          "description": "Đúng 4 cấp gợi ý theo thứ tự: 1 định hướng, 2 gợi ý công cụ, 3 chỉ vị trí, 4 hướng dẫn chi tiết.",
+          "type": "array",
+          "prefixItems": [
+            { "$ref": "#/$defs/hint_orientation" },
+            { "$ref": "#/$defs/hint_tool" },
+            { "$ref": "#/$defs/hint_location" },
+            { "$ref": "#/$defs/hint_detailed" }
+          ],
+          "minItems": 4,
+          "maxItems": 4
+        },
+        "reference_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "step_signals": {
+      "description": "Tham số tín hiệu riêng của bước. Bỏ trống thì dùng mặc định trong docs/thiet-ke/luat-goi-y.md.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "idle_seconds": { "description": "Dừng bao lâu không thay đổi vùng mục tiêu thì phát tín hiệu idle.", "type": "integer", "minimum": 15, "maximum": 600 },
+        "immediate_codes": {
+          "description": "Mã lỗi cần phản hồi NGAY, không chờ (ví dụ gõ đè lên công thức).",
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/error_code" }
+        },
+        "max_auto_level": {
+          "description": "Cấp gợi ý cao nhất gia sư tự đưa ra khi chưa được hỏi. Cấp cao hơn chỉ hiện khi học viên bấm trợ giúp.",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 4
+        }
+      }
+    },
+    "feedback": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["code", "message"],
+      "properties": {
+        "code": { "$ref": "#/$defs/error_code" },
+        "message": { "$ref": "#/$defs/message" },
+        "severity": {
+          "description": "error: chưa đạt; info: chấp nhận nhưng nhắc nhẹ (ví dụ dán kèm định dạng).",
+          "enum": ["error", "info"],
+          "default": "error"
+        }
+      }
+    },
+    "hint_base": {
+      "type": "object",
+      "required": ["level", "text"],
+      "properties": {
+        "level": { "type": "integer" },
+        "text": { "$ref": "#/$defs/message" },
+        "reference_ids": { "type": "array", "items": { "$ref": "#/$defs/id" } }
+      }
+    },
+    "hint_orientation": {
+      "description": "Cấp 1 — định hướng: nhắc mục tiêu, kiến thức liên quan. Không nêu tên công cụ.",
+      "allOf": [{ "$ref": "#/$defs/hint_base" }],
+      "properties": { "level": { "const": 1 }, "text": true, "reference_ids": true },
+      "unevaluatedProperties": false
+    },
+    "hint_tool": {
+      "description": "Cấp 2 — gợi ý công cụ: nêu lệnh, hàm, nút cần dùng.",
+      "allOf": [{ "$ref": "#/$defs/hint_base" }],
+      "properties": { "level": { "const": 2 }, "text": true, "reference_ids": true },
+      "unevaluatedProperties": false
+    },
+    "hint_location": {
+      "description": "Cấp 3 — chỉ vị trí: overlay khoanh vùng ô và/hoặc nút trên giao diện, theo thứ tự.",
+      "allOf": [{ "$ref": "#/$defs/hint_base" }],
+      "required": ["highlight"],
+      "properties": {
+        "level": { "const": 3 },
+        "text": true,
+        "reference_ids": true,
+        "highlight": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "cells": { "$ref": "#/$defs/cell_target" },
+              "ui": { "$ref": "#/$defs/ui_target" }
+            },
+            "minProperties": 1,
+            "maxProperties": 1
+          }
+        }
+      },
+      "unevaluatedProperties": false
+    },
+    "hint_detailed": {
+      "description": "Cấp 4 — hướng dẫn chi tiết: các thao tác cụ thể theo thứ tự. Chỉ hiện khi học viên xin hoặc bế tắc lâu.",
+      "allOf": [{ "$ref": "#/$defs/hint_base" }],
+      "required": ["actions"],
+      "properties": {
+        "level": { "const": 4 },
+        "text": true,
+        "reference_ids": true,
+        "actions": { "type": "array", "minItems": 1, "maxItems": 10, "items": { "$ref": "#/$defs/message" } },
+        "alternative": { "description": "Cách làm khác (nếu có).", "$ref": "#/$defs/message" }
+      },
+      "unevaluatedProperties": false
+    },
+    "completion": {
+      "description": "Đối chiếu tiêu chí của giảng viên với các bước (hiện khi hoàn thành bài).",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "message": { "$ref": "#/$defs/message" },
+        "criteria": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["text", "step_ids"],
+            "properties": {
+              "text": { "$ref": "#/$defs/message" },
+              "step_ids": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/id" } }
+            }
+          }
+        }
+      }
+    },
+    "expected": {
+      "description": "Giá trị kỳ vọng. Mặc định lấy từ file đáp án cùng bố cục (quy tắc: không ghi cứng số liệu).",
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from"],
+          "properties": { "from": { "const": "solution" } }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from", "range"],
+          "properties": {
+            "from": { "const": "range", "description": "Bằng giá trị một vùng khác trong bài (cùng kích thước)." },
+            "sheet": { "$ref": "#/$defs/sheet_name" },
+            "range": { "$ref": "#/$defs/range" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from", "value"],
+          "properties": {
+            "from": { "const": "literal" },
+            "value": { "type": ["number", "string", "boolean"] }
+          }
+        }
+      ]
+    },
+    "check_common": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "type": "string" },
+        "id": { "$ref": "#/$defs/id" },
+        "sheet": { "$ref": "#/$defs/sheet_name" },
+        "description": { "description": "Giải thích cho giảng viên khi duyệt (không hiện cho học viên).", "type": "string", "maxLength": 300 }
+      }
+    },
+    "global_check": {
+      "description": "Điều kiện toàn bài: chỉ các loại bảo vệ dữ liệu.",
+      "allOf": [{ "$ref": "#/$defs/check_common" }],
+      "oneOf": [{ "$ref": "#/$defs/check_data_unchanged" }, { "$ref": "#/$defs/check_is_formula" }]
+    },
+    "check": {
+      "allOf": [{ "$ref": "#/$defs/check_common" }],
+      "oneOf": [
+        { "$ref": "#/$defs/check_value_equals" },
+        { "$ref": "#/$defs/check_value_type" },
+        { "$ref": "#/$defs/check_data_unchanged" },
+        { "$ref": "#/$defs/check_is_formula" },
+        { "$ref": "#/$defs/check_formula_uses_function" },
+        { "$ref": "#/$defs/check_formula_consistent" },
+        { "$ref": "#/$defs/check_formula_matches_r1c1" },
+        { "$ref": "#/$defs/check_number_format" },
+        { "$ref": "#/$defs/check_alignment" },
+        { "$ref": "#/$defs/check_font" },
+        { "$ref": "#/$defs/check_fill" },
+        { "$ref": "#/$defs/check_border" },
+        { "$ref": "#/$defs/check_merged" },
+        { "$ref": "#/$defs/check_row_col_hidden" },
+        { "$ref": "#/$defs/check_row_col_size" },
+        { "$ref": "#/$defs/check_layout_matches" },
+        { "$ref": "#/$defs/check_sheet_exists" },
+        { "$ref": "#/$defs/check_autofilter" },
+        { "$ref": "#/$defs/check_visible_rows" },
+        { "$ref": "#/$defs/check_sorted_by" },
+        { "$ref": "#/$defs/check_page_setup" },
+        { "$ref": "#/$defs/check_header_footer" },
+        { "$ref": "#/$defs/check_chart" },
+        { "$ref": "#/$defs/check_printed_to_pdf" },
+        { "$ref": "#/$defs/check_observation_only" }
+      ]
+    },
+    "check_value_equals": {
+      "description": "Giá trị vùng bằng giá trị kỳ vọng. Mã lỗi: wrong_value, empty.",
+      "type": "object",
+      "required": ["type", "range", "expected"],
+      "properties": {
+        "type": { "const": "value_equals" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "expected": { "$ref": "#/$defs/expected" },
+        "tolerance": { "description": "Sai số cho phép với số.", "type": "number", "minimum": 0, "default": 0 }
+      },
+      "additionalProperties": false
+    },
+    "check_value_type": {
+      "description": "Kiểu dữ liệu của mọi ô trong vùng. Mã lỗi: stored_as_text, wrong_type, empty.",
+      "type": "object",
+      "required": ["type", "range", "kind"],
+      "properties": {
+        "type": { "const": "value_type" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "kind": { "enum": ["number", "date", "text", "logical"] }
+      },
+      "additionalProperties": false
+    },
+    "check_data_unchanged": {
+      "description": "Giá trị và công thức của vùng giữ nguyên như file đề. Mã lỗi: source_modified, formula_overwritten.",
+      "type": "object",
+      "required": ["type", "range"],
+      "properties": {
+        "type": { "const": "data_unchanged" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" }
+      },
+      "additionalProperties": false
+    },
+    "check_is_formula": {
+      "description": "Mọi ô trong vùng là công thức. Mã lỗi: hardcoded_value, empty.",
+      "type": "object",
+      "required": ["type", "range"],
+      "properties": {
+        "type": { "const": "is_formula" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" }
+      },
+      "additionalProperties": false
+    },
+    "check_formula_uses_function": {
+      "description": "Công thức dùng (ít nhất một trong) các hàm yêu cầu. Mã lỗi: missing_function, used_operator_instead.",
+      "type": "object",
+      "required": ["type", "range", "functions"],
+      "properties": {
+        "type": { "const": "formula_uses_function" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "functions": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "type": "string", "pattern": "^[A-Z][A-Z0-9.]{0,30}$" } },
+        "forbid_operator_only": { "description": "Không đạt nếu công thức chỉ dùng phép tính (+ - * /) thay cho hàm.", "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    },
+    "check_formula_consistent": {
+      "description": "Mọi ô cùng một công thức R1C1 (đã sao chép). KHÔNG bắt được lỗi địa chỉ tuyệt đối: luôn kèm value_equals. Mã lỗi: inconsistent_formula, absolute_reference.",
+      "type": "object",
+      "required": ["type", "range"],
+      "properties": {
+        "type": { "const": "formula_consistent" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" }
+      },
+      "additionalProperties": false
+    },
+    "check_formula_matches_r1c1": {
+      "description": "Công thức đúng mẫu R1C1 cho trước (khi chỉ có một cách đúng). Mã lỗi: wrong_formula.",
+      "type": "object",
+      "required": ["type", "range", "r1c1"],
+      "properties": {
+        "type": { "const": "formula_matches_r1c1" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "r1c1": { "type": "string", "pattern": "^=", "maxLength": 500 }
+      },
+      "additionalProperties": false
+    },
+    "check_number_format": {
+      "description": "Định dạng số so theo ý nghĩa, không so chuỗi mã. Mã lỗi: wrong_category, wrong_decimals, missing_separator, unexpected_separator.",
+      "type": "object",
+      "required": ["type", "range"],
+      "properties": {
+        "type": { "const": "number_format" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "categories": {
+          "description": "Các loại định dạng được chấp nhận.",
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["general", "number", "currency", "accounting", "percent", "date", "time", "text", "scientific", "fraction"] }
+        },
+        "decimals": { "type": "integer", "minimum": 0, "maximum": 10 },
+        "thousands_separator": { "type": "boolean" },
+        "date_pattern": { "description": "Mẫu ngày theo mã en-US, ví dụ dd/mm/yyyy.", "type": "string", "maxLength": 40 }
+      },
+      "anyOf": [
+        { "required": ["categories"] },
+        { "required": ["decimals"] },
+        { "required": ["thousands_separator"] },
+        { "required": ["date_pattern"] }
+      ],
+      "additionalProperties": false
+    },
+    "check_alignment": {
+      "description": "Căn lề. Mã lỗi: wrong_alignment, not_wrapped.",
+      "type": "object",
+      "required": ["type", "range"],
+      "properties": {
+        "type": { "const": "alignment" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "horizontal": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["general", "left", "center", "right", "justify", "center_across"] } },
+        "vertical": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["top", "center", "bottom", "justify"] } },
+        "wrap_text": { "type": "boolean" }
+      },
+      "minProperties": 3,
+      "additionalProperties": false
+    },
+    "check_font": {
+      "description": "Phông chữ. Chỉ kiểm thuộc tính được ghi. Mã lỗi: wrong_font.",
+      "type": "object",
+      "required": ["type", "range"],
+      "properties": {
+        "type": { "const": "font" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "bold": { "type": "boolean" },
+        "italic": { "type": "boolean" },
+        "underline": { "type": "boolean" },
+        "size": { "type": "number", "minimum": 1, "maximum": 409 },
+        "name": { "type": "string", "maxLength": 60 },
+        "color": { "$ref": "#/$defs/color" }
+      },
+      "minProperties": 3,
+      "additionalProperties": false
+    },
+    "check_fill": {
+      "description": "Màu nền. Mã lỗi: wrong_fill, no_fill.",
+      "type": "object",
+      "required": ["type", "range", "color"],
+      "properties": {
+        "type": { "const": "fill" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "color": { "description": "Màu cụ thể hoặc \"any\" (có tô màu bất kỳ).", "oneOf": [{ "$ref": "#/$defs/color" }, { "const": "any" }] }
+      },
+      "additionalProperties": false
+    },
+    "check_border": {
+      "description": "Viền. Mã lỗi: missing_border, wrong_border_style.",
+      "type": "object",
+      "required": ["type", "range", "sides"],
+      "properties": {
+        "type": { "const": "border" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "sides": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["outline", "inside", "top", "bottom", "left", "right", "inside_horizontal", "inside_vertical"] } },
+        "style": { "enum": ["any", "thin", "medium", "thick", "double", "dashed", "dotted"], "default": "any" }
+      },
+      "additionalProperties": false
+    },
+    "check_merged": {
+      "description": "Vùng được gộp thành một ô. Mã lỗi: not_merged.",
+      "type": "object",
+      "required": ["type", "range"],
+      "properties": {
+        "type": { "const": "merged" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" }
+      },
+      "additionalProperties": false
+    },
+    "check_row_col_hidden": {
+      "description": "Dòng/cột ẩn hoặc hiện. Mã lỗi: wrong_visibility.",
+      "type": "object",
+      "required": ["type", "hidden"],
+      "properties": {
+        "type": { "const": "row_col_hidden" }, "id": true, "sheet": true, "description": true,
+        "rows": { "$ref": "#/$defs/rows" },
+        "cols": { "$ref": "#/$defs/cols" },
+        "hidden": { "type": "boolean" }
+      },
+      "oneOf": [{ "required": ["rows"] }, { "required": ["cols"] }],
+      "additionalProperties": false
+    },
+    "check_row_col_size": {
+      "description": "Chiều cao dòng / độ rộng cột. Mã lỗi: wrong_size.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "row_col_size" }, "id": true, "sheet": true, "description": true,
+        "rows": { "$ref": "#/$defs/rows" },
+        "cols": { "$ref": "#/$defs/cols" },
+        "equals": { "description": "Đơn vị như Excel: điểm cho dòng, số ký tự cho cột.", "type": "number", "exclusiveMinimum": 0 },
+        "same_as": { "description": "Bằng kích thước dòng/cột khác, ví dụ \"4\" hoặc \"B\".", "type": "string", "pattern": "^([1-9][0-9]{0,6}|[A-Z]{1,3})$" },
+        "autofit": { "description": "Vừa khít nội dung (có ngưỡng sai số).", "const": true },
+        "tolerance": { "type": "number", "minimum": 0, "default": 0.5 }
+      },
+      "allOf": [
+        { "oneOf": [{ "required": ["rows"] }, { "required": ["cols"] }] },
+        { "oneOf": [{ "required": ["equals"] }, { "required": ["same_as"] }, { "required": ["autofit"] }] }
+      ],
+      "additionalProperties": false
+    },
+    "check_layout_matches": {
+      "description": "Bảng sau khi chèn/xóa dòng, cột khớp bố cục đáp án (so theo cột khóa, không theo địa chỉ cố định). Mã lỗi: wrong_layout.",
+      "type": "object",
+      "required": ["type", "range", "key_column"],
+      "properties": {
+        "type": { "const": "layout_matches" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "key_column": { "description": "Tiêu đề cột khóa.", "type": "string", "maxLength": 100 }
+      },
+      "additionalProperties": false
+    },
+    "check_sheet_exists": {
+      "description": "Có trang tính tên khớp mẫu. Mã lỗi: missing_sheet.",
+      "type": "object",
+      "required": ["type", "name_pattern"],
+      "properties": {
+        "type": { "const": "sheet_exists" }, "id": true, "sheet": true, "description": true,
+        "name_pattern": { "description": "Biểu thức chính quy, không phân biệt hoa thường.", "type": "string", "maxLength": 100 }
+      },
+      "additionalProperties": false
+    },
+    "check_autofilter": {
+      "description": "Bộ lọc bật đúng cột, đúng tiêu chí. Mã lỗi: no_filter, wrong_column, wrong_criteria.",
+      "type": "object",
+      "required": ["type", "range"],
+      "properties": {
+        "type": { "const": "autofilter" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "column": { "description": "Tiêu đề cột được lọc (tìm cột theo tiêu đề, quy tắc code 2.3 mục 9).", "type": "string", "maxLength": 100 },
+        "criteria": { "description": "Tiêu chí, ví dụ [\">=5\"] hoặc danh sách giá trị được chọn.", "type": "array", "items": { "type": "string", "maxLength": 100 } }
+      },
+      "additionalProperties": false
+    },
+    "check_visible_rows": {
+      "description": "Đúng tập dòng đang hiện sau khi lọc. Mã lỗi: wrong_rows_visible.",
+      "type": "object",
+      "required": ["type", "range", "expected"],
+      "properties": {
+        "type": { "const": "visible_rows" }, "id": true, "sheet": true, "description": true,
+        "range": { "$ref": "#/$defs/range" },
+        "expected": { "$ref": "#/$defs/expected" }
+      },
+      "additionalProperties": false
+    },
+    "check_sorted_by": {
+      "description": "Vùng được sắp xếp theo cột khóa; kiểm bằng thứ tự dữ liệu thật, không dùng Sort.SortFields. Mã lỗi: not_sorted, wrong_order, rows_broken.",
+      "type": "object",
+      "required": ["type", "range", "key_column", "order"],
+      "properties": {
+        "type": { "const": "sorted_by" }, "id": true, "sheet": true, "description": true,
+        "range": { "description": "Vùng dữ liệu, kể cả dòng tiêu đề nếu has_header.", "$ref": "#/$defs/range" },
+        "key_column": { "description": "Tiêu đề cột khóa.", "type": "string", "maxLength": 100 },
+        "order": { "enum": ["asc", "desc"] },
+        "has_header": { "type": "boolean", "default": true }
+      },
+      "additionalProperties": false
+    },
+    "check_page_setup": {
+      "description": "Thiết lập trang in. COM đọc PageSetup chậm: Desktop chỉ đọc khi bước hiện tại cần. Mã lỗi: wrong_orientation, wrong_paper_size, wrong_margins, wrong_fit, wrong_print_area.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "page_setup" }, "id": true, "sheet": true, "description": true,
+        "orientation": { "enum": ["portrait", "landscape"] },
+        "paper_size": { "enum": ["A4", "A3", "A5", "letter", "legal"] },
+        "margins_cm": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "top": { "type": "number", "minimum": 0 },
+            "bottom": { "type": "number", "minimum": 0 },
+            "left": { "type": "number", "minimum": 0 },
+            "right": { "type": "number", "minimum": 0 },
+            "tolerance": { "type": "number", "minimum": 0, "default": 0.1 }
+          }
+        },
+        "fit_to_pages_wide": { "type": "integer", "minimum": 1 },
+        "fit_to_pages_tall": { "type": "integer", "minimum": 1 },
+        "center_horizontally": { "type": "boolean" },
+        "print_area": { "$ref": "#/$defs/range" }
+      },
+      "minProperties": 2,
+      "additionalProperties": false
+    },
+    "check_header_footer": {
+      "description": "Đầu/cuối trang có nội dung yêu cầu (ví dụ số trang &P). Mã lỗi: missing_page_number, wrong_position.",
+      "type": "object",
+      "required": ["type", "position", "contains"],
+      "properties": {
+        "type": { "const": "header_footer" }, "id": true, "sheet": true, "description": true,
+        "position": { "enum": ["header_left", "header_center", "header_right", "footer_left", "footer_center", "footer_right"] },
+        "contains": { "type": "string", "minLength": 1, "maxLength": 100 }
+      },
+      "additionalProperties": false
+    },
+    "check_chart": {
+      "description": "Có biểu đồ đúng loại, đúng vùng dữ liệu. Mã lỗi: missing_chart, wrong_chart_type, wrong_data_range, missing_title.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "chart" }, "id": true, "sheet": true, "description": true,
+        "chart_types": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "enum": ["column", "bar", "line", "pie", "doughnut", "area", "scatter"] } },
+        "data_range": { "$ref": "#/$defs/range" },
+        "has_title": { "type": "boolean" },
+        "title_contains": { "type": "string", "maxLength": 100 }
+      },
+      "additionalProperties": false
+    },
+    "check_printed_to_pdf": {
+      "description": "Học viên đã in ra PDF (sự kiện WorkbookBeforePrint, T2.4). Chỉ Desktop kiểm được. Mã lỗi: not_printed.",
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": { "const": "printed_to_pdf" }, "id": true, "sheet": true, "description": true
+      },
+      "additionalProperties": false
+    },
+    "check_observation_only": {
+      "description": "Bước quan sát/nhận xét, không chấm: học viên tự bấm \"Đã xong\".",
+      "type": "object",
+      "required": ["type", "confirm_text"],
+      "properties": {
+        "type": { "const": "observation_only" }, "id": true, "sheet": true, "description": true,
+        "confirm_text": { "description": "Câu hỏi/nhắc hiện cạnh nút Đã xong.", "$ref": "#/$defs/message" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

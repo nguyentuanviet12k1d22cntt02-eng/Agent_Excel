@@ -1,0 +1,137 @@
+# Lược đồ kịch bản hướng dẫn JSON v1
+
+**Task:** T3.2 · **Báo cáo:** mục 3.5 · **Trạng thái:** v1, chờ GVHD rà soát (T3.8)
+**File:** [`schemas/tutor-script/v1/tutor-script.schema.json`](../../schemas/tutor-script/v1/tutor-script.schema.json) (JSON Schema draft 2020-12)
+**Ví dụ:** [b09](../../schemas/tutor-script/v1/examples/b09-du-lieu-dang-so.json), [b22](../../schemas/tutor-script/v1/examples/b22-ham-tinh-tong.json), chuyển từ 2 kịch bản viết tay · **Test:** `packages/excel_core/tests/test_script_schema.py`
+
+## 1. Vai trò
+
+Kịch bản là **hợp đồng** giữa 3 phần:
+
+| Bên | Làm gì với kịch bản |
+|---|---|
+| Backend | AI sinh ra → kiểm theo lược đồ → tự kiểm trên file đề/đáp án → lưu phiên bản |
+| Web quản trị | Giảng viên xem, sửa, duyệt, phát hành |
+| Desktop | Tải bản đã phát hành, chạy từng bước: kiểm chứng, bắt tín hiệu, hiện gợi ý |
+
+Vì Desktop **không gọi AI**, mọi thứ Desktop cần để hướng dẫn phải có sẵn trong kịch bản: điều kiện kiểm chứng, vùng mục tiêu, gợi ý 4 cấp, phản hồi cho lỗi hay gặp.
+
+## 2. Cấu trúc
+
+```
+kịch bản
+├─ schema_version: "1"
+├─ exercise        mã bài (= tutor_exercise_id trong file đề), tên, sheet làm bài, nhóm kỹ năng
+├─ revision        số phiên bản kịch bản (Backend tăng)
+├─ meta            nguồn gốc: ai / teacher / ai_edited, mô hình, thời điểm sinh
+├─ references[]    trích dẫn: giáo trình (RAG), hướng dẫn trong file bài, ghi chú giảng viên
+├─ global_checks[] điều kiện toàn bài (bảo vệ dữ liệu) → tín hiệu destructive_change
+├─ steps[]         1–30 bước
+│  ├─ id, title
+│  ├─ task         THẺ YÊU CẦU: phải đạt gì, không nói cách làm (luôn hiện)
+│  ├─ targets      cells[] (vùng target / source) + ui[] (nút Ribbon theo idMso)
+│  ├─ checks[]     điều kiện kiểm chứng; bước đạt khi mọi điều kiện đạt
+│  ├─ signals      tham số tín hiệu riêng: idle_seconds, immediate_codes, max_auto_level
+│  ├─ feedback[]   phản hồi riêng theo mã lỗi (error / info)
+│  ├─ hints[4]     đúng 4 cấp, đúng thứ tự
+│  └─ reference_ids[]
+└─ completion      lời kết + đối chiếu tiêu chí của giảng viên với các bước
+```
+
+### 2.1. Gợi ý 4 cấp
+
+Lược đồ dùng `prefixItems` để bắt buộc **đúng 4 phần tử, đúng thứ tự cấp**, mỗi cấp có hình dạng riêng:
+
+| Cấp | Tên | Bắt buộc có | Hiện ở đâu |
+|---|---|---|---|
+| 1 | Định hướng | `text` | Cửa sổ gia sư |
+| 2 | Gợi ý công cụ | `text` | Cửa sổ gia sư |
+| 3 | Chỉ vị trí | `text` + `highlight[]` (vùng ô và/hoặc nút, **theo thứ tự**) | Cửa sổ gia sư + **overlay** trên Excel |
+| 4 | Hướng dẫn chi tiết | `text` + `actions[]` (≤ 10 thao tác), `alternative` tùy chọn | Cửa sổ gia sư |
+
+Khi nào hiện cấp nào: [luat-goi-y.md](luat-goi-y.md).
+
+### 2.2. Vùng mục tiêu
+
+- **Ô:** địa chỉ A1 **một vùng liền kề**, không tên sheet (`sheet` là trường riêng, mặc định `exercise.sheet`). Không cho địa chỉ ghép `A1:A5,C1:C5`, vì Excel lỗi trên máy định dạng Việt Nam (quy tắc code 2.3 mục 7). `role`: `target` (nơi phải làm) hoặc `source` (dữ liệu nguồn, chỉ đọc).
+- **Giao diện:** `{"tab": "TabHome", "control": "CommaStyle"}`, là **AutomationId = idMso**, không phụ thuộc ngôn ngữ Office (T2.4). Danh mục: [danh-muc-idmso.md](../../spikes/t2-4-uia-ribbon/danh-muc-idmso.md). Lược đồ chặn tên có dấu cách (`"Comma Style"`) để tránh lưu nhầm tên hiển thị.
+
+### 2.3. Điều kiện kiểm chứng
+
+25 loại theo [danh-muc-dieu-kien.md](danh-muc-dieu-kien.md), mỗi loại có `$defs/check_<type>` riêng với tham số chặt (`additionalProperties: false`). Các quyết định chính:
+
+| Quyết định | Lý do |
+|---|---|
+| Giá trị kỳ vọng mặc định `{"from": "solution"}`, hoặc `{"from": "range"}` | Không ghi cứng số liệu trong kịch bản (T2.6: AI bịa số) |
+| `number_format` so theo ý nghĩa: `categories`, `decimals`, `thousands_separator` | Mã định dạng khác nhau giữa máy vi-VN và en-US (T1.2) |
+| `alignment.horizontal` là danh sách chấp nhận (`["general","right"]`) | Excel tự căn phải số (T2.6) |
+| `formula_consistent` ghi chú "luôn kèm `value_equals`" | R1C1 không bắt được lỗi `$` (đã kiểm chứng) |
+| `sorted_by`, `autofilter`: cột theo **tiêu đề**, không theo chữ cái | Quy tắc code 2.3 mục 9 |
+| `global_checks` chỉ nhận `data_unchanged`, `is_formula` | Điều kiện toàn bài chỉ để bảo vệ dữ liệu |
+| Thêm `chart` (biểu đồ) | Phạm vi đề cương có biểu đồ; bài trung cấp sẽ dùng |
+| `printed_to_pdf` | Chấm được nhờ sự kiện `WorkbookBeforePrint` (T2.4) |
+
+### 2.4. Phản hồi riêng và tín hiệu
+
+- `feedback[].code` là mã lỗi điều kiện trả về (`stored_as_text`, `absolute_reference`…). Desktop chọn câu phản hồi theo mã lỗi thay vì chỉ báo "sai". `severity: info` dùng cho trường hợp **chấp nhận nhưng nhắc nhẹ**.
+- `signals.immediate_codes`: mã lỗi phải phản hồi **ngay**, không chờ (b09 bước 4: gõ đè lên công thức).
+- `signals.max_auto_level`: cấp cao nhất gia sư tự đưa ra; cấp cao hơn chỉ khi học viên bấm trợ giúp (không làm thay).
+
+## 3. Kiểm tra kịch bản: 3 tầng
+
+| Tầng | Kiểm gì | Ở đâu | Có từ |
+|---|---|---|---|
+| 1. Lược đồ | Cấu trúc, kiểu, tham số, đúng 4 cấp gợi ý | `jsonschema` | **T3.2 (đã có)** |
+| 2. Tham chiếu chéo | id bước không trùng; `reference_ids`, `completion.step_ids` trỏ tới cái có thật; `feedback.code` là mã mà điều kiện của bước có thể trả về; vùng `highlight` nằm trong `targets` | `excel_core/script/` | T3.2 có bản đầu trong test; hoàn thiện ở T4.x |
+| 3. Tự kiểm trên file | Mỗi điều kiện **đạt trên đáp án, không đạt trên đề**; độ phủ diff; số và địa chỉ ô trong chữ gợi ý có thật | Backend (T4.5, T5.5) | GĐ4–5 |
+
+Tầng 1 và 2 chạy ở **cả Backend (trước khi lưu) và Desktop (sau khi tải)**: Desktop không chạy kịch bản hỏng.
+
+## 4. Phiên bản và phát hành
+
+### 4.1. Phiên bản lược đồ (`schema_version`)
+
+- Thêm trường **tùy chọn** hoặc loại điều kiện mới → vẫn là v1 (kịch bản cũ vẫn hợp lệ). Desktop cũ gặp loại điều kiện lạ thì **bỏ qua bước đó và báo** thay vì crash.
+- Đổi tên, xóa, đổi nghĩa trường → **v2** ở thư mục mới `schemas/tutor-script/v2/`, không sửa đè (quy tắc code mục 4.1). Backend lưu kèm `schema_version` để biết đọc bằng lược đồ nào.
+
+### 4.2. Phiên bản kịch bản (`revision`) và trạng thái
+
+```mermaid
+stateDiagram-v2
+    [*] --> draft: AI sinh / giảng viên tạo
+    draft --> draft: giảng viên sửa (lưu revision mới)
+    draft --> pending_review: gửi duyệt (đã qua tầng 1–3)
+    pending_review --> draft: từ chối (kèm góp ý)
+    pending_review --> approved: duyệt
+    approved --> published: phát hành
+    published --> archived: phát hành bản mới hơn
+    archived --> [*]
+```
+
+- **Mỗi lần lưu là một `revision` mới, không sửa đè.** Giữ được lịch sử "AI sinh gì, giảng viên sửa gì", là dữ liệu cho đánh giá chất lượng kịch bản AI so với giảng viên (đề cương 5.2: tỉ lệ bước phải chỉnh sửa).
+- **Mỗi bài tại một thời điểm có tối đa một bản `published`.** Phát hành bản mới thì bản cũ chuyển `archived`.
+- **Phát hành** = Backend nhúng `tutor_exercise_id` vào file đề (openpyxl, thuộc tính tùy chỉnh, T2.3) và mở cho Desktop tải.
+- Desktop lưu bản đã tải kèm `revision`; khi có mạng thì hỏi Backend bản mới nhất (ETag). Phiên học đang dở **giữ nguyên revision cũ** tới khi xong, để nhật ký không bị trộn hai phiên bản.
+
+Thiết kế bảng: [csdl.md](csdl.md) (`script_versions`). API: [openapi.yaml](openapi.yaml).
+
+## 5. Chuyển từ kịch bản viết tay
+
+| Kịch bản tay | JSON |
+|---|---|
+| Thẻ yêu cầu | `task` |
+| Vùng mục tiêu: trang tính / tham chiếu / giao diện | `targets.cells` (`target` / `source`), `targets.ui` |
+| Điều kiện kiểm chứng (a), (b), (c) | `checks[]`, mỗi ý một điều kiện |
+| Tín hiệu kích hoạt | phần chung do Teaching Agent tự bắt (luật gợi ý); phần riêng ghi ở `signals` |
+| Phản hồi riêng cho lỗi hay gặp | `feedback[]` theo mã lỗi |
+| Bảng gợi ý cấp 1–4 | `hints[]`; cấp 3 *(Overlay)* → `highlight[]`; cấp 4 đánh số → `actions[]` |
+| Điều kiện toàn bài | `global_checks[]` |
+| Bảng "Hoàn thành bài" | `completion.criteria` |
+
+Khi chuyển, đã sửa 2 điểm: (1) gợi ý **không ghi địa chỉ ô và số liệu cụ thể** trong chữ (vị trí đã có overlay chỉ), theo quyết định 8 của GĐ2; (2) bỏ phản hồi "dán kèm định dạng" của b09, vì chưa có điều kiện nào trả mã lỗi đó. Ghi nhận để thêm khi làm `checks/` (T4.4).
+
+## 6. Còn mở
+
+1. Câu hỏi cho GVHD trong 2 kịch bản tay (Thành tiền có phải bước bắt buộc; `0.00` có được chấp nhận; `=SUM(C9,D9,E9)`). Bản JSON đang theo phương án nháp.
+2. Thông báo lỗi của `jsonschema` với `oneOf` khó đọc → Web quản trị (T6.x) cần lớp chuyển thông báo lỗi sang tiếng Việt dễ hiểu theo `path` của lỗi.
+3. Danh sách mã lỗi chuẩn cho từng loại điều kiện sẽ chốt khi viết `checks/` (T4.4); mô tả `$defs/check_*` hiện liệt kê mã dự kiến.

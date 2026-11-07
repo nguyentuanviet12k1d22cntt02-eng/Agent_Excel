@@ -1,0 +1,168 @@
+{
+  "schema_version": "1",
+  "exercise": {
+    "id": "b22-ham-tinh-tong",
+    "title": "Hàm tính tổng SUM",
+    "summary": "Tính Tổng tiền từng ngày và dòng TỔNG CỘNG bằng hàm SUM, dùng sao chép công thức để làm nhanh.",
+    "sheet": "Bài 01",
+    "skills": ["formula_basics", "function_math_stat"]
+  },
+  "revision": 1,
+  "meta": {
+    "origin": "teacher",
+    "notes": "Chuyển từ docs/kich-ban-tay/b22-ham-tinh-tong.md (T1.5). Bài có nhiều đáp án đúng: kiểm giá trị + có SUM + sao chép nhất quán, không so nguyên văn công thức."
+  },
+  "references": [
+    {
+      "id": "ref_task",
+      "kind": "exercise_file",
+      "title": "Yêu cầu của đề",
+      "location": "Sheet Bài 01, ô J9:J11",
+      "quote": "Hãy tính Tổng tiền bằng hàm SUM. Hãy hoàn thành dòng TỔNG CỘNG bằng hàm SUM. Hãy dùng phương pháp sao chép công thức để thực hiện nhanh."
+    }
+  ],
+  "global_checks": [
+    { "type": "data_unchanged", "id": "source_data_kept", "range": "C9:E19", "description": "Không sửa số liệu tiền Bún, Thịt, Cá." }
+  ],
+  "steps": [
+    {
+      "id": "s1_first_total",
+      "title": "Tổng tiền ngày đầu tiên",
+      "task": "Tính Tổng tiền của ngày đầu tiên bằng hàm SUM.",
+      "targets": {
+        "cells": [
+          { "range": "F9", "role": "target", "label": "Tổng tiền ngày đầu" },
+          { "range": "C9:E9", "role": "source", "label": "3 khoản tiền ngày đầu" }
+        ],
+        "ui": [{ "tab": "TabHome", "control": "AutoSum", "label": "AutoSum (Σ)" }]
+      },
+      "checks": [
+        { "type": "is_formula", "range": "F9" },
+        { "type": "formula_uses_function", "range": "F9", "functions": ["SUM"] },
+        { "type": "value_equals", "range": "F9", "expected": { "from": "solution" } }
+      ],
+      "feedback": [
+        { "code": "used_operator_instead", "message": "Kết quả đúng rồi! Nhưng bài yêu cầu dùng hàm SUM, hãy viết lại bằng SUM." },
+        { "code": "hardcoded_value", "message": "Ô Tổng tiền cần công thức để tự tính lại khi số liệu thay đổi." },
+        { "code": "wrong_value", "message": "Hãy kiểm tra lại vùng cộng: chỉ gồm Tiền Bún, Tiền Thịt, Tiền Cá." }
+      ],
+      "hints": [
+        { "level": 1, "text": "Tổng tiền một ngày bằng cộng 3 khoản tiền trên cùng dòng. Excel có sẵn hàm để cộng một vùng ô." },
+        { "level": 2, "text": "Dùng hàm SUM với vùng 3 ô tiền. Nút AutoSum (Σ) sẽ gõ sẵn hàm này cho bạn." },
+        {
+          "level": 3,
+          "text": "Chọn ô được khoanh, cộng vùng 3 ô bên cạnh bằng nút được khoanh.",
+          "highlight": [
+            { "cells": { "range": "F9", "role": "target" } },
+            { "cells": { "range": "C9:E9", "role": "source" } },
+            { "ui": { "tab": "TabHome", "control": "AutoSum" } }
+          ]
+        },
+        {
+          "level": 4,
+          "text": "Làm theo các bước:",
+          "actions": ["Chọn ô Tổng tiền của ngày đầu tiên.", "Gõ =SUM( rồi quét chọn 3 ô tiền cùng dòng, gõ ) và bấm Enter."],
+          "alternative": "Chọn ô → Home → AutoSum → kiểm tra vùng được chọn chỉ gồm 3 ô tiền → Enter."
+        }
+      ],
+      "reference_ids": ["ref_task"]
+    },
+    {
+      "id": "s2_copy_down",
+      "title": "Sao chép công thức xuống các ngày còn lại",
+      "task": "Hoàn thành Tổng tiền cho tất cả các ngày bằng cách sao chép công thức.",
+      "targets": {
+        "cells": [{ "range": "F9:F19", "role": "target", "label": "cột Tổng tiền" }]
+      },
+      "checks": [
+        { "type": "is_formula", "range": "F9:F19" },
+        { "type": "formula_uses_function", "range": "F9:F19", "functions": ["SUM"] },
+        { "type": "formula_consistent", "range": "F9:F19" },
+        { "type": "value_equals", "range": "F9:F19", "expected": { "from": "solution" } }
+      ],
+      "signals": { "idle_seconds": 45 },
+      "feedback": [
+        {
+          "code": "absolute_reference",
+          "message": "Các ngày đang ra cùng một tổng tiền. Công thức đang dùng địa chỉ cố định ($), nên khi sao chép không tự đổi theo dòng."
+        },
+        { "code": "inconsistent_formula", "message": "Các ô trong cột chưa dùng cùng một công thức. Hãy sao chép công thức từ ô đầu tiên." }
+      ],
+      "hints": [
+        { "level": 1, "text": "Các ngày khác tính giống hệt ngày đầu, chỉ khác dòng. Không cần gõ lại từng ô." },
+        { "level": 2, "text": "Dùng Fill Handle: kéo góc dưới phải của ô đã có công thức xuống, Excel tự đổi số dòng trong công thức." },
+        {
+          "level": 3,
+          "text": "Kéo góc dưới phải của ô đầu tiên xuống hết vùng được khoanh.",
+          "highlight": [{ "cells": { "range": "F9:F19", "role": "target" } }]
+        },
+        {
+          "level": 4,
+          "text": "Làm theo các bước:",
+          "actions": [
+            "Chọn ô Tổng tiền của ngày đầu tiên.",
+            "Đưa chuột tới góc dưới phải ô cho tới khi hiện dấu + màu đen.",
+            "Kéo xuống tới ngày cuối cùng (hoặc nhấp đúp vào dấu +).",
+            "Bấm vào một ô ở giữa, kiểm tra công thức đã đổi theo đúng dòng."
+          ]
+        }
+      ],
+      "reference_ids": ["ref_task"]
+    },
+    {
+      "id": "s3_grand_total",
+      "title": "Dòng TỔNG CỘNG",
+      "task": "Hoàn thành dòng TỔNG CỘNG bằng hàm SUM.",
+      "targets": {
+        "cells": [
+          { "range": "C20:F20", "role": "target", "label": "dòng TỔNG CỘNG" },
+          { "range": "C9:F19", "role": "source", "label": "số liệu các ngày" }
+        ]
+      },
+      "checks": [
+        { "type": "is_formula", "range": "C20:F20" },
+        { "type": "formula_uses_function", "range": "C20:F20", "functions": ["SUM"] },
+        { "type": "value_equals", "range": "C20:F20", "expected": { "from": "solution" } },
+        {
+          "type": "formula_consistent",
+          "range": "C20:E20",
+          "description": "F20 được phép khác (=SUM(F9:F19) hoặc =SUM(C20:E20) đều đúng)."
+        }
+      ],
+      "feedback": [
+        { "code": "wrong_value", "message": "Tổng đang chưa đúng. Hãy kiểm tra vùng cộng có đủ tất cả các ngày, không thiếu ngày cuối." },
+        { "code": "inconsistent_formula", "message": "Hãy viết công thức ở cột đầu rồi sao chép sang phải cho các cột còn lại." }
+      ],
+      "hints": [
+        { "level": 1, "text": "Tổng cộng của một cột bằng cộng tất cả các ngày trong cột đó." },
+        { "level": 2, "text": "Dùng SUM cho cả cột ở ô đầu dòng TỔNG CỘNG, rồi sao chép công thức sang phải." },
+        {
+          "level": 3,
+          "text": "Cộng vùng số liệu được khoanh vào dòng được khoanh.",
+          "highlight": [
+            { "cells": { "range": "C9:C19", "role": "source" } },
+            { "cells": { "range": "C20:F20", "role": "target" } }
+          ]
+        },
+        {
+          "level": 4,
+          "text": "Làm theo các bước:",
+          "actions": [
+            "Chọn ô đầu dòng TỔNG CỘNG, gõ =SUM( rồi quét chọn cả cột số liệu phía trên, gõ ) và Enter.",
+            "Chọn lại ô đó, kéo Fill Handle sang phải tới cột Tổng tiền.",
+            "Bấm vào một ô ở giữa, kiểm tra công thức đã đổi theo đúng cột."
+          ]
+        }
+      ],
+      "reference_ids": ["ref_task"]
+    }
+  ],
+  "completion": {
+    "message": "Bạn đã hoàn thành bài hàm SUM!",
+    "criteria": [
+      { "text": "Tính Tổng tiền bằng hàm SUM", "step_ids": ["s1_first_total", "s2_copy_down"] },
+      { "text": "Hoàn thành dòng TỔNG CỘNG bằng hàm SUM", "step_ids": ["s3_grand_total"] },
+      { "text": "Dùng phương pháp sao chép công thức", "step_ids": ["s2_copy_down", "s3_grand_total"] }
+    ]
+  }
+}
