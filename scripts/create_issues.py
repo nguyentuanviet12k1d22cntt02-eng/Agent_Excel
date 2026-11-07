@@ -3,9 +3,9 @@
 Mặc định chỉ IN RA những gì sẽ tạo (chạy thử). Thêm --apply để tạo thật bằng GitHub CLI (`gh`).
 
 Ví dụ:
-  python scripts/tao_issue.py                       # chạy thử, mọi giai đoạn
-  python scripts/tao_issue.py --only GĐ0,GĐ1        # chạy thử, chỉ GĐ0 và GĐ1
-  python scripts/tao_issue.py --only GĐ0 --apply    # tạo thật
+  python scripts/create_issues.py                       # chạy thử, mọi giai đoạn
+  python scripts/create_issues.py --only GĐ0,GĐ1        # chạy thử, chỉ GĐ0 và GĐ1
+  python scripts/create_issues.py --only GĐ0 --apply    # tạo thật
 
 Yêu cầu khi --apply:
   - Đã cài GitHub CLI và đăng nhập: `gh auth login`
