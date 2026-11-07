@@ -125,14 +125,14 @@ Agent_Excel/
 
 | ID | Việc cần làm | Hoàn thành khi | Cần trước | Phụ trách | TT |
 |---|---|---|---|---|---|
-| T3.1 | Yêu cầu chức năng và phi chức năng; tác nhân; ca sử dụng cho Web quản trị và Desktop | Có `docs/thiet-ke/dac-ta-yeu-cau.md` | T0.5 | Hoài, Hòa | ⬜ |
-| T3.2 | **Lược đồ kịch bản JSON v1** (JSON Schema): thông tin chung (mã bài, phiên bản), các bước, điều kiện kiểm chứng, vùng mục tiêu (ô/vùng trên trang tính và thành phần giao diện), tín hiệu kích hoạt, gợi ý 4 cấp, trích dẫn giáo trình | Có `schemas/tutor-script/v1/tutor-script.schema.json`; 2 kịch bản viết tay chuyển sang JSON và hợp lệ | T1.6, T2.7 | Việt | ⬜ |
-| T3.3 | Mô hình **snapshot workbook**: những thuộc tính nào được đọc và kiểu dữ liệu chung cho Backend và Desktop | Có `docs/thiet-ke/snapshot.md` | T2.7 | Linh | ⬜ |
-| T3.4 | **Luật điều tiết gợi ý:** khi nào tăng hoặc giảm cấp (số lần sai, thời gian dừng, xin trợ giúp, hoàn thành bước), theo mục 3.6 đề cương | Có `docs/thiet-ke/luat-goi-y.md` | T1.6 | Hòa | ⬜ |
-| T3.5 | Kiến trúc tổng thể: sơ đồ thành phần; sơ đồ tuần tự cho luồng "sinh – duyệt – phát hành" và luồng "học viên thực hành" | Có `docs/thiet-ke/kien-truc.md` | T3.2 | Việt | ⬜ |
-| T3.6 | Thiết kế CSDL (ERD): người dùng, giáo trình, bài tập, phiên bản kịch bản (nháp / chờ duyệt / đã duyệt / phát hành), phiên học, tiến độ, nhật ký | Có ERD và mô tả các bảng | T3.5 | Hoài | ⬜ |
-| T3.7 | Đặc tả REST API (OpenAPI) cho Web và Desktop | Có `docs/thiet-ke/openapi.yaml` | T3.6 | Việt | ⬜ |
-| T3.8 | Trình GVHD rà soát thiết kế, chốt bản v1 | Có biên bản góp ý; gắn tag `design-v1` trên git | T3.1 – T3.7 | Cả nhóm | ⬜ |
+| T3.1 | Yêu cầu chức năng và phi chức năng; tác nhân; ca sử dụng cho Web quản trị và Desktop | Có `docs/thiet-ke/dac-ta-yeu-cau.md` | T0.5 | Hoài, Hòa | ✅ |
+| T3.2 | **Lược đồ kịch bản JSON v1** (JSON Schema): thông tin chung (mã bài, phiên bản), các bước, điều kiện kiểm chứng, vùng mục tiêu (ô/vùng trên trang tính và thành phần giao diện), tín hiệu kích hoạt, gợi ý 4 cấp, trích dẫn giáo trình | Có `schemas/tutor-script/v1/tutor-script.schema.json`; 2 kịch bản viết tay chuyển sang JSON và hợp lệ | T1.6, T2.7 | Việt | ✅ |
+| T3.3 | Mô hình **snapshot workbook**: những thuộc tính nào được đọc và kiểu dữ liệu chung cho Backend và Desktop | Có `docs/thiet-ke/snapshot.md` | T2.7 | Linh | ✅ |
+| T3.4 | **Luật điều tiết gợi ý:** khi nào tăng hoặc giảm cấp (số lần sai, thời gian dừng, xin trợ giúp, hoàn thành bước), theo mục 3.6 đề cương | Có `docs/thiet-ke/luat-goi-y.md` | T1.6 | Hòa | ✅ |
+| T3.5 | Kiến trúc tổng thể: sơ đồ thành phần; sơ đồ tuần tự cho luồng "sinh – duyệt – phát hành" và luồng "học viên thực hành" | Có `docs/thiet-ke/kien-truc.md` | T3.2 | Việt | ✅ |
+| T3.6 | Thiết kế CSDL (ERD): người dùng, giáo trình, bài tập, phiên bản kịch bản (nháp / chờ duyệt / đã duyệt / phát hành), phiên học, tiến độ, nhật ký | Có ERD và mô tả các bảng | T3.5 | Hoài | ✅ |
+| T3.7 | Đặc tả REST API (OpenAPI) cho Web và Desktop | Có `docs/thiet-ke/openapi.yaml` | T3.6 | Việt | ✅ |
+| T3.8 | Trình GVHD rà soát thiết kế, chốt bản v1 | Có biên bản góp ý; gắn tag `design-v1` trên git | T3.1 – T3.7 | Cả nhóm | 🔄 |
 
 ### GĐ4 — Lõi Excel dùng chung `excel_core` (30/11 – 13/12)
 

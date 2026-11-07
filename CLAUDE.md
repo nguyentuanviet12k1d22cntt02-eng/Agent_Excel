@@ -9,6 +9,7 @@ Trả lời người dùng bằng tiếng Việt. Repo là **public**.
 - Quy tắc đặt tên và bảng thuật ngữ code: `docs/quy-uoc/dat-ten.md`
 - Git, commit, Pull Request: `docs/quy-uoc/lam-viec-nhom.md`
 - Kế hoạch và mã task: `docs/quan-ly/ke-hoach-trien-khai.md` (làm task nào thì cập nhật cột TT của task đó)
+- Thiết kế hệ thống (GĐ3): `docs/thiet-ke/README.md`; lược đồ kịch bản là hợp đồng giữa các app: `schemas/tutor-script/v1/`
 
 ## Điểm hay bị sai
 
