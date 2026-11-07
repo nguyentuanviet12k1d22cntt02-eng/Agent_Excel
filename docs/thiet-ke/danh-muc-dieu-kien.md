@@ -73,7 +73,7 @@ Tên loại (`check`, `signal`) viết tiếng Anh theo [bảng thuật ngữ](.
 
 | `type` | Ý nghĩa | Bài | Ghi chú |
 |---|---|---|---|
-| `printed_to_pdf` | Đã in ra file PDF, đúng trang, đúng số bản | b12, b13 | Không thấy trong trạng thái workbook. T2.4 thử bắt hộp thoại In qua UIA; nếu không được thì chỉ hướng dẫn, không chấm |
+| `printed_to_pdf` | Đã in ra file PDF, đúng trang, đúng số bản | b12, b13 | Không thấy trong trạng thái workbook. **Bắt bằng sự kiện `Application.WorkbookBeforePrint`** (T2.4: có báo khi in ra máy in PDF và khi Xuất PDF) + kiểm file PDF xuất hiện |
 | `observation_only` | Bước chỉ để học viên quan sát hoặc nhận xét | b15 bài 06, b27 | Gia sư hiện hướng dẫn, học viên tự bấm "Đã xong" |
 
 ## 3. Loại tín hiệu (`signal`)
@@ -101,10 +101,12 @@ Kết quả làm thử kỹ thuật ([t2-7-bao-cao-spike.md](../task/t2-7-bao-ca
 - `number_format`: COM bắt buộc LCID 1033; định dạng ngày dựng sẵn phải chuẩn hóa (T2.1).
 - `alignment` căn phải cho ô số thường **đạt sẵn trên đề** (Excel tự căn phải số) → bị tự kiểm loại là vô nghĩa (T2.6). Chỉ dùng khi đề yêu cầu căn khác mặc định.
 - Vùng công thức: luôn kèm `value_equals` (AI không tự thêm, T2.6).
+- `printed_to_pdf`: chấm được nhờ sự kiện `WorkbookBeforePrint` (T2.4).
+- `off_target` khi mở hộp thoại: biết được hộp thoại nào, tab nào, mục nào đang chọn trong danh sách (T2.4: `SelectionPattern.GetSelection()`).
 
 ## 5. Việc còn mở
 
 1. Đối chiếu danh mục này với **bộ tiêu chí kiểm tra và quy tắc phản hồi của GĐ1** khi nhóm xác nhận đã có (T0.5).
 2. T2.1, T2.3 đo xem COM đọc được những thuộc tính nào, nhanh không → cập nhật cột "Nguồn đọc".
-3. T2.4 xác định `off_target` (hộp thoại) và `printed_to_pdf` làm được tới đâu.
+3. ~~T2.4 xác định `off_target` (hộp thoại) và `printed_to_pdf` làm được tới đâu.~~ Đã xong: cả hai làm được (mục 4).
 4. Bổ sung loại điều kiện cho **biểu đồ, hàm logic, tham chiếu** khi có bài trung cấp (T1.1).
