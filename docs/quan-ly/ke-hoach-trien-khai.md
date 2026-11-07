@@ -152,7 +152,7 @@ Agent_Excel/
 
 | ID | Việc cần làm | Hoàn thành khi | Cần trước | Phụ trách | TT |
 |---|---|---|---|---|---|
-| T5.1 | Khung FastAPI: cấu hình, kết nối CSDL, migration, xử lý lỗi chung | `/health` chạy; migration tạo đủ bảng theo ERD | T3.6 | Việt | ⬜ |
+| T5.1 | Khung FastAPI: cấu hình, kết nối CSDL, migration, xử lý lỗi chung | `/health` chạy; migration tạo đủ bảng theo ERD | T3.6 | Việt | ✅ |
 | T5.2 | Xác thực và phân quyền (quản trị, giảng viên, học viên) | Đăng nhập trả về token; API chặn đúng khi sai quyền | T5.1 | Hoài | ⬜ |
 | T5.3 | API học liệu: tải lên giáo trình, đề bài, file đề, file mẫu; lưu trữ file | Tải lên và tải về được qua Swagger | T5.1 | Hoài | ⬜ |
 | T5.4 | **Lập chỉ mục giáo trình (RAG):** tách PDF/DOCX theo mục, tạo embedding, lưu vector; API tìm đoạn liên quan | Truy vấn "hàm VLOOKUP" trả về đúng mục trong giáo trình | T5.3, T0.4 | Việt | ⬜ |

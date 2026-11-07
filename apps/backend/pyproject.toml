@@ -16,14 +16,15 @@ dependencies = [
     "python-multipart==0.0.33",
     "pydantic-settings==2.16.2",
     "httpx==0.28.1",
-    # Cơ sở dữ liệu
+    # Cơ sở dữ liệu: PostgreSQL khi triển khai (psycopg 3), SQLite khi phát triển và test (T5.1)
     "SQLAlchemy==2.1.8",
     "alembic==1.20.1",
+    "psycopg[binary]==3.3.8",
     # Đọc Excel, kiểm tra lược đồ kịch bản
     "openpyxl==3.1.5",
     "jsonschema==4.26.0",
     # Chưa chốt, thêm ở task tương ứng:
-    #   driver CSDL + lưu vector ......... T3.6 / T5.4
+    #   lưu vector embedding ............. T5.4 (chờ chọn nhà cung cấp)
     #   đọc PDF/DOCX giáo trình .......... T5.4 (lưu ý: PyMuPDF dùng giấy phép AGPL)
     #   SDK của nhà cung cấp LLM ......... T0.4
 ]
