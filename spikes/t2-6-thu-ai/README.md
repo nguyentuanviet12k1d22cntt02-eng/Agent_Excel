@@ -34,7 +34,7 @@ Bước tự kiểm điều kiện **không** bắt được các lỗi này, v�
 
 ### Lỗi do đầu vào, không phải do AI
 
-- **b22, bước 4** "định dạng dòng 20" xuất hiện vì **file đáp án do nhóm tạo có thêm định dạng** mà đề không yêu cầu. AI làm đúng việc: biến mọi thay đổi trong diff thành bước. → **File đáp án phải sạch**: chỉ chứa đúng những thay đổi đề yêu cầu.
+- **b22, bước "định dạng dòng 20"**: ban đầu nghĩ do file đáp án nhóm tạo có định dạng thừa. Bỏ phần định dạng đó trong `build_solutions.py` và tạo lại, bước này **vẫn xuất hiện**, vì **Excel tự áp định dạng kế toán cho ô công thức `=SUM(...)`** theo định dạng của ô nguồn. → Diff (T4.3) phải **bỏ qua thay đổi định dạng số mà Excel tự sinh khi nhập công thức** (ô mới có công thức, định dạng trùng định dạng ô nguồn). Đồng thời file đáp án vẫn phải sạch.
 - **b09, điều kiện "đạt sẵn trên đề"**: căn phải với ô số luôn đạt (Excel tự căn phải số); định dạng cột F trong đề đã có sẵn dấu nghìn. Tự kiểm phát hiện đúng.
 
 ## Kết luận cho thiết kế (T3.2, T4.5, T5.5)
@@ -47,4 +47,6 @@ Bước tự kiểm điều kiện **không** bắt được các lỗi này, v�
 4. **Điều kiện bắt buộc thêm theo luật, không trông vào AI:** vùng có công thức trong đáp án → luôn có `value_equals` + `formula_consistent` (AI b22 chỉ dùng `formula_uses_function`, không bắt được lỗi `$`).
 5. **Tự kiểm (T4.5) loại được điều kiện vô nghĩa và điều kiện sai**: giữ lại làm bước bắt buộc trước khi giảng viên xem.
 6. **Giảng viên duyệt vẫn cần thiết**: lỗi trong *chữ* của gợi ý (bảo gõ đè công thức) chỉ con người hoặc luật riêng mới bắt được.
-7. Thời gian 5–11 s/bài, chấp nhận được cho thao tác "Sinh" trên Web quản trị (hiện trạng thái "đang sinh").
+7. Thời gian 3–13 s/bài, chấp nhận được cho thao tác "Sinh" trên Web quản trị (hiện trạng thái "đang sinh").
+8. **Kết quả thay đổi giữa các lần chạy** với cùng đầu vào: b22 chạy 3 lần ra 4, 3, 4 bước; 1.000 – 7.900 token ra. Đánh giá chất lượng (T5.8) phải chạy **nhiều lần mỗi bài** và báo trung bình, không lấy một lần.
+9. AI đặt nhầm tên cột ("cột Thành tiền" thay vì "Tổng tiền" ở b22). Prompt nên đưa **tiêu đề cột thật** cho từng vùng trong diff.

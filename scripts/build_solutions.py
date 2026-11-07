@@ -75,8 +75,7 @@ def solve_b22(wb: object) -> None:
     ws = wb.Worksheets("Bài 01")
     ws.Range("F9:F19").Formula = "=SUM(C9:E9)"  # Excel tự đổi địa chỉ tương đối cho từng dòng
     ws.Range("C20:F20").Formula = "=SUM(C9:C19)"
-    for address in ("F9:F19", "C20:F20"):
-        set_number_format(ws.Range(address), get_number_format(ws.Range("C9")))
+    # Không định dạng thêm: đề không yêu cầu. Đáp án phải "sạch", nếu không diff sẽ sinh bước thừa (T2.6).
 
 
 RECIPES: dict[str, Recipe] = {
