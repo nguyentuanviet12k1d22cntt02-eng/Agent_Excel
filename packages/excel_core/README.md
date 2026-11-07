@@ -8,7 +8,7 @@ Thư viện Python dùng chung cho Backend và Desktop.
 | `snapshot/` | Mô hình dữ liệu chung (`model.py`), yêu cầu đọc (`request.py`), phân tích mã định dạng số (`number_format.py`), chuyển JSON (`serialize.py`) | T3.3, T4.1 |
 | `formula.py` | Phân tích công thức: A1 → R1C1, tên hàm, phép tính | T4.2 |
 | `readers/` | Đọc workbook thành snapshot: `openpyxl_reader.py` (file `.xlsx`, Backend; màu theme ở `colors.py`, bộ lọc/trang in/biểu đồ ở `openpyxl_objects.py`), `com_reader.py` (Excel đang chạy, Desktop) | T4.2, T7.2 |
-| `diff/` | So sánh file đề với file kết quả mẫu | T4.3 |
+| `diff/` | So sánh file đề với file kết quả mẫu, gom ô cùng loại thay đổi thành vùng. Xem nhanh: `python -m excel_core.diff de.xlsx dap-an.xlsx` | T4.3 |
 | `checks/` | Kiểm tra điều kiện kiểm chứng, mỗi loại một file | T4.4 |
 | `script/` | Đọc và kiểm tra kịch bản JSON theo lược đồ trong `schemas/` | T4.5 |
 

@@ -5,6 +5,7 @@ from excel_core.address import (
     CellRange,
     column_index,
     column_letter,
+    group_into_ranges,
     parse_cell,
     parse_cols,
     parse_range,
@@ -76,3 +77,10 @@ def test_invalid_range_object_rejected():
 )
 def test_split_sheet_reference(reference: str, expected: tuple[str | None, str]):
     assert split_sheet_reference(reference) == expected
+
+
+def test_group_into_ranges_builds_rectangles():
+    cells = [(c, r) for c in range(6, 10) for r in range(10, 15)]  # F10:I14
+    cells += [(3, 20), (4, 20), (5, 20)]  # C20:E20
+    cells += [(8, 30), (8, 32)]  # không liền nhau
+    assert [str(r) for r in group_into_ranges(cells)] == ["F10:I14", "C20:E20", "H30", "H32"]

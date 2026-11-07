@@ -4,7 +4,7 @@ Chỉ nhận **một vùng liền kề** (quy tắc code 2.3 mục 7). Mọi đ�
 """
 
 import re
-from collections.abc import Iterator
+from collections.abc import Iterable, Iterator
 from dataclasses import dataclass
 
 MAX_ROW = 1_048_576
@@ -187,3 +187,21 @@ def split_sheet_reference(reference: str) -> tuple[str | None, str]:
         if sheet.startswith("'") and sheet.endswith("'"):
             sheet = sheet[1:-1].replace("''", "'")
     return sheet, text.replace("$", "")
+
+
+def group_into_ranges(cells: Iterable[tuple[int, int]]) -> list[CellRange]:
+    """Gom các ô (cột, dòng) thành ít vùng chữ nhật: dải liền theo cột, rồi nối các cột kề cùng dải dòng."""
+    runs: list[tuple[int, int, int]] = []  # (cột, dòng đầu, dòng cuối)
+    for col, row in sorted(set(cells)):
+        if runs and runs[-1][0] == col and runs[-1][2] == row - 1:
+            runs[-1] = (col, runs[-1][1], row)
+        else:
+            runs.append((col, row, row))
+    ranges: list[CellRange] = []
+    for col, first, last in sorted(runs, key=lambda r: (r[1], r[2], r[0])):
+        prev = ranges[-1] if ranges else None
+        if prev and (prev.min_row, prev.max_row) == (first, last) and prev.max_col == col - 1:
+            ranges[-1] = CellRange(prev.min_col, first, col, last)
+        else:
+            ranges.append(CellRange(col, first, col, last))
+    return sorted(ranges, key=lambda r: (r.min_row, r.min_col))
