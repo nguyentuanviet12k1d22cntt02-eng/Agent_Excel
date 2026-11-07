@@ -26,4 +26,7 @@ py -3.14 -m venv .venv
 .venv\Scripts\ruff format .
 .venv\Scripts\ruff check .
 .venv\Scripts\pytest
+# excel_core: so sánh đề/đáp án, kiểm kịch bản 3 tầng
+.venv\Scripts\python -m excel_core.diff de.xlsx dap-an.xlsx
+.venv\Scripts\python -m excel_core.script kich-ban.json --starter de.xlsx --solution dap-an.xlsx
 ```

@@ -64,7 +64,7 @@ Khi nào hiện cấp nào: [luat-goi-y.md](luat-goi-y.md).
 |---|---|
 | Giá trị kỳ vọng mặc định `{"from": "solution"}`, hoặc `{"from": "range"}` | Không ghi cứng số liệu trong kịch bản (T2.6: AI bịa số) |
 | `number_format` so theo ý nghĩa: `categories`, `decimals`, `thousands_separator` | Mã định dạng khác nhau giữa máy vi-VN và en-US (T1.2) |
-| `alignment.horizontal` là danh sách chấp nhận (`["general","right"]`) | Excel tự căn phải số (T2.6) |
+| `alignment.horizontal` so theo **căn lề hiển thị**: ô General chứa số tính là `right` (chỉnh ở T4.4; trước đó ghi `["general","right"]` làm bước căn phải đạt sẵn trên đề, tầng 3 bắt được) | Excel tự căn phải số (T2.6) |
 | `formula_consistent` ghi chú "luôn kèm `value_equals`" | R1C1 không bắt được lỗi `$` (đã kiểm chứng) |
 | `sorted_by`, `autofilter`: cột theo **tiêu đề**, không theo chữ cái | Quy tắc code 2.3 mục 9 |
 | `global_checks` chỉ nhận `data_unchanged`, `is_formula` | Điều kiện toàn bài chỉ để bảo vệ dữ liệu |
@@ -81,9 +81,17 @@ Khi nào hiện cấp nào: [luat-goi-y.md](luat-goi-y.md).
 
 | Tầng | Kiểm gì | Ở đâu | Có từ |
 |---|---|---|---|
-| 1. Lược đồ | Cấu trúc, kiểu, tham số, đúng 4 cấp gợi ý | `jsonschema` | **T3.2 (đã có)** |
-| 2. Tham chiếu chéo | id bước không trùng; `reference_ids`, `completion.step_ids` trỏ tới cái có thật; `feedback.code` là mã mà điều kiện của bước có thể trả về; vùng `highlight` nằm trong `targets` | `excel_core/script/` | T3.2 có bản đầu trong test; hoàn thiện ở T4.x |
-| 3. Tự kiểm trên file | Mỗi điều kiện **đạt trên đáp án, không đạt trên đề**; độ phủ diff; số và địa chỉ ô trong chữ gợi ý có thật | Backend (T4.5, T5.5) | GĐ4–5 |
+| 1. Lược đồ | Cấu trúc, kiểu, tham số, đúng 4 cấp gợi ý | `excel_core.script.schema_issues()` (`jsonschema`) | T3.2 |
+| 2. Tham chiếu chéo | id bước, id điều kiện không trùng; `reference_ids`, `completion.step_ids` trỏ tới cái có thật; `feedback.code` và `signals.immediate_codes` là mã mà điều kiện của bước (hoặc điều kiện toàn bài) **trả về được**; một mã chỉ một phản hồi; vùng/nút `highlight` nằm trong `targets` của bước; `expected.range` cùng kích thước vùng kiểm | `excel_core.script.cross_reference_issues()` | T4.5 |
+| 3. Tự kiểm trên file | Mọi điều kiện **đạt trên đáp án**; mọi bước **chưa đạt trên đề** (điều kiện riêng lẻ đạt sẵn chỉ là cảnh báo: điều kiện giữ); điều kiện toàn bài đạt trên cả hai; **độ phủ diff** theo loại thay đổi (thay đổi định dạng số phải có điều kiện `number_format` phủ...); chữ gợi ý không có địa chỉ ô và số liệu không có trong bài | `excel_core.script.self_check_files()`, Backend (T5.5) | T4.5 |
+
+Kết quả tầng 3 chia **lỗi** (phải sửa trước khi gửi duyệt) và **cảnh báo** (giảng viên xem lại). Kiểm nhanh một kịch bản:
+
+```powershell
+.venv\Scripts\python -m excel_core.script kich-ban.json --starter de.xlsx --solution dap-an.xlsx
+```
+
+Hai kịch bản mẫu chạy qua cả 3 tầng trên file test cùng bố cục ([tests/fixtures](../../packages/excel_core/tests/fixtures/README.md)), độ phủ diff 100%. Tầng 3 đã bắt được lỗi thật của bản b09 đầu tiên: bước "căn phải" đạt sẵn trên file đề (lỗi T2.6), sửa bằng cách so căn lề hiển thị (mục 2.3).
 
 Tầng 1 và 2 chạy ở **cả Backend (trước khi lưu) và Desktop (sau khi tải)**: Desktop không chạy kịch bản hỏng.
 

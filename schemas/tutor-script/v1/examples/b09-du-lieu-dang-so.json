@@ -282,8 +282,8 @@
         {
           "type": "alignment",
           "range": "F10:I14",
-          "horizontal": ["general", "right"],
-          "description": "General cũng đạt vì Excel tự căn phải số."
+          "horizontal": ["right"],
+          "description": "So theo căn lề hiển thị: ô số để General cũng đạt vì Excel tự căn phải số; ô còn trống thì chưa đạt."
         }
       ],
       "feedback": [{ "code": "wrong_alignment", "message": "Số liệu nên căn phải để các hàng đơn vị thẳng cột, dễ so sánh." }],
