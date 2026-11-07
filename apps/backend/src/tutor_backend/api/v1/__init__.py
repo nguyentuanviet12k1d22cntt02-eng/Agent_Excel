@@ -2,8 +2,18 @@
 
 from fastapi import APIRouter
 
-from tutor_backend.api.v1 import auth, classes, exercises, generation, scripts, textbooks, users
+from tutor_backend.api.v1 import (
+    auth,
+    classes,
+    desktop,
+    exercises,
+    generation,
+    scripts,
+    sessions,
+    textbooks,
+    users,
+)
 
 api_router = APIRouter()
-for module in (auth, users, classes, textbooks, exercises, generation, scripts):
+for module in (auth, users, classes, textbooks, exercises, generation, scripts, desktop, sessions):
     api_router.include_router(module.router)

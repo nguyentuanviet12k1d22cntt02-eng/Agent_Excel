@@ -618,11 +618,20 @@ paths:
             application/json:
               schema:
                 type: object
-                required: [version_id, content, mode]
+                required: [version_id, content, mode, references]
                 properties:
                   version_id: { $ref: "#/components/schemas/Id" }
                   mode: { $ref: "#/components/schemas/SessionMode" }
                   content: { $ref: "#/components/schemas/TutorScript" }
+                  references:
+                    type: object
+                    description: |
+                      Snapshot tham chiếu của file đề (`starter`) và file đáp án (`solution`), chỉ gồm các vùng điều
+                      kiện của kịch bản cần (snapshot.md mục 7, T5.7). Desktop không có file đáp án; dựng lại bằng
+                      `excel_core.snapshot.snapshot_from_dict()` rồi chấm bằng `excel_core.checks`.
+                    properties:
+                      starter: { type: object }
+                      solution: { type: object }
         "304": { description: Bản Desktop đang có vẫn là bản mới nhất }
         "404": { $ref: "#/components/responses/NotFound" }
   /desktop/skill-states:
