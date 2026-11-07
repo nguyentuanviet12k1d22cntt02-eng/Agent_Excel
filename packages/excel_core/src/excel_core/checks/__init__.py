@@ -45,7 +45,7 @@ from excel_core.checks.base import (
     Read,
     Source,
 )
-from excel_core.snapshot import ReadRequest, merge_requests
+from excel_core.snapshot import ReadRequest, SheetNotFoundError, merge_requests
 
 _MODULES: tuple[ModuleType, ...] = (
     value_equals,
@@ -126,7 +126,7 @@ def run_check(check: CheckSpec, ctx: CheckContext) -> CheckResult:
         return CheckResult.not_evaluable(f"loại điều kiện chưa hỗ trợ: {check.get('type')!r}")
     try:
         return definition.evaluate(check, ctx)
-    except MissingReferenceError as exc:
+    except (MissingReferenceError, SheetNotFoundError) as exc:
         return CheckResult.not_evaluable(str(exc))
     except CheckSpecError as exc:
         return CheckResult.not_evaluable(f"tham số điều kiện sai: {exc}")

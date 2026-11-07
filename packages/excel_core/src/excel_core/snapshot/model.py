@@ -32,6 +32,10 @@ class SnapshotMissingError(LookupError):
     """Điều kiện cần dữ liệu mà yêu cầu đọc không có: lỗi lập trình, không phải "không đạt"."""
 
 
+class SheetNotFoundError(SnapshotMissingError):
+    """Workbook không có sheet này (học viên đổi tên hoặc xóa sheet): không phải lỗi lập trình."""
+
+
 @dataclass(frozen=True)
 class ErrorValue:
     """Giá trị lỗi của ô, ví dụ "#DIV/0!"."""
@@ -216,7 +220,7 @@ class WorkbookSnapshot:
             return self.sheets[name]
         except KeyError:
             if name not in self.sheet_names:
-                raise SnapshotMissingError(f"Workbook không có sheet {name!r}") from None
+                raise SheetNotFoundError(f"Workbook không có sheet {name!r}") from None
             raise SnapshotMissingError(f"Sheet {name!r} chưa được đọc") from None
 
     def has_sheet(self, name: str) -> bool:

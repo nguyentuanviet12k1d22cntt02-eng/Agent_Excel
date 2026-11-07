@@ -57,3 +57,11 @@ def test_read_requests_are_grouped_by_source():
     assert {r.range for r in requests["solution"].ranges} == {"F10:F14"}
     assert {r.range for r in requests["starter"].ranges} == {"B17:I22"}
     assert set(reference_requests(checks, "S")) == {"solution", "starter"}
+
+
+def test_renamed_sheet_is_not_evaluable_instead_of_crashing(kit):
+    # Học viên đổi tên sheet làm bài: Desktop không được dừng giữa phiên
+    check = {"type": "is_formula", "range": "A1", "sheet": "Bài 01"}
+    result = run_check(check, kit.ctx(kit.book(names=("Bài 01 (đã đổi)",))))
+    assert result.status == CheckStatus.NOT_EVALUABLE
+    assert "không có sheet" in result.detail
