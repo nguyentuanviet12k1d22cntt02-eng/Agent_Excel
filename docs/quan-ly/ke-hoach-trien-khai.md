@@ -1,7 +1,7 @@
 # Kế hoạch triển khai dự án
 
 **Đề tài:** Xây dựng gia sư AI hướng dẫn thực hành Excel dựa trên thao tác của người học
-**Thời gian:** 06/11/2026 – 31/03/2027 · **Cập nhật lần cuối:** 07/11/2026
+**Thời gian:** 06/11/2026 – 31/03/2027 · **Cập nhật lần cuối:** 07/11/2026 (GĐ1)
 **Nhóm:** Nguyễn Tuấn Việt (trưởng nhóm), Diệp Đại Lê Hoài, Nguyễn Văn Linh, Nguyễn Ngọc Hòa · **GVHD:** ThS. Ngô Thị Ngọc Dịu
 
 ---
@@ -98,12 +98,12 @@ Agent_Excel/
 
 | ID | Việc cần làm | Hoàn thành khi | Cần trước | Phụ trách | TT |
 |---|---|---|---|---|---|
-| T1.1 | Xin trung tâm tin học 4–6 bài thực hành, mỗi bài gồm: đề bài, file đề (dữ liệu thô), file kết quả mẫu, chương giáo trình tương ứng. **Hỏi luôn** phiên bản Office và ngôn ngữ giao diện (Việt/Anh) trên máy phòng thực hành | Đủ 4 thành phần cho mỗi bài; biết cấu hình máy ở trung tâm | — | Hoài, Hòa | ⬜ |
-| T1.2 | Chuẩn hóa vào `samples/b<số>-<mô-tả>/` (`de.xlsx`, `dap-an.xlsx`, `de-bai.pdf`, `giao-trinh.pdf`, `thong-tin.md`); xóa dữ liệu cá nhân nếu có | Các bài cùng một cấu trúc thư mục | T1.1 | Hòa | ⬜ |
-| T1.3 | Lập ma trận "bài tập × nhóm kỹ năng" (nhập liệu, định dạng, trang in, 5 nhóm hàm, sắp xếp, lọc, biểu đồ) | Mỗi nhóm kỹ năng trong phạm vi có ít nhất 1 bài | T1.2 | Hoài | ⬜ |
-| T1.4 | Viết tay kịch bản cho bài 1 (dạng markdown): các bước, mỗi bước kiểm tra gì, tín hiệu nào kích hoạt, gợi ý 4 cấp, trích dẫn giáo trình | Có `docs/kich-ban-tay/bai-1.md`, đã nhờ GVHD góp ý | T1.2 | Hoài | ⬜ |
-| T1.5 | Viết tay kịch bản cho bài 2 (chọn bài khác nhóm kỹ năng với bài 1) | Có `docs/kich-ban-tay/bai-2.md` | T1.2 | Hòa | ⬜ |
-| T1.6 | Tổng hợp danh mục **loại điều kiện kiểm chứng** và **loại tín hiệu** từ 2 kịch bản tay và bộ tiêu chí GĐ1 | Có `docs/thiet-ke/danh-muc-dieu-kien.md` | T1.4, T1.5, T0.5 | Hoài, Hòa | ⬜ |
+| T1.1 | Xin trung tâm tin học 4–6 bài thực hành, mỗi bài gồm: đề bài, file đề (dữ liệu thô), file kết quả mẫu, chương giáo trình tương ứng. **Hỏi luôn** phiên bản Office và ngôn ngữ giao diện (Việt/Anh) trên máy phòng thực hành | Đủ 4 thành phần cho mỗi bài; biết cấu hình máy ở trung tâm | — | Hoài, Hòa | 🔄 |
+| T1.2 | Chuẩn hóa vào `samples/b<số>-<mô-tả>/` (`de.xlsx`, `dap-an.xlsx`, `de-bai.pdf`, `giao-trinh.pdf`, `thong-tin.md`); xóa dữ liệu cá nhân nếu có | Các bài cùng một cấu trúc thư mục | T1.1 | Hòa | ✅ |
+| T1.3 | Lập ma trận "bài tập × nhóm kỹ năng" (nhập liệu, định dạng, trang in, 5 nhóm hàm, sắp xếp, lọc, biểu đồ) | Mỗi nhóm kỹ năng trong phạm vi có ít nhất 1 bài | T1.2 | Hoài | ✅ |
+| T1.4 | Viết tay kịch bản cho bài 1 (dạng markdown): các bước, mỗi bước kiểm tra gì, tín hiệu nào kích hoạt, gợi ý 4 cấp, trích dẫn giáo trình | Có `docs/kich-ban-tay/b09-du-lieu-dang-so.md`, đã nhờ GVHD góp ý | T1.2 | Hoài | 🔄 |
+| T1.5 | Viết tay kịch bản cho bài 2 (chọn bài khác nhóm kỹ năng với bài 1) | Có `docs/kich-ban-tay/b22-ham-tinh-tong.md` | T1.2 | Hòa | 🔄 |
+| T1.6 | Tổng hợp danh mục **loại điều kiện kiểm chứng** và **loại tín hiệu** từ 2 kịch bản tay và bộ tiêu chí GĐ1 | Có `docs/thiet-ke/danh-muc-dieu-kien.md` | T1.4, T1.5, T0.5 | Hoài, Hòa | 🔄 |
 
 ### GĐ2 — Làm thử kỹ thuật (09/11 – 22/11)
 
