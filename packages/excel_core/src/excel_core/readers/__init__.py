@@ -6,6 +6,7 @@
 from excel_core.readers.openpyxl_reader import (
     EXERCISE_ID_PROPERTY,
     display_column_width,
+    find_uncalculated_formulas,
     full_request,
     normalize_value,
     read_workbook,
@@ -15,6 +16,7 @@ from excel_core.readers.openpyxl_reader import (
 __all__ = [
     "EXERCISE_ID_PROPERTY",
     "display_column_width",
+    "find_uncalculated_formulas",
     "full_request",
     "normalize_value",
     "read_workbook",

@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     database_url: str = ""
     storage_dir: Path = DEFAULT_STORAGE_DIR
     database_echo: bool = False
+    max_upload_mb: int = 20  # mỗi file tải lên
 
     # ----- Xác thực (kien-truc.md mục 2: access 60 phút, refresh 14 ngày) -----
     jwt_secret: SecretStr | None = None
@@ -72,6 +73,10 @@ class Settings(BaseSettings):
     def files_dir(self) -> Path:
         """Thư mục lưu file tải lên (xlsx, pdf, docx), tên file theo id."""
         return self.storage_dir / "files"
+
+    @property
+    def max_upload_bytes(self) -> int:
+        return self.max_upload_mb * 1024 * 1024
 
     @property
     def is_sqlite(self) -> bool:

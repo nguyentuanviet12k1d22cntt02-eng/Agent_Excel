@@ -9,7 +9,7 @@ from pathlib import Path
 
 import pytest
 
-from excel_core.readers import read_workbook
+from excel_core.readers import find_uncalculated_formulas, read_workbook
 
 
 def test_starter_and_solution_are_readable(sample_folder: Path):
@@ -27,11 +27,5 @@ def test_solution_was_saved_by_excel(sample_folder: Path):
     path = sample_folder / "dap-an.xlsx"
     if not path.is_file():
         pytest.skip("bài chưa có đáp án")
-    snapshot = read_workbook(path)
-    missing = [
-        f"{sheet.name}!{address}"
-        for sheet in snapshot.sheets.values()
-        for address, cell in sheet.cells.items()
-        if cell.is_formula and cell.value_kind == "empty"
-    ]
+    missing = find_uncalculated_formulas(path)
     assert not missing, f"Ô công thức chưa có giá trị (cần mở bằng Excel và lưu lại): {missing[:5]}"

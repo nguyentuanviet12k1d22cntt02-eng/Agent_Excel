@@ -13,6 +13,7 @@ from tutor_backend.db.session import get_db
 from tutor_backend.models import User
 from tutor_backend.models.enums import Role
 from tutor_backend.services import account_service
+from tutor_backend.services.storage import FileStore
 
 
 def get_settings_dep(request: Request) -> Settings:
@@ -23,9 +24,14 @@ def get_jobs(request: Request) -> JobRunner:
     return request.app.state.jobs
 
 
+def get_store(request: Request) -> FileStore:
+    return FileStore(request.app.state.settings.files_dir)
+
+
 DbSession = Annotated[Session, Depends(get_db)]
 AppSettings = Annotated[Settings, Depends(get_settings_dep)]
 Jobs = Annotated[JobRunner, Depends(get_jobs)]
+Store = Annotated[FileStore, Depends(get_store)]
 
 _bearer = HTTPBearer(auto_error=False, description="Access token lấy từ POST /api/v1/auth/login")
 

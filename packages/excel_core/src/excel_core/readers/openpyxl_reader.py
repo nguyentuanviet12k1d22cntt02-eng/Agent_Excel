@@ -97,6 +97,29 @@ def read_workbook(path: Path | str, request: ReadRequest | None = None) -> Workb
     )
 
 
+def find_uncalculated_formulas(path: Path | str, sheet_names: list[str] | None = None) -> list[str]:
+    """Ô công thức chưa có giá trị đã tính, dạng "Sheet!A1" (file tạo bằng code, chưa được Excel mở và lưu).
+
+    Phân biệt với công thức trả về chuỗi rỗng: Excel lưu kết quả đó kèm kiểu chuỗi (`t="str"`), còn ô chưa
+    tính không có kiểu, openpyxl đọc ra `None` với kiểu số `n`.
+    """
+    formulas = openpyxl.load_workbook(path)
+    values = openpyxl.load_workbook(path, data_only=True)
+    found = []
+    for ws in formulas.worksheets:
+        if sheet_names is not None and ws.title not in sheet_names:
+            continue
+        cached_sheet = values[ws.title]
+        for row in ws.iter_rows():
+            for cell in row:
+                if cell.data_type != "f" and not isinstance(cell.value, ArrayFormula):
+                    continue
+                cached = cached_sheet[cell.coordinate]
+                if cached.value is None and cached.data_type == "n":
+                    found.append(f"{ws.title}!{cell.coordinate}")
+    return found
+
+
 def _exercise_id(wb: Workbook) -> str | None:
     for prop in wb.custom_doc_props.props:
         if prop.name == EXERCISE_ID_PROPERTY:

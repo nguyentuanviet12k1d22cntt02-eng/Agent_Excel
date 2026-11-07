@@ -103,3 +103,24 @@ def auth(app: FastAPI) -> Callable[[User], dict[str, str]]:
         return {"Authorization": f"Bearer {token}"}
 
     return _headers
+
+
+REPO = Path(__file__).resolve().parents[3]
+EXCEL_FIXTURES = REPO / "packages" / "excel_core" / "tests" / "fixtures"  # bài tự soạn b09, b22 (GĐ4)
+
+
+@pytest.fixture
+def exercise_files() -> Callable[[str], dict[str, tuple[str, bytes, str]]]:
+    """Phần `files` của request tạo bài tập, lấy file đề/đáp án tự soạn b09 hoặc b22."""
+
+    def _files(name: str = "b09") -> dict[str, tuple[str, bytes, str]]:
+        folder = EXCEL_FIXTURES / name
+        return {
+            "starter_file": ("de.xlsx", (folder / "de.xlsx").read_bytes(), XLSX_MIME),
+            "solution_file": ("dap-an.xlsx", (folder / "dap-an.xlsx").read_bytes(), XLSX_MIME),
+        }
+
+    return _files
+
+
+XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

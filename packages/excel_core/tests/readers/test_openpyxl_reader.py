@@ -7,7 +7,13 @@ from openpyxl.chart import BarChart, PieChart, Reference
 from openpyxl.packaging.custom import StringProperty
 from openpyxl.styles import Alignment, Border, Color, Font, PatternFill, Side
 
-from excel_core.readers import EXERCISE_ID_PROPERTY, display_column_width, full_request, read_workbook
+from excel_core.readers import (
+    EXERCISE_ID_PROPERTY,
+    display_column_width,
+    find_uncalculated_formulas,
+    full_request,
+    read_workbook,
+)
 from excel_core.snapshot import (
     CELL_GROUPS,
     ErrorValue,
@@ -220,3 +226,10 @@ def test_excel_saved_solution_has_formula_values(b22_files):
     assert f9.value == pytest.approx(sum(parts))
     assert {sheet.cell(f"F{r}").formula_r1c1 for r in range(9, 20)} == {"=SUM(RC[-3]:RC[-1])"}
     assert sheet.cell("B9").value_kind == "date"
+
+
+def test_find_uncalculated_formulas(tmp_path: Path, b22_files):
+    # File openpyxl tạo: công thức chưa có giá trị; file Excel đã lưu: đủ giá trị
+    assert find_uncalculated_formulas(build_workbook(tmp_path)) == [f"{SHEET}!E2"]
+    _, solution = b22_files
+    assert find_uncalculated_formulas(solution) == []
