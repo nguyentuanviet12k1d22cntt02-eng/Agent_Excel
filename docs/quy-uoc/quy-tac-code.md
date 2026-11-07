@@ -55,6 +55,8 @@ logger = logging.getLogger(__name__)
 3. **Không bao giờ thay đổi workbook của người học.** Desktop chỉ đọc. Việc duy nhất được ghi là mã bài khi phát hành, và việc đó do Backend làm trên file đề, trước khi học viên nhận file.
 4. **Không để sót tiến trình Excel.** Phiên Excel do code tự mở (`DispatchEx`) thì phải `Quit()` trong khối `finally`. Excel của người học thì không được đóng.
 5. `ui/` nhận dữ liệu qua **signal/slot** của Qt, không gọi COM, không gọi API trực tiếp.
+6. **Đọc/ghi `NumberFormat` qua COM luôn dùng LCID 1033 (en-US).** pywin32 mặc định gọi COM theo cài đặt vùng của người dùng; trên máy định dạng Việt Nam (dấu thập phân `,`), Excel dịch mã định dạng: ghi `"#,##0"` bị lưu thành `"#.##0"`, đọc ra cũng bị dịch. Gọi `Invoke(dispid, 1033, ...)` thì đọc/ghi đúng mã chuẩn, còn hiển thị trên Excel vẫn theo kiểu Việt Nam. Đã kiểm chứng ở T1.2 (`scripts/build_solutions.py`). `Formula` không bị ảnh hưởng (luôn dùng cú pháp tiếng Anh).
+7. **Không dùng địa chỉ ghép nhiều vùng** kiểu `Range("A1:A5,C1:C5")`: Excel báo lỗi trên máy định dạng Việt Nam. Thao tác từng vùng riêng, hoặc dùng `Application.Union`.
 
 ### 2.4. Quy tắc riêng cho Backend
 
