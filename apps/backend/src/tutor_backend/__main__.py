@@ -7,6 +7,9 @@ r"""Lệnh quản trị Backend.
         --sheet "Bài 01" --code b22-ham-tinh-tong --title "Hàm SUM" [--out kich-ban.json]
                                                            sinh thử kịch bản bằng AI, không cần Web
 
+    .venv\Scripts\python -m tutor_backend evaluate --runs 3 [--samples-dir samples\_local] [--out ket-qua.md]
+                                                           đánh giá AI sinh so với kịch bản viết tay (T5.8)
+
 `create-admin` hỏi mật khẩu (không hiện khi gõ); `--password-stdin` đọc mật khẩu từ stdin cho script.
 Không nhận mật khẩu qua tham số dòng lệnh vì sẽ lộ trong lịch sử lệnh.
 """
@@ -20,11 +23,20 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
+from tutor_backend.ai.evaluation import (
+    SUMMARY_HEADER,
+    EvaluationCase,
+    RunResult,
+    markdown_table,
+    results_json,
+    run_evaluation,
+    summary_rows,
+)
 from tutor_backend.ai.exercise_analysis import analyze_exercise
 from tutor_backend.ai.llm_client import LLMError
 from tutor_backend.ai.script_agent import generate_script
 from tutor_backend.ai.script_builder import ExerciseInfo
-from tutor_backend.core.config import Settings, get_settings
+from tutor_backend.core.config import BACKEND_DIR, Settings, get_settings
 from tutor_backend.core.errors import AppError
 from tutor_backend.db.migrate import upgrade_database
 from tutor_backend.db.session import create_db_engine, create_session_factory
@@ -100,6 +112,70 @@ def _generate(args: argparse.Namespace, settings: Settings) -> int:
     return 0 if outcome.ok else 1
 
 
+REPO = BACKEND_DIR.parents[1]
+FIXTURES = REPO / "packages" / "excel_core" / "tests" / "fixtures"
+EXAMPLES = REPO / "schemas" / "tutor-script" / "v1" / "examples"
+# (thư mục file test, sheet làm bài, mã bài, tên bài, có kịch bản viết tay để so không)
+EVALUATION_CASES = [
+    ("b09", "2. Bang_Ke_Ban_Hang", "b09-du-lieu-dang-so", "Định dạng dữ liệu số", True),
+    ("b22", "Bài 01", "b22-ham-tinh-tong", "Hàm tính tổng SUM", True),
+    ("b14", "Bang_Diem", "b14-tao-bang-tinh", "Tạo bảng tính", False),
+    ("b16", "Bai 01", "b16-sap-xep-du-lieu", "Sắp xếp dữ liệu", False),
+]
+
+
+def _evaluation_cases(samples_dir: Path | None) -> list[EvaluationCase]:
+    cases = []
+    for folder, sheet, code, title, has_reference in EVALUATION_CASES:
+        base = FIXTURES / folder
+        source = "tự soạn"
+        if samples_dir is not None and (samples_dir / code / "dap-an.xlsx").is_file():
+            base, source = samples_dir / code, "bài trung tâm"
+        reference = None
+        if has_reference:
+            reference = json.loads((EXAMPLES / f"{code}.json").read_text(encoding="utf-8"))
+        cases.append(
+            EvaluationCase(
+                f"{code} ({source})",
+                base / "de.xlsx",
+                base / "dap-an.xlsx",
+                ExerciseInfo(code, title, sheet),
+                reference,
+            )
+        )
+    return cases
+
+
+def _evaluate(args: argparse.Namespace, settings: Settings) -> int:
+    cases = _evaluation_cases(args.samples_dir)
+    model = args.model or settings.llm_model
+    try:
+        default_llm_factory(settings, model)  # báo sớm nếu thiếu API key
+    except LLMError as exc:
+        print(f"Lỗi AI: {exc}")
+        return 1
+
+    def report(result: RunResult) -> None:
+        status = "đạt" if result.ok else f"CHƯA ĐẠT ({result.error})"
+        seconds = result.llm_ms / 1000
+        print(f"  {result.case} lần {result.run}: {status}, {result.attempts} lần gọi, {seconds:.1f} s")
+
+    results = run_evaluation(
+        cases,
+        lambda: default_llm_factory(settings, model),
+        args.runs,
+        settings.generation_max_attempts,
+        on_result=report,
+    )
+    table = markdown_table(SUMMARY_HEADER, summary_rows(results, cases))
+    print(table)
+    if args.out:
+        args.out.write_text(f"Mô hình: {model}, {args.runs} lần mỗi bài\n\n{table}\n", encoding="utf-8")
+        args.out.with_suffix(".json").write_text(results_json(results), encoding="utf-8")
+        print(f"Đã lưu {args.out} và {args.out.with_suffix('.json')}")
+    return 0
+
+
 def _serve(args: argparse.Namespace, _: Settings) -> int:
     import uvicorn
 
@@ -129,6 +205,16 @@ def build_parser() -> argparse.ArgumentParser:
     gen.add_argument("--model", default=None)
     gen.add_argument("--out", type=Path, default=None, help="lưu kịch bản + báo cáo tự kiểm (JSON)")
     gen.set_defaults(handler=_generate)
+    evaluate = commands.add_parser("evaluate", help="đánh giá kịch bản AI so với kịch bản viết tay (T5.8)")
+    evaluate.add_argument("--runs", type=int, default=3, help="số lần sinh mỗi bài")
+    evaluate.add_argument(
+        "--samples-dir", type=Path, default=None, help="dùng bài thật, ví dụ samples/_local"
+    )
+    evaluate.add_argument("--model", default=None)
+    evaluate.add_argument(
+        "--out", type=Path, default=None, help="lưu bảng kết quả (.md) và số liệu thô (.json)"
+    )
+    evaluate.set_defaults(handler=_evaluate)
     serve = commands.add_parser("serve", help="chạy máy chủ API")
     serve.add_argument("--host", default="127.0.0.1")
     serve.add_argument("--port", type=int, default=8000)

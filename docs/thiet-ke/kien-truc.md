@@ -224,3 +224,4 @@ sequenceDiagram
 | A5 | Nhận bài qua thuộc tính tùy chỉnh trong file đề | Học viên chọn bài từ danh sách | Tự động, không nhầm bài; đọc được cả openpyxl và COM (T2.3) |
 | A6 | Tiến trình nền trong cùng tiến trình Backend | Celery + Redis | Quy mô lớp học; ít thành phần phải cài ở trung tâm |
 | A7 | RAG bắt đầu bằng tìm toàn văn | Embedding ngay | Chưa chọn được nhà cung cấp embedding; giáo trình nhỏ |
+| A8 | **AI chỉ chia bước và viết lời; điều kiện kiểm chứng, vùng mục tiêu, vùng giữ nguyên suy tất định từ diff đề/đáp án** (thêm ở GĐ5) | AI viết cả kịch bản (T2.6) | T2.6: AI viết điều kiện hay sai, bịa số. T5.8: 12/12 lần sinh đạt 3 tầng, 0 lỗi chữ gợi ý ([t5-8](../task/t5-8-danh-gia-sinh-kich-ban.md)) |
