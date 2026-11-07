@@ -112,10 +112,10 @@ Agent_Excel/
 | ID | Việc cần làm | Hoàn thành khi | Cần trước | Phụ trách | TT |
 |---|---|---|---|---|---|
 | T2.1 | **COM – đọc dữ liệu:** kết nối vào Excel đang mở; đọc giá trị, công thức, định dạng (font, nền, viền, định dạng số, gộp ô) của một vùng; đo thời gian đọc 1.000 ô | Script chạy được, có số đo thời gian | T0.3 | Linh | ✅ |
-| T2.2 | **COM – sự kiện và lúc Excel bận:** bắt `SheetChange`, `SelectionChange`, `WorkbookActivate`; thử khi học viên đang gõ trong ô hoặc đang mở hộp thoại; xử lý lỗi "Excel bận" bằng thử lại | Script chạy 10 phút thao tác tự do không bị crash | T2.1 | Linh | 🔄 |
+| T2.2 | **COM – sự kiện và lúc Excel bận:** bắt `SheetChange`, `SelectionChange`, `WorkbookActivate`; thử khi học viên đang gõ trong ô hoặc đang mở hộp thoại; xử lý lỗi "Excel bận" bằng thử lại | Script chạy 10 phút thao tác tự do không bị crash | T2.1 | Linh | ✅ |
 | T2.3 | **COM – đối tượng khó:** biểu đồ (loại, vùng dữ liệu, tiêu đề), thiết lập trang in (đo độ trễ), AutoFilter, trạng thái sắp xếp; đọc/ghi Custom Document Property (mã bài) | Có bảng "đọc được gì, mất bao lâu" | T2.1 | Việt | ✅ |
-| T2.4 | **UIA/MSAA – Ribbon và hộp thoại:** biết tab Ribbon đang chọn; tìm nút theo AutomationId và lấy tọa độ; phát hiện hộp thoại đang mở (Format Cells, Sort, Insert Chart, Page Setup) và tab bên trong; thử với giao diện Office tiếng Việt và tiếng Anh | Có script và danh sách nút/hộp thoại nhận diện được | T0.3 | Việt | 🔄 |
-| T2.5 | **Overlay PyQt6:** cửa sổ trong suốt, luôn nằm trên cùng, chuột bấm xuyên qua được; vẽ khung đúng quanh một ô và bám theo khi cuộn, zoom, di chuyển cửa sổ, ở mức DPI 100% / 125% / 150% | Có ảnh hoặc video minh họa | T2.1 | Linh | 🔄 |
+| T2.4 | **UIA/MSAA – Ribbon và hộp thoại:** biết tab Ribbon đang chọn; tìm nút theo AutomationId và lấy tọa độ; phát hiện hộp thoại đang mở (Format Cells, Sort, Insert Chart, Page Setup) và tab bên trong; thử với giao diện Office tiếng Việt và tiếng Anh | Có script và danh sách nút/hộp thoại nhận diện được (Office tiếng Việt: xác nhận ở T9.3) | T0.3 | Việt | ✅ |
+| T2.5 | **Overlay PyQt6:** cửa sổ trong suốt, luôn nằm trên cùng, chuột bấm xuyên qua được; vẽ khung đúng quanh một ô và bám theo khi cuộn, zoom, di chuyển cửa sổ, ở mức DPI 100% / 125% / 150% | Có ảnh hoặc video minh họa (125%: mô phỏng; 100% và nhiều màn hình: chạy thật) | T2.1 | Linh | ✅ |
 | T2.6 | **Thử AI bằng tay:** dùng openpyxl trích nội dung file đề và file mẫu, gửi kèm đề bài và đoạn giáo trình cho LLM để sinh các bước; so với kịch bản viết tay | Có ghi chép prompt và nhận xét chất lượng | T0.4, T1.4 | Việt | ✅ |
 | T2.7 | **Báo cáo khả thi:** bảng "làm được / không làm được / cách thay thế"; điều chỉnh phạm vi nếu cần | Có `docs/task/t2-7-bao-cao-spike.md` (đây là "bản thử nghiệm bộ giám sát" trong đề cương) | T2.1 – T2.6 | Việt, Linh | ✅ |
 
@@ -211,7 +211,7 @@ Agent_Excel/
 |---|---|---|---|---|---|
 | T9.1 | Chuẩn bị bộ công cụ: bộ bài thực nghiệm, bài kiểm tra sau thực hành, phiếu tải nhận thức Paas 9 mức, thang SUS, phiếu hài lòng, phiếu đồng ý tham gia | GVHD đã duyệt bộ công cụ | T1.3 | Hoài, Hòa | ⬜ |
 | T9.2 | Chia nhóm thực nghiệm và nhóm đối chứng có trình độ tương đương; chốt lịch với trung tâm | Có danh sách nhóm và lịch | T9.1 | Hòa | ⬜ |
-| T9.3 | Cài đặt tại phòng máy trung tâm; kiểm tra phiên bản Excel và ngôn ngữ giao diện từng máy | Mọi máy dùng cho thực nghiệm đều chạy được | T8.2, T7.10 | Linh | ⬜ |
+| T9.3 | Cài đặt tại phòng máy trung tâm; kiểm tra phiên bản Excel và ngôn ngữ giao diện từng máy; chạy `spikes/t2-4-uia-ribbon/uia_ribbon.py` (xác nhận `idMso` trên Office tiếng Việt) và `spikes/t2-5-overlay/overlay.py` nếu máy đặt 125% | Mọi máy dùng cho thực nghiệm đều chạy được | T8.2, T7.10 | Linh | ⬜ |
 | T9.4 | Tiến hành thực nghiệm; thu dữ liệu (kết quả, thời gian, số lỗi, các phiếu, nhật ký hệ thống) | Dữ liệu đầy đủ và đã sao lưu | T9.2, T9.3 | Cả nhóm | ⬜ |
 
 ### GĐ10 — Phân tích & nghiệm thu (01/03 – 31/03)
