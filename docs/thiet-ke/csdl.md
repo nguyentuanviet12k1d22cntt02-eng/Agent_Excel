@@ -65,7 +65,6 @@ erDiagram
         text heading
         int page
         text content
-        tsvector search_vector
     }
     exercises {
         uuid id PK
@@ -172,7 +171,7 @@ Mọi bảng có `created_at` (và `updated_at` khi có sửa); sơ đồ lượ
 | Bảng | Mục đích | Ghi chú |
 |---|---|---|
 | `textbooks` | Giáo trình tải lên | File nằm trong kho file; `status` cho Web hiện tiến trình lập chỉ mục |
-| `textbook_chunks` | Đoạn giáo trình đã tách cho RAG | `search_vector` (tsvector, chỉ mục GIN) cho tìm toàn văn. Cột `embedding` thêm sau khi chọn nhà cung cấp (T5.4) |
+| `textbook_chunks` | Đoạn giáo trình đã tách cho RAG (theo mục, cắt theo đoạn văn) | **Đổi khi cài đặt (T5.4):** không dùng cột `search_vector` (tsvector). BM25 tính trong Python (`ai/rag.py`) nên chạy giống nhau trên PostgreSQL và SQLite; giáo trình một khóa chỉ vài trăm đoạn. Cột `embedding` thêm khi chọn được nhà cung cấp (Q10) |
 | `exercises` | Bài tập | `code` là **mã bài** nhúng vào file đề khi phát hành, duy nhất, dạng `^[a-z0-9][a-z0-9-]{2,63}$` (như lược đồ kịch bản) |
 | `exercise_textbooks` | Bài ↔ giáo trình liên quan (nhiều-nhiều) | Giới hạn phạm vi tìm đoạn giáo trình khi sinh |
 

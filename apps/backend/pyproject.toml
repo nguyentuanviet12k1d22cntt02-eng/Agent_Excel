@@ -26,8 +26,10 @@ dependencies = [
     # Đọc Excel, kiểm tra lược đồ kịch bản
     "openpyxl==3.1.5",
     "jsonschema==4.26.0",
+    # Đọc giáo trình cho RAG (T5.4). Không dùng PyMuPDF vì giấy phép AGPL
+    "pypdf==7.0.0",
+    "python-docx==1.2.0",
     # Chưa chốt, thêm ở task tương ứng:
-    #   lưu vector embedding ............. T5.4 (chờ chọn nhà cung cấp)
-    #   đọc PDF/DOCX giáo trình .......... T5.4 (lưu ý: PyMuPDF dùng giấy phép AGPL)
+    #   embedding + lưu vector ........... chờ chọn nhà cung cấp (Q10 gửi GVHD; kien-truc.md A7)
     #   SDK của nhà cung cấp LLM ......... T0.4
 ]

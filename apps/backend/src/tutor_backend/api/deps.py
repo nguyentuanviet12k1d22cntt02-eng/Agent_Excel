@@ -4,7 +4,7 @@ from typing import Annotated
 
 from fastapi import Depends, Request
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, sessionmaker
 
 from tutor_backend.core.config import Settings
 from tutor_backend.core.errors import ForbiddenError, UnauthorizedError
@@ -24,6 +24,11 @@ def get_jobs(request: Request) -> JobRunner:
     return request.app.state.jobs
 
 
+def get_session_factory(request: Request) -> sessionmaker[Session]:
+    """Cho tiến trình nền: mỗi công việc mở phiên CSDL riêng (phiên của request đóng khi trả lời)."""
+    return request.app.state.session_factory
+
+
 def get_store(request: Request) -> FileStore:
     return FileStore(request.app.state.settings.files_dir)
 
@@ -32,6 +37,7 @@ DbSession = Annotated[Session, Depends(get_db)]
 AppSettings = Annotated[Settings, Depends(get_settings_dep)]
 Jobs = Annotated[JobRunner, Depends(get_jobs)]
 Store = Annotated[FileStore, Depends(get_store)]
+SessionFactory = Annotated[sessionmaker[Session], Depends(get_session_factory)]
 
 _bearer = HTTPBearer(auto_error=False, description="Access token lấy từ POST /api/v1/auth/login")
 

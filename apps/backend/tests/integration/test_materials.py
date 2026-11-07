@@ -1,7 +1,6 @@
 """Học liệu: giáo trình và bài tập (T5.3: tải lên và tải về được; FR-W03 – FR-W05)."""
 
 import io
-import zipfile
 from collections.abc import Callable
 from pathlib import Path
 
@@ -13,14 +12,6 @@ from tutor_backend.models import User
 
 XLSX = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
 MINIMAL_PDF = b"%PDF-1.4\n1 0 obj<<>>endobj\ntrailer<<>>\n%%EOF\n"
-
-
-def minimal_docx() -> bytes:
-    buffer = io.BytesIO()
-    with zipfile.ZipFile(buffer, "w") as archive:
-        archive.writestr("word/document.xml", "<w:document/>")
-        archive.writestr("[Content_Types].xml", "<Types/>")
-    return buffer.getvalue()
 
 
 def xlsx_bytes(cells: dict[str, object], sheet: str = "Bài 01") -> bytes:
@@ -44,15 +35,20 @@ def upload_textbook(client: TestClient, headers, data: bytes = MINIMAL_PDF, name
 
 
 def test_textbook_upload_list_delete(
-    client: TestClient, settings: Settings, make_user: Callable[..., User], auth
+    client: TestClient,
+    settings: Settings,
+    make_user: Callable[..., User],
+    auth,
+    textbook_docx: bytes,
+    text_pdf,
 ):
     teacher = make_user("teacher")
-    created = upload_textbook(client, auth(teacher))
+    created = upload_textbook(client, auth(teacher), text_pdf(["Bai 1. Nhap du lieu", "Go roi bam Enter."]))
     assert created.status_code == 202
     body = created.json()
-    assert (body["file_type"], body["status"], body["chunk_count"]) == ("pdf", "uploaded", 0)
-    docx = upload_textbook(client, auth(teacher), minimal_docx(), "gt.docx").json()
-    assert docx["file_type"] == "docx"
+    assert (body["file_type"], body["status"]) == ("pdf", "ready")  # test chạy lập chỉ mục ngay
+    docx = upload_textbook(client, auth(teacher), textbook_docx, "gt.docx").json()
+    assert (docx["file_type"], docx["status"]) == ("docx", "ready")
     listed = client.get("/api/v1/textbooks", headers=auth(teacher)).json()
     assert {t["id"] for t in listed} == {body["id"], docx["id"]}
     stored = list((settings.files_dir / "textbooks").iterdir())

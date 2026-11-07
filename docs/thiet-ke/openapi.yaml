@@ -253,6 +253,22 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/Textbook" }
         "422": { $ref: "#/components/responses/Invalid" }
+  /textbooks/search:
+    get:
+      tags: [materials]
+      summary: Tìm đoạn giáo trình liên quan (RAG bước 1, BM25; T5.4)
+      description: Chỉ tìm trong giáo trình đã lập chỉ mục xong (`status = ready`). Truy vấn gõ không dấu vẫn khớp.
+      x-roles: [admin, teacher]
+      parameters:
+        - { name: q, in: query, required: true, schema: { type: string, minLength: 1, maxLength: 500 } }
+        - { name: textbook_ids, in: query, description: Giới hạn trong các giáo trình này, schema: { type: array, items: { $ref: "#/components/schemas/Id" } } }
+        - { name: limit, in: query, schema: { type: integer, minimum: 1, maximum: 20, default: 5 } }
+      responses:
+        "200":
+          description: Các đoạn liên quan nhất, điểm cao trước
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/Passage" } }
   /textbooks/{textbook_id}:
     parameters: [{ name: textbook_id, in: path, required: true, schema: { $ref: "#/components/schemas/Id" } }]
     get:
@@ -789,6 +805,18 @@ components:
         status: { enum: [uploaded, indexing, ready, failed] }
         chunk_count: { type: integer }
         error: { type: string }
+    Passage:
+      type: object
+      description: Một đoạn giáo trình tìm được
+      required: [chunk_id, textbook_id, textbook_title, heading, content, score]
+      properties:
+        chunk_id: { $ref: "#/components/schemas/Id" }
+        textbook_id: { $ref: "#/components/schemas/Id" }
+        textbook_title: { type: string }
+        heading: { type: string, description: "Đường dẫn tiêu đề, ví dụ Chương 3 > Bài 22. Hàm SUM" }
+        page: { type: integer }
+        content: { type: string }
+        score: { type: number }
     Exercise:
       type: object
       required: [id, code, title, sheet_name]

@@ -4,7 +4,9 @@
 bằng `x-roles` của thao tác đó. Thêm API mới mà quên ghi vào đặc tả, hoặc ghi sai quyền, thì test này đỏ.
 """
 
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Any
 
 import pytest
 import yaml
@@ -21,6 +23,7 @@ SPEC = yaml.safe_load(
 PUBLIC = {("POST", "/auth/login"), ("POST", "/auth/refresh")}  # security: []
 # /auth/me không ghi x-roles trong đặc tả: mọi vai trò đã đăng nhập
 EVERY_ROLE = frozenset({"admin", "teacher", "student"})
+MIN_EXPECTED_ROUTES = 10
 
 
 def _spec_roles(method: str, path: str) -> frozenset[str] | None:
@@ -40,18 +43,32 @@ def _guard_roles(dependant: Dependant) -> frozenset[str] | None:
     return None
 
 
+def _walk(routes: list[Any], prefix: str = "") -> Iterator[tuple[str, APIRoute]]:
+    """Mọi APIRoute kèm đường dẫn đầy đủ. Từ FastAPI 0.16x, `include_router` bọc router con trong
+    `_IncludedRouter` (có `original_router`, `include_context.prefix`) thay vì trải route ra `app.routes`."""
+    for route in routes:
+        if isinstance(route, APIRoute):
+            yield prefix + route.path, route
+        elif hasattr(route, "original_router"):
+            include_prefix = getattr(getattr(route, "include_context", None), "prefix", "") or ""
+            yield from _walk(route.original_router.routes, prefix + include_prefix)
+
+
 def _api_routes(app: FastAPI) -> list[tuple[str, str, APIRoute]]:
     routes = []
-    for route in app.routes:
-        if isinstance(route, APIRoute) and route.path.startswith(API_PREFIX):
+    for full_path, route in _walk(app.routes):
+        if full_path.startswith(API_PREFIX):
             for method in sorted(route.methods):
-                routes.append((method, route.path.removeprefix(API_PREFIX), route))
+                routes.append((method, full_path.removeprefix(API_PREFIX), route))
     return routes
 
 
 def test_every_route_is_documented_with_matching_roles(app: FastAPI):
+    routes = _api_routes(app)
+    # Chặn trường hợp không duyệt được route nào mà test vẫn "đạt"
+    assert len(routes) >= MIN_EXPECTED_ROUTES, f"chỉ thấy {len(routes)} route: cách duyệt route đã hỏng?"
     problems = []
-    for method, path, route in _api_routes(app):
+    for method, path, route in routes:
         spec = _spec_roles(method, path)
         if spec is None:
             problems.append(f"{method} {path}: chưa có trong openapi.yaml")

@@ -4,11 +4,13 @@ CSDL test: SQLite tạm (mặc định) hoặc PostgreSQL khi đặt `TUTOR_TEST
 Lược đồ luôn tạo bằng migration Alembic thật, không dùng `create_all`, để test cả migration.
 """
 
+import io
 import os
 import uuid
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
+import docx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -124,3 +126,85 @@ def exercise_files() -> Callable[[str], dict[str, tuple[str, bytes, str]]]:
 
 
 XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+
+# ----- Giáo trình mẫu cho test RAG (nhóm tự soạn, không phải tài liệu trung tâm) -----
+
+TEXTBOOK_SECTIONS = [
+    (1, "Chương 1. Làm quen với Excel", None),
+    (2, "Bài 1. Nhập dữ liệu", "Gõ dữ liệu vào ô rồi bấm Enter. Số tự căn phải, chữ tự căn trái."),
+    (
+        2,
+        "Bài 9. Định dạng dữ liệu số",
+        "Nút Comma Style thêm dấu phân cách hàng nghìn. Increase Decimal tăng số lẻ.",
+    ),
+    (1, "Chương 3. Hàm thông dụng", None),
+    (
+        2,
+        "Bài 22. Hàm SUM",
+        "Hàm SUM tính tổng các số trong một vùng ô. Cú pháp: =SUM(vùng). Nút AutoSum gõ sẵn hàm SUM.",
+    ),
+    (
+        2,
+        "Bài 30. Hàm VLOOKUP",
+        "Hàm VLOOKUP dò tìm một giá trị ở cột đầu tiên của bảng dò và trả về giá trị ở cột chỉ định. "
+        "Cú pháp: =VLOOKUP(giá_trị_dò, bảng_dò, cột_trả_về, 0). Bảng dò nên dùng địa chỉ tuyệt đối.",
+    ),
+    (
+        2,
+        "Bài 31. Hàm IF",
+        "Hàm IF kiểm tra một điều kiện, đúng thì trả giá trị thứ nhất, sai thì trả giá trị thứ hai.",
+    ),
+]
+
+
+def build_textbook_docx() -> bytes:
+    document = docx.Document()
+    for level, title, body in TEXTBOOK_SECTIONS:
+        document.add_heading(title, level=level)
+        if body:
+            document.add_paragraph(body)
+    # Tiêu đề gõ tay (kiểu Normal) như nhiều giáo trình của trung tâm
+    document.add_paragraph("BÀI 25: HÀM MIN, MAX")
+    document.add_paragraph("Hàm MIN trả số nhỏ nhất, hàm MAX trả số lớn nhất trong vùng.")
+    table = document.add_table(rows=2, cols=2)
+    table.cell(0, 0).text, table.cell(0, 1).text = "Hàm", "Công dụng"
+    table.cell(1, 0).text, table.cell(1, 1).text = "MAX", "Giá trị lớn nhất"
+    buffer = io.BytesIO()
+    document.save(buffer)
+    return buffer.getvalue()
+
+
+def build_text_pdf(lines: list[str]) -> bytes:
+    """PDF một trang có chữ (ASCII, phông Helvetica có sẵn), tự tính bảng xref."""
+    content = "BT /F1 12 Tf 72 800 Td 16 TL " + " ".join(f"({line}) Tj T*" for line in lines) + " ET"
+    objects = [
+        "<< /Type /Catalog /Pages 2 0 R >>",
+        "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Contents 4 0 R "
+        "/Resources << /Font << /F1 5 0 R >> >> >>",
+        f"<< /Length {len(content)} >>\nstream\n{content}\nendstream",
+        "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out = bytearray(b"%PDF-1.4\n")
+    offsets = []
+    for number, body in enumerate(objects, start=1):
+        offsets.append(len(out))
+        out += f"{number} 0 obj\n{body}\nendobj\n".encode("latin-1")
+    xref = len(out)
+    out += f"xref\n0 {len(objects) + 1}\n0000000000 65535 f \n".encode("latin-1")
+    out += "".join(f"{offset:010d} 00000 n \n" for offset in offsets).encode("latin-1")
+    out += f"trailer\n<< /Size {len(objects) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode(
+        "latin-1"
+    )
+    return bytes(out)
+
+
+@pytest.fixture
+def textbook_docx() -> bytes:
+    return build_textbook_docx()
+
+
+@pytest.fixture
+def text_pdf() -> Callable[[list[str]], bytes]:
+    return build_text_pdf
