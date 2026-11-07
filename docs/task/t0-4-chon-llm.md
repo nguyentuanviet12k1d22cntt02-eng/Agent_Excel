@@ -1,6 +1,6 @@
 # T0.4 — Chọn nhà cung cấp LLM và mô hình embedding
 
-**Trạng thái:** 🔄 đã có tiêu chí và cách ước tính; chờ nhóm chốt danh sách ứng viên để chạy thử (mục 5).
+**Trạng thái:** 🔄 **Đã chốt LLM: Inception Labs, mô hình `mercury-3`** (mục 6). Còn mở: giá, embedding cho RAG, chuyển key vào `.env`.
 
 ## 1. Hệ thống dùng LLM vào việc gì
 
@@ -56,18 +56,45 @@ Với tỷ giá giả định khoảng 26.000 đ/USD, 72 USD tương đương kh
 
 ## 5. Cần nhóm quyết định
 
-1. **Danh sách 2–3 ứng viên LLM** để chạy thử. Key trong `key.txt` là của nhà cung cấp nào?
-2. **Hạn mức chi cho API** trong tổng kinh phí 4.950.000 đ (kinh phí còn phải dành cho in ấn, khảo sát…).
-3. **Embedding:** dùng API hay chạy trên máy chủ.
+1. ~~Danh sách ứng viên LLM~~ → trưởng nhóm chọn **Inception Labs** (key trong `key.txt`), ngày 07/11/2026.
+2. **Hạn mức chi cho API** trong tổng kinh phí 4.950.000 đ. Cần tra **bảng giá Mercury** trên trang/dashboard của Inception Labs rồi điền vào mục 4.
+3. **Embedding:** Inception Labs **không có** API embedding (gọi `/v1/embeddings` trả về 404). Chọn ở T5.4: API embedding nhà cung cấp khác, hoặc mô hình chạy trên máy chủ (ví dụ `bge-m3` qua Ollama).
 
-## 6. Kết quả chạy thử (điền sau)
+## 6. Kết quả chạy thử (07/11/2026)
 
-| Ứng viên | Chất lượng bước | JSON hợp lệ | Tiếng Việt | Bám giáo trình | Chi phí ước tính | Độ trễ | Tổng điểm |
-|---|---|---|---|---|---|---|---|
-| | | | | | | | |
+Script chạy lại được: [`spikes/t0-4-llm-eval/check_llm.py`](../../spikes/t0-4-llm-eval/check_llm.py) (không in key ra màn hình).
 
-**Quyết định:** …
+**Kết nối:** API tương thích OpenAI, `https://api.inceptionlabs.ai/v1`, xác thực bằng Bearer key. Key dùng được 4 mô hình:
+
+| Mô hình | Ngữ cảnh (token) |
+|---|---|
+| `mercury-2` | 128.000 |
+| `mercury-2.5` | 260.000 |
+| `mercury-3` | 1.000.000 |
+| `mercury-decide` | 65.536 |
+
+**Bài thử:** sinh các bước + gợi ý 4 cấp cho đề b09 (định dạng số), chạy mỗi mô hình 1 lần, có và không có structured output.
+
+| Mô hình | Độ trễ | Token vào / ra | JSON hợp lệ | Đủ bước | Chất lượng gợi ý | Nhận xét |
+|---|---|---|---|---|---|---|
+| `mercury-3` | 2,7 – 3,3 s | ~350 – 520 / ~1.050 – 1.400 | ✅ (cả khi không ép lược đồ) | ✅ 3/3 | **Tốt nhất**: biết Comma Style mặc định có 2 số lẻ nên phải bấm Decrease Decimal 2 lần, khớp với kịch bản viết tay | **Chọn làm mô hình chính** |
+| `mercury-2` | 2,3 – 2,4 s | ~280 / ~960 | ✅ | ✅ 3/3 | Được, nhưng thứ tự cấp chưa hợp lý (cấp 3 mới bảo chọn vùng) | Dự phòng, nhanh và rẻ hơn (cần xác nhận giá) |
+| `mercury-2.5` | 5,4 s | ~300 / ~1.930 | ✅ | ❌ chỉ 1/3 bước | Gợi ý tốt nhưng bỏ sót bước | Không chọn |
+
+**Structured output** (`response_format: json_schema`, `strict: true`): `mercury-3` và `mercury-2` **tuân thủ đúng lược đồ**.
+
+**Phát hiện cho thiết kế:**
+
+1. Khi không ép lược đồ, cả 3 mô hình đều tự thêm `thousands_separator: false` cho cột Đơn giá, trong khi đề không yêu cầu, còn đáp án của giảng viên lại **có** dấu nghìn. Khi lược đồ cho phép `null` ("không ràng buộc"), lỗi này biến mất.
+   - **Lược đồ kịch bản (T3.2) phải cho phép để trống những thuộc tính đề không nói tới.**
+   - **Kịch bản AI sinh ra phải được tự kiểm trên file đáp án (T4.5)**: ràng buộc thừa sẽ làm điều kiện sai ngay trên đáp án.
+2. Cả 3 mô hình đều **bỏ qua bước "chép số liệu thô lên bảng"** vì đề trong prompt thử chỉ nêu phần định dạng. Prompt thật phải đưa **diff file đề ↔ đáp án** (T4.3) để AI thấy cả thay đổi về giá trị, không chỉ đọc đề bài.
+3. Tốc độ 2–3 giây cho một bài nhỏ đủ để giảng viên ngồi chờ trên giao diện Web, không cần chạy nền.
+
+**Quyết định:** LLM = **Inception Labs `mercury-3`**, có structured output; `mercury-2` để dự phòng. Đánh giá chất lượng đầy đủ trên nhiều bài làm ở T2.6 và T5.8.
 
 ## 7. Lưu ý bảo mật
 
 `key.txt` ở gốc repo đã được `.gitignore` chặn, nên sẽ không lên GitHub. Tuy vậy, nên chuyển key vào `apps/backend/.env` (theo mẫu `.env.example`) rồi xóa `key.txt`, để toàn nhóm dùng chung một cách quản lý key.
+
+**Repo là public:** không dán key vào issue, Pull Request, nhóm chat công khai. Mỗi thành viên nên có key riêng (hoặc key con có hạn mức) để thu hồi được khi cần.
