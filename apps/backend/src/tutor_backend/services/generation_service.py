@@ -32,6 +32,7 @@ logger = logging.getLogger(__name__)
 type LLMFactory = Callable[[Settings, str], LLMClient]
 
 RAG_PASSAGES = 5
+JOB_HISTORY_LIMIT = 20
 MAX_QUERY_PROMPT_CHARS = 400
 
 
@@ -50,6 +51,32 @@ def default_llm_factory(settings: Settings, model: str) -> LLMClient:
 def job_out(db: Session, job: GenerationJob) -> GenerationJobOut:
     version_id = db.scalar(select(ScriptVersion.id).where(ScriptVersion.job_id == job.id))
     return GenerationJobOut.model_validate(job).model_copy(update={"result_version_id": version_id})
+
+
+def list_jobs(db: Session, exercise_id: uuid.UUID) -> list[GenerationJobOut]:
+    """Các lần sinh của bài, mới nhất trước: Web mở lại trang vẫn thấy job đang chạy và lịch sử sinh."""
+    get_exercise(db, exercise_id)
+    jobs = list(
+        db.scalars(
+            select(GenerationJob)
+            .where(GenerationJob.exercise_id == exercise_id)
+            .order_by(GenerationJob.created_at.desc())
+            .limit(JOB_HISTORY_LIMIT)
+        )
+    )
+    versions = dict(
+        db.execute(
+            select(ScriptVersion.job_id, ScriptVersion.id).where(
+                ScriptVersion.job_id.in_([j.id for j in jobs])
+            )
+        )
+        .tuples()
+        .all()
+    )
+    return [
+        GenerationJobOut.model_validate(job).model_copy(update={"result_version_id": versions.get(job.id)})
+        for job in jobs
+    ]
 
 
 def get_job(db: Session, job_id: uuid.UUID) -> GenerationJob:

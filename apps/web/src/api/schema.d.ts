@@ -801,7 +801,33 @@ export interface paths {
             };
             cookie?: never;
         };
-        get?: never;
+        /**
+         * Các lần sinh kịch bản của bài (mới nhất trước, tối đa 20)
+         * @description Web mở lại trang bài vẫn thấy job đang chạy và lịch sử sinh (T6.3).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    exercise_id: components["parameters"]["ExerciseId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Các job */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["GenerationJob"][];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
         put?: never;
         /** Yêu cầu AI sinh kịch bản (chạy nền) */
         post: {
@@ -1711,6 +1737,14 @@ export interface components {
             duration_ms?: number;
             result_version_id?: components["schemas"]["Id"];
             error?: string;
+            /** @description Lưu ý thêm của giảng viên cho AI */
+            instructions?: string;
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            started_at?: string;
+            /** Format: date-time */
+            finished_at?: string;
         };
         ScriptVersionSummary: {
             id: components["schemas"]["Id"];
@@ -1766,6 +1800,13 @@ export interface components {
             errors?: string[];
             /** @description Điểm giảng viên nên xem lại */
             warnings?: string[];
+            /** @description Chỉ có ở bản AI sinh, cho tới khi chạy lại tự kiểm (T5.5) */
+            generation?: {
+                attempts?: number;
+                model?: string;
+                /** @description Lỗi AI chưa sửa được sau N lần */
+                remaining_issues?: string[];
+            };
         };
         TutorScript: components["schemas"]["tutor-script.schema"];
         SessionUpsert: {

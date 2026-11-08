@@ -169,7 +169,7 @@ Agent_Excel/
 |---|---|---|---|---|---|
 | T6.1 | Khung React (Vite + TypeScript): định tuyến trang, lớp gọi API, trang đăng nhập | Đăng nhập được bằng tài khoản từ backend | T5.2 | Hoài | ✅ |
 | T6.2 | Quản lý giáo trình và bài tập: tải lên, xem danh sách, xóa | Làm đủ các thao tác trên giao diện | T6.1, T5.3 | Hoài | ✅ |
-| T6.3 | Sinh kịch bản: nút "Sinh", hiển thị trạng thái đang chạy / lỗi / xong | Sinh được kịch bản từ giao diện | T6.2, T5.5 | Hoài | ⬜ |
+| T6.3 | Sinh kịch bản: nút "Sinh", hiển thị trạng thái đang chạy / lỗi / xong | Sinh được kịch bản từ giao diện | T6.2, T5.5 | Hoài | ✅ |
 | T6.4 | **Trình xem và sửa kịch bản:** danh sách bước, sửa nội dung gợi ý từng cấp, xem điều kiện kiểm chứng và vùng mục tiêu trên lưới mô phỏng trang tính | Sửa và lưu được; dữ liệu vẫn hợp lệ theo lược đồ | T6.3 | Hoài, Việt | ⬜ |
 | T6.5 | Duyệt, phát hành, xem lịch sử phiên bản | Giảng viên phát hành được; học viên chỉ thấy bản đã phát hành | T6.4, T5.6 | Hoài | ⬜ |
 | T6.6 | Theo dõi tiến độ: tiến độ từng học viên, bước hay sai, cấp gợi ý dùng nhiều *(làm khi đã có dữ liệu từ Desktop, trong GĐ8)* | Hiển thị đúng dữ liệu từ nhật ký | T5.7, T7.9 | Hoài | ⬜ |

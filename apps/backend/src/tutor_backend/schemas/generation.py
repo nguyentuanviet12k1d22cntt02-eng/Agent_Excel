@@ -1,6 +1,7 @@
 """Schema job sinh kịch bản (openapi.yaml: GenerationJob, /exercises/{id}/generation-jobs)."""
 
 import uuid
+from datetime import datetime
 
 from pydantic import BaseModel, Field
 
@@ -25,3 +26,7 @@ class GenerationJobOut(ApiModel):
     duration_ms: int = 0
     result_version_id: uuid.UUID | None = None
     error: str | None = None
+    instructions: str | None = None
+    created_at: datetime
+    started_at: datetime | None = None
+    finished_at: datetime | None = None

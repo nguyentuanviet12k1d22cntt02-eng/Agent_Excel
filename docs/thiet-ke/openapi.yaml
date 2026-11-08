@@ -388,6 +388,18 @@ paths:
 
   /exercises/{exercise_id}/generation-jobs:
     parameters: [{ $ref: "#/components/parameters/ExerciseId" }]
+    get:
+      tags: [scripts]
+      summary: Các lần sinh kịch bản của bài (mới nhất trước, tối đa 20)
+      description: Web mở lại trang bài vẫn thấy job đang chạy và lịch sử sinh (T6.3).
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Các job
+          content:
+            application/json:
+              schema: { type: array, items: { $ref: "#/components/schemas/GenerationJob" } }
+        "404": { $ref: "#/components/responses/NotFound" }
     post:
       tags: [scripts]
       summary: Yêu cầu AI sinh kịch bản (chạy nền)
@@ -854,6 +866,10 @@ components:
         duration_ms: { type: integer }
         result_version_id: { $ref: "#/components/schemas/Id" }
         error: { type: string }
+        instructions: { type: string, description: Lưu ý thêm của giảng viên cho AI }
+        created_at: { type: string, format: date-time }
+        started_at: { type: string, format: date-time }
+        finished_at: { type: string, format: date-time }
     ScriptVersionSummary:
       type: object
       required: [id, exercise_id, revision, status, origin]
@@ -913,6 +929,13 @@ components:
               issue: { type: string }
         errors: { type: array, items: { type: string }, description: Lỗi chặn gửi duyệt }
         warnings: { type: array, items: { type: string }, description: Điểm giảng viên nên xem lại }
+        generation:
+          type: object
+          description: Chỉ có ở bản AI sinh, cho tới khi chạy lại tự kiểm (T5.5)
+          properties:
+            attempts: { type: integer }
+            model: { type: string }
+            remaining_issues: { type: array, items: { type: string }, description: Lỗi AI chưa sửa được sau N lần }
     TutorScript:
       $ref: "../../schemas/tutor-script/v1/tutor-script.schema.json"
     SessionUpsert:

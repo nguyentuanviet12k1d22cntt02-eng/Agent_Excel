@@ -118,3 +118,25 @@ def test_cannot_start_second_generation_while_running(
     db.commit()
     response = client.post(f"/api/v1/exercises/{exercise['id']}/generation-jobs", json={}, headers=headers)
     assert (response.status_code, response.json()["code"]) == (409, "generation_in_progress")
+
+
+def test_job_history_lists_newest_first_with_result_version(
+    client: TestClient, make_user: Callable[..., User], auth, exercise_files, fake_llm, b22_plan_factory
+):
+    headers = auth(make_user("teacher"))
+    exercise = create_b22(client, headers, exercise_files)
+    url = f"/api/v1/exercises/{exercise['id']}/generation-jobs"
+    assert client.get(url, headers=headers).json() == []
+    fake_llm([b22_plan_factory()])
+    first = generate(client, exercise["id"], headers, {"instructions": "Ngắn gọn."})
+    fake_llm([LLMError("mất kết nối")])  # lần sinh thứ hai thất bại
+
+    second = generate(client, exercise["id"], headers)
+
+    history = client.get(url, headers=headers).json()
+    assert [j["id"] for j in history] == [second["id"], first["id"]]
+    assert history[1]["result_version_id"] == first["result_version_id"] is not None
+    assert (history[1]["instructions"], history[0]["status"]) == ("Ngắn gọn.", "failed")
+    assert history[1]["created_at"] <= history[1]["started_at"] <= history[1]["finished_at"]
+    student = auth(make_user("student", email="hv@tdmu.edu.vn"))
+    assert client.get(url, headers=student).status_code == 403

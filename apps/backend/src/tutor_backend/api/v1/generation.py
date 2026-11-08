@@ -33,6 +33,13 @@ def request_generation(
     return generation_service.job_out(db, generation_service.get_job(db, job.id))
 
 
+@router.get(
+    "/exercises/{exercise_id}/generation-jobs", summary="Các lần sinh kịch bản của bài (mới nhất trước)"
+)
+def list_jobs(exercise_id: uuid.UUID, db: DbSession, _: Staff) -> list[GenerationJobOut]:
+    return generation_service.list_jobs(db, exercise_id)
+
+
 @router.get("/generation-jobs/{job_id}", summary="Trạng thái job sinh kịch bản (Web hỏi định kỳ)")
 def get_job(job_id: uuid.UUID, db: DbSession, _: Staff) -> GenerationJobOut:
     return generation_service.job_out(db, generation_service.get_job(db, job_id))

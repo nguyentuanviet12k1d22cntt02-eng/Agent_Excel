@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ErrorAlert } from "@/components/ErrorAlert";
 import { Loading } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
+import { GenerationPanel } from "@/features/generation/GenerationPanel";
 
 import { ExerciseEditDialog } from "./ExerciseEditDialog";
 import { ExerciseInfoCard } from "./ExerciseInfoCard";
@@ -62,6 +63,7 @@ export function ExerciseDetailPage() {
         </Alert>
       )}
       <ExerciseInfoCard exercise={data} />
+      <GenerationPanel exercise={data} />
 
       {editing && <ExerciseEditDialog exercise={data} onClose={() => setEditing(false)} />}
       {deleting && (
