@@ -39,7 +39,7 @@ export function LoginPage() {
   const notice = state.status === "anonymous" ? state.notice : undefined;
   return (
     <main className="login">
-      <form className="login__card" onSubmit={(e) => void handleSubmit(e)} noValidate={false}>
+      <form className="login__card" onSubmit={(e) => void handleSubmit(e)}>
         <div className="login__brand">
           <img src="/favicon.svg" alt="" width={40} height={40} />
           <div>

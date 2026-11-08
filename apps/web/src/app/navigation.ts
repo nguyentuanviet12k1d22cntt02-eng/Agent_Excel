@@ -6,4 +6,7 @@ export interface NavItem {
   roles?: readonly Role[]; // bỏ trống: mọi vai trò dùng được Web
 }
 
-export const NAV_ITEMS: readonly NavItem[] = [{ to: "/", label: "Tổng quan" }];
+export const NAV_ITEMS: readonly NavItem[] = [
+  { to: "/exercises", label: "Bài tập" },
+  { to: "/textbooks", label: "Giáo trình" },
+];

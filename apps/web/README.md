@@ -22,15 +22,15 @@ npm run dev          # mở http://localhost:5173
 
 ## Lệnh
 
-| Lệnh | Việc |
-|---|---|
-| `npm run dev` | Chạy dev, tự tải lại khi sửa code |
-| `npm run build` | Kiểm kiểu rồi build ra `dist/` (file tĩnh, đặt sau reverse proxy cùng Backend) |
-| `npm test` | Chạy test (Vitest + Testing Library, Backend giả trong `src/test/fakeApi.ts`) |
-| `npm run lint` · `npm run format` | ESLint · Prettier |
-| `npm run typecheck` | Kiểm kiểu TypeScript |
-| `npm run gen:api` | Sinh lại `src/api/schema.d.ts` từ `docs/thiet-ke/openapi.yaml` |
-| `npm run check:api` | Báo lỗi nếu `schema.d.ts` cũ hơn đặc tả (CI chạy) |
+| Lệnh                              | Việc                                                                           |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| `npm run dev`                     | Chạy dev, tự tải lại khi sửa code                                              |
+| `npm run build`                   | Kiểm kiểu rồi build ra `dist/` (file tĩnh, đặt sau reverse proxy cùng Backend) |
+| `npm test`                        | Chạy test (Vitest + Testing Library, Backend giả trong `src/test/fakeApi.ts`)  |
+| `npm run lint` · `npm run format` | ESLint · Prettier                                                              |
+| `npm run typecheck`               | Kiểm kiểu TypeScript                                                           |
+| `npm run gen:api`                 | Sinh lại `src/api/schema.d.ts` từ `docs/thiet-ke/openapi.yaml`                 |
+| `npm run check:api`               | Báo lỗi nếu `schema.d.ts` cũ hơn đặc tả (CI chạy)                              |
 
 **Kiểu dữ liệu API không gõ tay** (quy tắc code mục 3): sửa `docs/thiet-ke/openapi.yaml` (và Backend), chạy
 `npm run gen:api`, commit cả hai. Tên ngắn cho các kiểu hay dùng ở `src/api/types.ts`. Lược đồ kịch bản đọc
