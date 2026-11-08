@@ -934,7 +934,9 @@ components:
         parent_version_id: { $ref: "#/components/schemas/Id" }
         created_at: { type: string, format: date-time }
         created_by: { $ref: "#/components/schemas/Id" }
+        created_by_name: { type: string, description: Họ tên người tạo (bản AI sinh là người bấm sinh) }
         reviewed_by: { $ref: "#/components/schemas/Id" }
+        reviewed_by_name: { type: string, description: Họ tên người duyệt hoặc từ chối }
         reviewed_at: { type: string, format: date-time }
         review_note: { type: string }
         published_at: { type: string, format: date-time }

@@ -127,6 +127,9 @@ def test_invalid_transitions_and_reject(client: TestClient, setup, b22_script: d
         client, setup, version["id"], "reject", {"note": "Gợi ý cấp 2 nên nhắc nút AutoSum."}
     ).json()
     assert (rejected["status"], rejected["review_note"]) == ("draft", "Gợi ý cấp 2 nên nhắc nút AutoSum.")
+    # Ghi người và thời điểm duyệt/từ chối (FR-W10): Web hiện tên, không cần quyền xem danh sách tài khoản
+    assert (rejected["reviewed_by_name"], rejected["created_by_name"]) == ("Người dùng teacher",) * 2
+    assert rejected["reviewed_at"] is not None
 
 
 def test_ai_draft_edited_by_teacher_is_marked(client: TestClient, setup, fake_llm, b22_plan_factory):

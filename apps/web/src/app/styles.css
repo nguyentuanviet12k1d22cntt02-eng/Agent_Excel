@@ -822,3 +822,43 @@ table.table {
   padding: 6px 10px;
   font-size: 0.88rem;
 }
+
+/* ===== Duyệt, phát hành, so sánh bản ===== */
+.page-header__actions .review-error {
+  flex-basis: 100%;
+}
+
+.download {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.diff td {
+  font-size: 0.85rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.diff__before {
+  background: #fff5f4;
+}
+
+.diff__after {
+  background: #f2faf5;
+}
+
+.diff__kind--added {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}
+
+.diff__kind--removed {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.diff__kind--changed {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}

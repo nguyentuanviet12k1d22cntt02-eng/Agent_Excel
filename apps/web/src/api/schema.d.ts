@@ -1846,7 +1846,11 @@ export interface components {
             /** Format: date-time */
             created_at?: string;
             created_by?: components["schemas"]["Id"];
+            /** @description Họ tên người tạo (bản AI sinh là người bấm sinh) */
+            created_by_name?: string;
             reviewed_by?: components["schemas"]["Id"];
+            /** @description Họ tên người duyệt hoặc từ chối */
+            reviewed_by_name?: string;
             /** Format: date-time */
             reviewed_at?: string;
             review_note?: string;

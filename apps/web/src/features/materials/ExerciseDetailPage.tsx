@@ -8,6 +8,7 @@ import { ErrorAlert } from "@/components/ErrorAlert";
 import { Loading } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
 import { GenerationPanel } from "@/features/generation/GenerationPanel";
+import { VersionHistory } from "@/features/publishing/VersionHistory";
 
 import { ExerciseEditDialog } from "./ExerciseEditDialog";
 import { ExerciseInfoCard } from "./ExerciseInfoCard";
@@ -64,6 +65,7 @@ export function ExerciseDetailPage() {
       )}
       <ExerciseInfoCard exercise={data} />
       <GenerationPanel exercise={data} />
+      <VersionHistory exercise={data} />
 
       {editing && <ExerciseEditDialog exercise={data} onClose={() => setEditing(false)} />}
       {deleting && (

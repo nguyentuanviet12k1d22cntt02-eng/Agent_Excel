@@ -185,4 +185,5 @@ def review(
     version.status = transition(version, "approve" if approve else "reject")
     version.reviewed_by, version.reviewed_at, version.review_note = user.id, utcnow(), note
     db.commit()
+    db.expire(version, ["reviewer"])  # quan hệ chỉ đọc: nạp lại theo người duyệt mới
     return version

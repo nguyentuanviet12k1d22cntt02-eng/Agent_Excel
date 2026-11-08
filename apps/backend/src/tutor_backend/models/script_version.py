@@ -2,13 +2,16 @@
 
 import uuid
 from datetime import datetime
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from sqlalchemy import ForeignKey, Index, String, Text, UniqueConstraint, text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from tutor_backend.db.base import Base, CreatedAtMixin, uuid_pk
 from tutor_backend.models.enums import ScriptOrigin, ScriptStatus, enum_check
+
+if TYPE_CHECKING:
+    from tutor_backend.models.user import User
 
 _PUBLISHED = text("status = 'published'")
 
@@ -47,3 +50,15 @@ class ScriptVersion(CreatedAtMixin, Base):
     reviewed_at: Mapped[datetime | None]
     published_at: Mapped[datetime | None]
     published_file_path: Mapped[str | None] = mapped_column(String(500))  # file đề đã nhúng mã bài
+
+    # Tên người tạo, người duyệt để Web hiện lịch sử (FR-W10); giảng viên không xem được danh sách tài khoản
+    creator: Mapped[User | None] = relationship(foreign_keys=[created_by], lazy="selectin", viewonly=True)
+    reviewer: Mapped[User | None] = relationship(foreign_keys=[reviewed_by], lazy="selectin", viewonly=True)
+
+    @property
+    def created_by_name(self) -> str | None:
+        return self.creator.full_name if self.creator else None
+
+    @property
+    def reviewed_by_name(self) -> str | None:
+        return self.reviewer.full_name if self.reviewer else None

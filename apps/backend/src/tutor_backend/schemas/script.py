@@ -19,7 +19,9 @@ class ScriptVersionSummary(ApiModel):
     parent_version_id: uuid.UUID | None = None
     created_at: datetime
     created_by: uuid.UUID | None = None
+    created_by_name: str | None = None
     reviewed_by: uuid.UUID | None = None
+    reviewed_by_name: str | None = None
     reviewed_at: datetime | None = None
     review_note: str | None = None
     published_at: datetime | None = None

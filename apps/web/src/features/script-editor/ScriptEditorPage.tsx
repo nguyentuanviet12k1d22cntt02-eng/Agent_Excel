@@ -9,6 +9,7 @@ import { ErrorAlert } from "@/components/ErrorAlert";
 import { Loading } from "@/components/Loading";
 import { ScriptStatusBadge } from "@/components/ScriptStatusBadge";
 import { useExercise } from "@/features/materials/materialsApi";
+import { ReviewActions } from "@/features/publishing/ReviewActions";
 import { formatDateTime } from "@/lib/format";
 import { SCRIPT_ORIGIN_LABELS } from "@/lib/scriptLabels";
 
@@ -224,10 +225,21 @@ function Editor({ version, exercise }: { version: ScriptVersion; exercise: Exerc
           >
             {save.isPending ? "Đang lưu và tự kiểm…" : "Lưu thành bản mới"}
           </button>
+          <ReviewActions version={version} exercise={exercise} dirty={dirty} />
         </div>
       </header>
       {savedRevision !== undefined && !dirty && (
         <Alert kind="success">Đã lưu thành bản {savedRevision} (nháp). Bản cũ vẫn được giữ.</Alert>
+      )}
+      {!dirty && (version.status === "published" || version.status === "archived") && (
+        <Alert kind="info">
+          {version.status === "published"
+            ? "Học viên đang dùng bản này. Sửa rồi lưu sẽ tạo bản nháp mới; bản này vẫn phát hành cho tới khi bản mới được duyệt và phát hành."
+            : "Bản lưu trữ (đã có bản phát hành mới hơn). Sửa rồi lưu sẽ tạo bản nháp mới."}
+        </Alert>
+      )}
+      {!dirty && version.status === "pending_review" && (
+        <Alert kind="warning">Bản đang chờ duyệt. Sửa rồi lưu sẽ tạo bản nháp mới, cần gửi duyệt lại.</Alert>
       )}
       {dirty && (
         <Alert kind="info">
