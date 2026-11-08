@@ -29,4 +29,6 @@ py -3.14 -m venv .venv
 # excel_core: so sánh đề/đáp án, kiểm kịch bản 3 tầng
 .venv\Scripts\python -m excel_core.diff de.xlsx dap-an.xlsx
 .venv\Scripts\python -m excel_core.script kich-ban.json --starter de.xlsx --solution dap-an.xlsx
+# Web (apps/web, Node 22): sửa openapi.yaml thì chạy gen:api và commit src/api/schema.d.ts
+cd apps\web; npm install; npm run dev; npm test; npm run lint; npm run format; npm run gen:api
 ```

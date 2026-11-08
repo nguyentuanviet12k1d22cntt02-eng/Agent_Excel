@@ -1,16 +1,52 @@
 # apps/web — Web quản trị (React + Vite + TypeScript)
 
-Dành cho giảng viên: tải học liệu, yêu cầu AI sinh kịch bản, xem/sửa, duyệt, phát hành, theo dõi tiến độ học viên.
+Dành cho giảng viên và quản trị viên: tải học liệu, yêu cầu AI sinh kịch bản, xem/sửa, duyệt, phát hành,
+theo dõi tiến độ học viên. Học viên không dùng Web (dùng ứng dụng Desktop).
 
-- **Được xây dựng ở:** GĐ6 (T6.1 – T6.6). Khung dự án Vite tạo ở T6.1
-- **Yêu cầu:** Node.js 22 LTS
-- **Bố cục dự kiến** (theo [quy tắc code](../../docs/quy-uoc/quy-tac-code.md#3-typescript--react-appsweb)):
+- **Yêu cầu:** Node.js 22 LTS (≥ 22.22.2)
+- **Gọi Backend qua:** `/api/v1` cùng máy chủ. Khi chạy dev, Vite chuyển tiếp `/api` sang Backend
+  (mặc định `http://127.0.0.1:8000`, đổi bằng biến môi trường `TUTOR_BACKEND_URL`). Khi build để triển khai
+  mà Web và Backend khác máy chủ thì đặt `VITE_API_BASE_URL`, ví dụ `https://api.trungtam.vn/api/v1`.
+
+## Chạy thử trên máy
+
+```powershell
+# Cửa sổ 1: Backend (xem apps/backend/README.md: migrate, create-admin)
+.venv\Scripts\python -m tutor_backend serve
+
+# Cửa sổ 2: Web
+cd apps\web
+npm install          # lần đầu, hoặc khi package.json đổi
+npm run dev          # mở http://localhost:5173
+```
+
+## Lệnh
+
+| Lệnh | Việc |
+|---|---|
+| `npm run dev` | Chạy dev, tự tải lại khi sửa code |
+| `npm run build` | Kiểm kiểu rồi build ra `dist/` (file tĩnh, đặt sau reverse proxy cùng Backend) |
+| `npm test` | Chạy test (Vitest + Testing Library, Backend giả trong `src/test/fakeApi.ts`) |
+| `npm run lint` · `npm run format` | ESLint · Prettier |
+| `npm run typecheck` | Kiểm kiểu TypeScript |
+| `npm run gen:api` | Sinh lại `src/api/schema.d.ts` từ `docs/thiet-ke/openapi.yaml` |
+| `npm run check:api` | Báo lỗi nếu `schema.d.ts` cũ hơn đặc tả (CI chạy) |
+
+**Kiểu dữ liệu API không gõ tay** (quy tắc code mục 3): sửa `docs/thiet-ke/openapi.yaml` (và Backend), chạy
+`npm run gen:api`, commit cả hai. Tên ngắn cho các kiểu hay dùng ở `src/api/types.ts`. Lược đồ kịch bản đọc
+thẳng từ `schemas/tutor-script/v1/` (bí danh `@schemas`).
+
+## Bố cục
 
 ```
 src/
-├─ app/           định tuyến, provider, layout chung
-├─ features/      mỗi tính năng một thư mục: materials/, script-editor/, publishing/, progress/
+├─ app/           định tuyến, provider, khung trang, giao diện chung (styles.css)
+├─ api/           client gọi Backend (tự gắn và làm mới token), lỗi problem+json, kiểu sinh từ OpenAPI
+├─ features/      mỗi tính năng một thư mục: auth/, materials/, script-editor/, publishing/ …
 ├─ components/    thành phần giao diện dùng chung
-├─ api/           client gọi Backend + kiểu dữ liệu sinh từ OpenAPI
-└─ lib/           tiện ích dùng chung
+├─ lib/           tiện ích dùng chung
+└─ test/          Backend giả và hàm dựng ứng dụng cho test
 ```
+
+Đăng nhập: access token chỉ giữ trong bộ nhớ; refresh token lưu `localStorage` để mở lại trình duyệt không
+phải đăng nhập lại. Gặp 401 thì client tự làm mới token một lần rồi gửi lại; hết hạn hẳn thì về trang đăng nhập.

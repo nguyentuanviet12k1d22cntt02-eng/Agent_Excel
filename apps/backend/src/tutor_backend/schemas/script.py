@@ -20,6 +20,7 @@ class ScriptVersionSummary(ApiModel):
     created_at: datetime
     created_by: uuid.UUID | None = None
     reviewed_by: uuid.UUID | None = None
+    reviewed_at: datetime | None = None
     review_note: str | None = None
     published_at: datetime | None = None
 

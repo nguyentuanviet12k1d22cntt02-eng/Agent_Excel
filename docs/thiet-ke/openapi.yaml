@@ -867,6 +867,7 @@ components:
         created_at: { type: string, format: date-time }
         created_by: { $ref: "#/components/schemas/Id" }
         reviewed_by: { $ref: "#/components/schemas/Id" }
+        reviewed_at: { type: string, format: date-time }
         review_note: { type: string }
         published_at: { type: string, format: date-time }
     ScriptVersion:
@@ -879,7 +880,10 @@ components:
             self_check_report: { $ref: "#/components/schemas/SelfCheckReport" }
     SelfCheckReport:
       type: object
-      description: Kết quả kiểm 3 tầng (luoc-do-kich-ban.md mục 3)
+      description: |
+        Kết quả kiểm 3 tầng (luoc-do-kich-ban.md mục 3). Tầng 3 (`checks` trở xuống) chỉ có khi kịch bản qua
+        lược đồ (`schema_ok`).
+      required: [schema_ok, cross_reference_errors]
       properties:
         schema_ok: { type: boolean }
         cross_reference_errors: { type: array, items: { type: string } }
@@ -887,11 +891,14 @@ components:
           type: array
           items:
             type: object
+            required: [step_id, check_index, type, passes_on_solution, fails_on_starter]
             properties:
-              step_id: { type: string }
+              step_id: { type: [string, "null"], description: "null = điều kiện toàn bài (global_checks)" }
               check_index: { type: integer }
+              type: { type: string, description: Loại điều kiện, ví dụ value_equals }
               passes_on_solution: { type: boolean }
               fails_on_starter: { type: boolean }
+              code_on_starter: { type: [string, "null"], description: Mã lỗi khi chấm file đề }
         diff_coverage: { type: number, minimum: 0, maximum: 1 }
         uncovered_ranges: { type: array, items: { type: string } }
         hint_text_issues:
@@ -899,10 +906,13 @@ components:
           description: Số liệu hoặc địa chỉ ô trong chữ gợi ý không có thật
           items:
             type: object
+            required: [step_id, text, issue]
             properties:
               step_id: { type: string }
-              level: { type: integer }
+              text: { type: string, description: Đoạn chữ bị bắt, ví dụ "F10" hoặc "12.500" }
               issue: { type: string }
+        errors: { type: array, items: { type: string }, description: Lỗi chặn gửi duyệt }
+        warnings: { type: array, items: { type: string }, description: Điểm giảng viên nên xem lại }
     TutorScript:
       $ref: "../../schemas/tutor-script/v1/tutor-script.schema.json"
     SessionUpsert:

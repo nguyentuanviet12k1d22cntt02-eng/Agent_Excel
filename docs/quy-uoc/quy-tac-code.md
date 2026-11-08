@@ -86,13 +86,16 @@ logger = logging.getLogger(__name__)
 
 ## 3. TypeScript / React (`apps/web`)
 
-Thiết lập công cụ ở T6.1. Quy tắc áp dụng từ đầu:
+Công cụ thiết lập ở T6.1 (xem [apps/web/README.md](../../apps/web/README.md)). Quy tắc:
 
 1. **TypeScript chế độ `strict`**, không dùng `any`. Chưa biết kiểu thì dùng `unknown` rồi kiểm tra.
 2. **Chỉ dùng function component và hook.** Không dùng class component.
 3. **Tổ chức theo tính năng**: `src/features/<tinh-nang>/` chứa component, hook, gọi API của tính năng đó. Thành phần dùng chung đặt trong `src/components/`.
 4. **Kiểu dữ liệu API sinh tự động từ đặc tả OpenAPI** của Backend, không tự gõ lại.
-5. Định dạng bằng **Prettier**, kiểm tra bằng **ESLint**.
+5. Định dạng bằng **Prettier**, kiểm tra bằng **ESLint** (`typescript-eslint` mức `strictTypeChecked`). Trước khi commit: `npm run format`, `npm run lint`, `npm test`.
+6. **Gọi API qua `src/api/client.ts`** (`api.GET(...)` rồi `unwrap`), không gọi `fetch` trực tiếp: client lo token, làm mới token và đổi lỗi `problem+json` thành `ApiError` có thông báo tiếng Việt.
+7. Dữ liệu từ máy chủ đọc bằng **TanStack Query** (`useQuery`, `useMutation`); không tự giữ bản sao trong `useState`.
+8. Chữ trên giao diện tiếng Việt có dấu; tên biến, hàm, component tiếng Anh.
 
 ## 4. JSON Schema (`schemas/`)
 
