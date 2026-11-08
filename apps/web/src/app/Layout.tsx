@@ -1,12 +1,14 @@
-import { NavLink, Outlet } from "react-router";
+import { NavLink, Outlet, useMatches } from "react-router";
 
 import { ROLE_LABELS, useAuth, useCurrentUser } from "@/features/auth/authContext";
 
 import { NAV_ITEMS } from "./navigation";
+import type { RouteHandle } from "./routes";
 
 export function Layout() {
   const user = useCurrentUser();
   const { logout } = useAuth();
+  const wide = useMatches().some((m) => (m.handle as RouteHandle | undefined)?.wide);
   const items = NAV_ITEMS.filter((item) => !item.roles || item.roles.includes(user.role));
   return (
     <div className="shell">
@@ -31,7 +33,7 @@ export function Layout() {
           </button>
         </div>
       </header>
-      <main className="content">
+      <main className={wide ? "content content--wide" : "content"}>
         <Outlet />
       </main>
     </div>

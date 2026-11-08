@@ -141,5 +141,5 @@ Khi chuyển, đã sửa 2 điểm: (1) gợi ý **không ghi địa chỉ ô v�
 ## 6. Còn mở
 
 1. Câu hỏi cho GVHD trong 2 kịch bản tay (Thành tiền có phải bước bắt buộc; `0.00` có được chấp nhận; `=SUM(C9,D9,E9)`). Bản JSON đang theo phương án nháp.
-2. Thông báo lỗi của `jsonschema` với `oneOf` khó đọc → Web quản trị (T6.x) cần lớp chuyển thông báo lỗi sang tiếng Việt dễ hiểu theo `path` của lỗi.
+2. ~~Thông báo lỗi của `jsonschema` với `oneOf` khó đọc.~~ Đã làm ở T6.4: Web kiểm kịch bản bằng Ajv trên cùng file lược đồ, kiểm riêng từng điều kiện theo đúng loại (`type`) để bỏ lỗi nhiễu của `oneOf`, đổi lỗi thành câu tiếng Việt kèm vị trí (ví dụ "Bước 2 › Gợi ý cấp 4 › Thao tác 1"); xem `apps/web/src/features/script-editor/scriptSchema.ts`. Mã lỗi cho ô chọn phản hồi lấy từ câu "Mã lỗi: …" trong mô tả `$defs/check_*`.
 3. ~~Danh sách mã lỗi chuẩn cho từng loại điều kiện.~~ Đã chốt ở T4.4: [danh-muc-dieu-kien.md mục 6](danh-muc-dieu-kien.md#6-mã-lỗi-đã-chốt-khi-cài-đặt-t44); mô tả `$defs/check_*` trong lược đồ khớp với code (có test).

@@ -751,6 +751,56 @@ export interface paths {
         };
         trace?: never;
     };
+    "/exercises/{exercise_id}/sheet-preview": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: components["parameters"]["ExerciseId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Xem trước trang tính của file đề hoặc đáp án (lưới mô phỏng trên Web)
+         * @description Vùng từ A1, tối đa 200 dòng × 30 cột. Chữ hiển thị gần đúng theo kiểu Việt Nam, chỉ để giảng viên thấy
+         *     vùng mục tiêu, vùng nguồn, vùng của điều kiện nằm ở đâu (T6.4).
+         */
+        get: {
+            parameters: {
+                query?: {
+                    file?: "starter" | "solution";
+                    /** @description Bỏ trống là sheet làm bài */
+                    sheet?: string;
+                };
+                header?: never;
+                path: {
+                    exercise_id: components["parameters"]["ExerciseId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Lưới trang tính */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SheetPreview"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+                422: components["responses"]["Invalid"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/exercises/{exercise_id}/starter-file": {
         parameters: {
             query?: never;
@@ -1722,6 +1772,44 @@ export interface components {
             latest_version?: components["schemas"]["ScriptVersionSummary"];
             published_version?: components["schemas"]["ScriptVersionSummary"];
             warnings?: string[];
+        };
+        SheetPreview: {
+            sheet: string;
+            sheet_names: string[];
+            /** @description Vùng hiện */
+            range: string;
+            rows: number;
+            cols: number;
+            /** @description Trang tính lớn hơn vùng hiện */
+            truncated: boolean;
+            /** @description Chỉ ô có nội dung hoặc định dạng đáng kể */
+            cells: {
+                address: string;
+                /** @description Chữ hiển thị gần đúng */
+                text: string;
+                formula?: string | null;
+                bold: boolean;
+                italic: boolean;
+                /** @description Màu chữ khác đen */
+                color?: string | null;
+                fill?: string | null;
+                /** @description Căn ngang khác General */
+                align?: string | null;
+                /** @description Số hoặc ngày (General thì căn phải) */
+                number: boolean;
+                wrap: boolean;
+            }[];
+            merged: string[];
+            /** @description Cột → số ký tự */
+            col_widths: {
+                [key: string]: number;
+            };
+            /** @description Dòng → điểm */
+            row_heights: {
+                [key: string]: number;
+            };
+            hidden_rows: number[];
+            hidden_cols: string[];
         };
         GenerationJob: {
             id: components["schemas"]["Id"];

@@ -18,13 +18,14 @@ export type Passage = Schemas["Passage"];
 export type Exercise = Schemas["Exercise"];
 export type GenerationJob = Schemas["GenerationJob"];
 export type ScriptVersionSummary = Schemas["ScriptVersionSummary"];
-export type ScriptVersion = Schemas["ScriptVersion"];
 export type ScriptStatus = ScriptVersionSummary["status"];
 export type ScriptOrigin = ScriptVersionSummary["origin"];
 export type SelfCheckReport = Schemas["SelfCheckReport"];
 
-// Kịch bản (schemas/tutor-script/v1)
-export type Script = Schemas["TutorScript"];
+// Kịch bản (schemas/tutor-script/v1). openapi-typescript gom lược đồ ngoài kèm khóa "$defs" vào kiểu gốc;
+// dữ liệu thật không có khóa này nên bỏ đi.
+export type Script = Omit<Schemas["TutorScript"], "$defs">;
+export type ScriptVersion = Omit<Schemas["ScriptVersion"], "content"> & { content: Script };
 export type Step = Schemas["step"];
 export type Check = Schemas["check"];
 export type GlobalCheck = Schemas["global_check"];

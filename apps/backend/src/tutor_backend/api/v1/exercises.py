@@ -7,7 +7,8 @@ from fastapi import APIRouter, Form, Query, Response, UploadFile, status
 
 from tutor_backend.api.deps import AppSettings, DbSession, Staff, Store
 from tutor_backend.schemas.exercise import ExerciseOut, ExerciseUpdate
-from tutor_backend.services import exercise_service
+from tutor_backend.schemas.preview import PreviewFile, SheetPreview
+from tutor_backend.services import exercise_service, sheet_preview
 from tutor_backend.services.exercise_service import ExerciseFields, ExerciseFiles
 from tutor_backend.services.uploads import read_limited
 
@@ -70,3 +71,20 @@ def update_exercise(exercise_id: uuid.UUID, body: ExerciseUpdate, db: DbSession,
 def delete_exercise(exercise_id: uuid.UUID, db: DbSession, store: Store, _: Staff) -> Response:
     exercise_service.delete_exercise(db, store, exercise_id)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+@router.get(
+    "/{exercise_id}/sheet-preview",
+    summary="Xem trước trang tính của file đề hoặc đáp án (lưới mô phỏng trên Web)",
+)
+def preview_sheet(
+    exercise_id: uuid.UUID,
+    db: DbSession,
+    store: Store,
+    _: Staff,
+    file: Annotated[PreviewFile, Query(description="starter: file đề, solution: file đáp án")] = "starter",
+    sheet: Annotated[str | None, Query(max_length=31, description="Bỏ trống: sheet làm bài")] = None,
+) -> SheetPreview:
+    exercise = exercise_service.get_exercise(db, exercise_id)
+    stored = exercise.starter_file_path if file == "starter" else exercise.solution_file_path
+    return sheet_preview.sheet_preview(store.path(stored), sheet or exercise.sheet_name)

@@ -372,6 +372,26 @@ paths:
       responses:
         "204": { description: Đã xóa }
         "409": { $ref: "#/components/responses/Conflict" }
+  /exercises/{exercise_id}/sheet-preview:
+    parameters: [{ $ref: "#/components/parameters/ExerciseId" }]
+    get:
+      tags: [materials]
+      summary: Xem trước trang tính của file đề hoặc đáp án (lưới mô phỏng trên Web)
+      description: |
+        Vùng từ A1, tối đa 200 dòng × 30 cột. Chữ hiển thị gần đúng theo kiểu Việt Nam, chỉ để giảng viên thấy
+        vùng mục tiêu, vùng nguồn, vùng của điều kiện nằm ở đâu (T6.4).
+      x-roles: [admin, teacher]
+      parameters:
+        - { name: file, in: query, schema: { enum: [starter, solution], default: starter } }
+        - { name: sheet, in: query, description: Bỏ trống là sheet làm bài, schema: { type: string, maxLength: 31 } }
+      responses:
+        "200":
+          description: Lưới trang tính
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/SheetPreview" }
+        "404": { $ref: "#/components/responses/NotFound" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /exercises/{exercise_id}/starter-file:
     parameters: [{ $ref: "#/components/parameters/ExerciseId" }]
     get:
@@ -851,6 +871,38 @@ components:
         latest_version: { $ref: "#/components/schemas/ScriptVersionSummary" }
         published_version: { $ref: "#/components/schemas/ScriptVersionSummary" }
         warnings: { type: array, items: { type: string } }
+    SheetPreview:
+      type: object
+      required: [sheet, sheet_names, range, rows, cols, truncated, cells, merged, col_widths, row_heights, hidden_rows, hidden_cols]
+      properties:
+        sheet: { type: string }
+        sheet_names: { type: array, items: { type: string } }
+        range: { type: string, description: Vùng hiện, luôn bắt đầu từ A1 }
+        rows: { type: integer }
+        cols: { type: integer }
+        truncated: { type: boolean, description: Trang tính lớn hơn vùng hiện }
+        cells:
+          type: array
+          description: Chỉ ô có nội dung hoặc định dạng đáng kể
+          items:
+            type: object
+            required: [address, text, bold, italic, number, wrap]
+            properties:
+              address: { type: string }
+              text: { type: string, description: Chữ hiển thị gần đúng }
+              formula: { type: [string, "null"] }
+              bold: { type: boolean }
+              italic: { type: boolean }
+              color: { type: [string, "null"], description: Màu chữ khác đen }
+              fill: { type: [string, "null"] }
+              align: { type: [string, "null"], description: Căn ngang khác General }
+              number: { type: boolean, description: Số hoặc ngày (General thì căn phải) }
+              wrap: { type: boolean }
+        merged: { type: array, items: { type: string } }
+        col_widths: { type: object, additionalProperties: { type: number }, description: Cột → số ký tự }
+        row_heights: { type: object, additionalProperties: { type: number }, description: Dòng → điểm }
+        hidden_rows: { type: array, items: { type: integer } }
+        hidden_cols: { type: array, items: { type: string } }
     GenerationJob:
       type: object
       required: [id, exercise_id, status]

@@ -1,0 +1,401 @@
+/* Trình sửa kịch bản (T6.4): nạp cùng trang trình sửa, không làm nặng các trang khác. */
+:root {
+  --mark-target: #1f5fa8;
+  --mark-source: #1d6f42;
+  --mark-focus: #e8590c;
+}
+
+.editor {
+  display: grid;
+  grid-template-columns: 230px minmax(0, 1fr) minmax(340px, 38%);
+  gap: 16px;
+  align-items: start;
+}
+
+.editor__outline,
+.editor__grid {
+  position: sticky;
+  top: 72px;
+  max-height: calc(100vh - 88px);
+  overflow: auto;
+}
+
+.editor__outline {
+  padding: 12px 8px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.editor__main {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+
+.editor__main .card + .card {
+  margin-top: 0;
+}
+
+@media (max-width: 1200px) {
+  .editor {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+
+  .editor__grid {
+    grid-column: 1 / -1;
+    position: static;
+    max-height: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .editor {
+    grid-template-columns: 1fr;
+  }
+
+  .editor__outline {
+    position: static;
+    max-height: none;
+  }
+}
+
+/* ===== Mục lục ===== */
+.outline {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+.outline__heading {
+  margin: 8px 8px 4px;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.outline__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: var(--radius-small);
+  background: none;
+  color: var(--color-text);
+  font: inherit;
+  font-size: 0.9rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.outline__item:hover {
+  background: var(--color-surface-muted);
+}
+
+.outline__item--active {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-weight: 600;
+}
+
+.outline__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ===== Biểu mẫu bước ===== */
+.hints {
+  display: grid;
+  gap: 14px;
+}
+
+.hint {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-small);
+  background: #fbfcfb;
+}
+
+.actions-list ol {
+  margin: 0 0 6px;
+  padding-left: 20px;
+}
+
+.actions-list li + li {
+  margin-top: 4px;
+}
+
+.chip {
+  display: inline-block;
+  margin: 2px 4px 2px 0;
+  padding: 1px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface-muted);
+  font-size: 0.82rem;
+}
+
+.quotes {
+  margin-top: 14px;
+}
+
+.quotes h4 {
+  margin-bottom: 6px;
+}
+
+.quote + .quote {
+  margin-top: 10px;
+}
+
+blockquote {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border-left: 3px solid var(--color-primary);
+  border-radius: 0 var(--radius-small) var(--radius-small) 0;
+  background: var(--color-surface-muted);
+}
+
+blockquote p {
+  margin: 4px 0 0;
+}
+
+.feedback-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.feedback-row select,
+.table--form select {
+  width: auto;
+}
+
+.criterion {
+  padding-top: 10px;
+  border-top: 1px solid var(--color-border);
+}
+
+.skills {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 4px 12px;
+}
+
+.table--form td {
+  vertical-align: middle;
+}
+
+.input--range {
+  max-width: 140px;
+  font-family: var(--font-mono);
+}
+
+.row--invalid td {
+  background: #fff8f7;
+}
+
+.selfcheck {
+  display: inline-flex;
+  flex-direction: column;
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.ok,
+.text-success {
+  color: var(--color-success);
+}
+
+.bad {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+.warn,
+.text-warning {
+  color: var(--color-warning);
+}
+
+.issue-list li + li {
+  margin-top: 2px;
+}
+
+.details--compact {
+  grid-template-columns: minmax(120px, 160px) 1fr;
+  margin-bottom: 12px;
+}
+
+.section-gap--small {
+  margin-top: 12px;
+}
+
+.json-editor {
+  min-height: 320px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+}
+
+/* ===== Lưới mô phỏng trang tính ===== */
+.grid-panel {
+  padding: 10px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.grid-panel__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.grid-panel__toolbar select {
+  width: auto;
+  max-width: 200px;
+}
+
+.grid-panel__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 6px;
+  color: var(--color-muted);
+}
+
+.legend::before {
+  content: "";
+  display: inline-block;
+  width: 14px;
+  height: 10px;
+  margin-right: 4px;
+  vertical-align: -1px;
+  border: 2px solid;
+}
+
+.legend--target::before {
+  border-color: var(--mark-target);
+}
+
+.legend--source::before {
+  border-color: var(--mark-source);
+  border-style: dashed;
+}
+
+.legend--focus::before {
+  border-color: var(--mark-focus);
+}
+
+.segmented {
+  display: inline-flex;
+  overflow: hidden;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-small);
+}
+
+.segmented button {
+  padding: 4px 10px;
+  border: 0;
+  background: var(--color-surface);
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.segmented button + button {
+  border-left: 1px solid var(--color-border-strong);
+}
+
+.segmented button[aria-pressed="true"] {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.sheet {
+  position: relative;
+  overflow: auto;
+  max-height: calc(100vh - 220px);
+  border: 1px solid var(--color-border);
+  background: #fff;
+}
+
+/* Kích thước khớp hằng số trong SheetGrid.tsx (ROW_HEADER_PX, COL_HEADER_PX) để khung vẽ đúng chỗ */
+.sheet__table {
+  width: max-content;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-family: Calibri, "Segoe UI", Arial, sans-serif;
+  font-size: 12px;
+}
+
+.sheet__table th,
+.sheet__table td {
+  overflow: hidden;
+  padding: 0 3px;
+  border: 1px solid #e1e4e2;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.sheet__table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  height: 22px;
+  background: #f1f3f2;
+  color: var(--color-muted);
+  font-weight: 500;
+  text-align: center;
+}
+
+.sheet__table tbody th {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #f1f3f2;
+  color: var(--color-muted);
+  font-weight: 500;
+  text-align: center;
+}
+
+.sheet__table .sheet__corner {
+  left: 0;
+  z-index: 3;
+}
+
+.sheet__mark {
+  position: absolute;
+  border: 2px solid;
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.sheet__mark--target {
+  border-color: var(--mark-target);
+  background: rgb(31 95 168 / 8%);
+}
+
+.sheet__mark--source {
+  border-color: var(--mark-source);
+  border-style: dashed;
+  background: rgb(29 111 66 / 6%);
+}
+
+.sheet__mark--focus {
+  z-index: 1;
+  border-color: var(--mark-focus);
+  border-width: 3px;
+  background: rgb(232 89 12 / 10%);
+}
