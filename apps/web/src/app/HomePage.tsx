@@ -7,6 +7,7 @@ const WORKFLOW = [
   "Bấm “Sinh kịch bản”: AI chia bước và viết gợi ý, hệ thống tự kiểm trên file đề và đáp án.",
   "Xem, sửa từng bước rồi gửi duyệt và duyệt.",
   "Phát hành và tải file đề đã nhúng mã bài để phát cho học viên.",
+  "Giao bài cho lớp (trang Lớp học): học viên được giao mới thấy bài trong ứng dụng gia sư.",
 ];
 
 export function HomePage() {

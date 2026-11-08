@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { ErrorAlert } from "@/components/ErrorAlert";
 import { Loading } from "@/components/Loading";
 import { PageHeader } from "@/components/PageHeader";
+import { AssignDialog } from "@/features/accounts/AssignDialog";
 import { GenerationPanel } from "@/features/generation/GenerationPanel";
 import { VersionHistory } from "@/features/publishing/VersionHistory";
 
@@ -21,6 +22,7 @@ export function ExerciseDetailPage() {
   const remove = useDeleteExercise();
   const [editing, setEditing] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [assigning, setAssigning] = useState(false);
 
   if (exercise.isPending) return <Loading />;
   if (exercise.error) return <ErrorAlert error={exercise.error} />;
@@ -38,6 +40,9 @@ export function ExerciseDetailPage() {
         }
         actions={
           <>
+            <button type="button" className="btn" onClick={() => setAssigning(true)}>
+              Giao cho lớp
+            </button>
             <button type="button" className="btn" onClick={() => setEditing(true)}>
               Sửa thông tin
             </button>
@@ -68,6 +73,7 @@ export function ExerciseDetailPage() {
       <VersionHistory exercise={data} />
 
       {editing && <ExerciseEditDialog exercise={data} onClose={() => setEditing(false)} />}
+      {assigning && <AssignDialog exerciseId={data.id} onClose={() => setAssigning(false)} />}
       {deleting && (
         <ConfirmDialog
           title="Xóa bài tập"

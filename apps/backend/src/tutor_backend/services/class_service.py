@@ -6,14 +6,23 @@ from sqlalchemy import delete, func, select
 from sqlalchemy.orm import Session
 
 from tutor_backend.core.errors import ForbiddenError, InvalidError, NotFoundError
-from tutor_backend.models import Class, ClassExercise, ClassMember, Exercise, User
-from tutor_backend.models.enums import Role
-from tutor_backend.schemas.class_ import ClassCreate, ClassExerciseIn, ClassOut, MemberIn
+from tutor_backend.models import Class, ClassExercise, ClassMember, Exercise, ScriptVersion, User
+from tutor_backend.models.enums import Role, ScriptStatus
+from tutor_backend.schemas.class_ import (
+    ClassCreate,
+    ClassExerciseIn,
+    ClassExerciseOut,
+    ClassOut,
+    MemberIn,
+    MemberOut,
+)
 
 
 def _to_out(db: Session, cls: Class) -> ClassOut:
     count = db.scalar(select(func.count()).where(ClassMember.class_id == cls.id)) or 0
-    return ClassOut.model_validate(cls).model_copy(update={"member_count": count})
+    teacher = db.get(User, cls.teacher_id)
+    update = {"member_count": count, "teacher_name": teacher.full_name if teacher else None}
+    return ClassOut.model_validate(cls).model_copy(update=update)
 
 
 def get_class(db: Session, class_id: uuid.UUID) -> Class:
@@ -61,6 +70,51 @@ def replace_members(db: Session, class_id: uuid.UUID, members: list[MemberIn]) -
     db.add_all(
         ClassMember(class_id=class_id, student_id=m.student_id, study_group=m.study_group) for m in members
     )
+    db.commit()
+
+
+def list_members(db: Session, class_id: uuid.UUID, user: User) -> list[MemberOut]:
+    ensure_can_manage(get_class(db, class_id), user)
+    rows = db.execute(
+        select(ClassMember.study_group, User)
+        .join(User, User.id == ClassMember.student_id)
+        .where(ClassMember.class_id == class_id)
+        .order_by(User.full_name)
+    )
+    return [
+        MemberOut(student_id=u.id, email=u.email, full_name=u.full_name, study_group=group)
+        for group, u in rows
+    ]
+
+
+def list_assignments(db: Session, class_id: uuid.UUID, user: User) -> list[ClassExerciseOut]:
+    """Bài đã giao cho lớp, kèm bản đang phát hành (chưa phát hành thì học viên chưa làm được)."""
+    ensure_can_manage(get_class(db, class_id), user)
+    published = (
+        select(ScriptVersion.revision)
+        .where(ScriptVersion.exercise_id == Exercise.id, ScriptVersion.status == ScriptStatus.PUBLISHED)
+        .scalar_subquery()
+    )
+    rows = db.execute(
+        select(ClassExercise.due_at, Exercise, published)
+        .join(Exercise, Exercise.id == ClassExercise.exercise_id)
+        .where(ClassExercise.class_id == class_id)
+        .order_by(Exercise.code)
+    )
+    return [
+        ClassExerciseOut(
+            exercise_id=e.id, code=e.code, title=e.title, due_at=due_at, published_revision=revision
+        )
+        for due_at, e, revision in rows
+    ]
+
+
+def unassign_exercise(db: Session, class_id: uuid.UUID, exercise_id: uuid.UUID, user: User) -> None:
+    ensure_can_manage(get_class(db, class_id), user)
+    assignment = db.get(ClassExercise, (class_id, exercise_id))
+    if assignment is None:
+        raise NotFoundError("Bài này chưa giao cho lớp", code="assignment_not_found")
+    db.delete(assignment)
     db.commit()
 
 

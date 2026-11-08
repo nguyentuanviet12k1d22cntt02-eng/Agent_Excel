@@ -29,6 +29,7 @@ class ClassOut(ApiModel):
     starts_on: date | None = None
     ends_on: date | None = None
     member_count: int = 0
+    teacher_name: str | None = None
 
 
 class MemberIn(BaseModel):
@@ -39,3 +40,18 @@ class MemberIn(BaseModel):
 class ClassExerciseIn(BaseModel):
     exercise_id: uuid.UUID
     due_at: datetime | None = None
+
+
+class MemberOut(BaseModel):
+    student_id: uuid.UUID
+    email: str
+    full_name: str
+    study_group: StudyGroup
+
+
+class ClassExerciseOut(BaseModel):
+    exercise_id: uuid.UUID
+    code: str
+    title: str
+    due_at: datetime | None = None
+    published_revision: int | None = None  # None: chưa phát hành, học viên chưa làm được

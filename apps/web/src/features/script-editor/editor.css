@@ -212,8 +212,7 @@ blockquote p {
   white-space: nowrap;
 }
 
-.ok,
-.text-success {
+.ok {
   color: var(--color-success);
 }
 
@@ -222,8 +221,7 @@ blockquote p {
   font-weight: 600;
 }
 
-.warn,
-.text-warning {
+.warn {
   color: var(--color-warning);
 }
 
@@ -234,10 +232,6 @@ blockquote p {
 .details--compact {
   grid-template-columns: minmax(120px, 160px) 1fr;
   margin-bottom: 12px;
-}
-
-.section-gap--small {
-  margin-top: 12px;
 }
 
 .json-editor {

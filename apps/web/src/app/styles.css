@@ -634,6 +634,18 @@ table.table {
   margin-top: 20px;
 }
 
+.section-gap--small {
+  margin-top: 12px;
+}
+
+.text-success {
+  color: var(--color-success);
+}
+
+.text-warning {
+  color: var(--color-warning);
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -861,4 +873,17 @@ table.table {
 .diff__kind--changed {
   background: var(--color-warning-soft);
   color: var(--color-warning);
+}
+
+/* ===== Tài khoản ===== */
+.secret {
+  padding: 2px 6px;
+  border-radius: var(--radius-small);
+  background: var(--color-surface-muted);
+  font-size: 0.95rem;
+  user-select: all;
+}
+
+.modal__footer .spacer {
+  align-self: center;
 }

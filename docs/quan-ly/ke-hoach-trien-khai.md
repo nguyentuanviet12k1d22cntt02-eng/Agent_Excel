@@ -173,6 +173,7 @@ Agent_Excel/
 | T6.4 | **Trình xem và sửa kịch bản:** danh sách bước, sửa nội dung gợi ý từng cấp, xem điều kiện kiểm chứng và vùng mục tiêu trên lưới mô phỏng trang tính | Sửa và lưu được; dữ liệu vẫn hợp lệ theo lược đồ | T6.3 | Hoài, Việt | ✅ |
 | T6.5 | Duyệt, phát hành, xem lịch sử phiên bản | Giảng viên phát hành được; học viên chỉ thấy bản đã phát hành | T6.4, T5.6 | Hoài | ✅ |
 | T6.6 | Theo dõi tiến độ: tiến độ từng học viên, bước hay sai, cấp gợi ý dùng nhiều *(làm khi đã có dữ liệu từ Desktop, trong GĐ8)* | Hiển thị đúng dữ liệu từ nhật ký | T5.7, T7.9 | Hoài | ⬜ |
+| T6.7 | Quản trị tài khoản và lớp: thêm tài khoản, nhập CSV (mật khẩu tự tạo hiện một lần), tạo lớp, chia nhóm thực nghiệm / đối chứng, giao bài có hạn *(bổ sung khi làm GĐ6: FR-W02, FR-W12)* | Học viên được giao thấy bài ở API Desktop đúng chế độ theo nhóm | T5.2, T6.1 | Hoài | ✅ |
 
 ### GĐ7 — Desktop gia sư PyQt6 (14/12 – 24/01)
 

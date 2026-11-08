@@ -231,17 +231,7 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": {
-                            created?: number;
-                            skipped?: {
-                                line?: number;
-                                reason?: string;
-                            }[];
-                            generated_passwords?: {
-                                email?: string;
-                                password?: string;
-                            }[];
-                        };
+                        "application/json": components["schemas"]["UserImportResult"];
                     };
                 };
             };
@@ -328,7 +318,35 @@ export interface paths {
             };
             cookie?: never;
         };
-        get?: never;
+        /** Học viên của lớp và nhóm thực nghiệm (giảng viên chỉ xem lớp mình) */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    class_id: components["parameters"]["ClassId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Học viên, sắp theo họ tên */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            student_id: components["schemas"]["Id"];
+                            email: string;
+                            full_name: string;
+                            study_group: components["schemas"]["StudyGroup"];
+                        }[];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+            };
+        };
         /** Đặt danh sách học viên của lớp và nhóm thực nghiệm (thay toàn bộ) */
         put: {
             parameters: {
@@ -373,7 +391,38 @@ export interface paths {
             };
             cookie?: never;
         };
-        get?: never;
+        /** Bài đã giao cho lớp, kèm bản đang phát hành */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    class_id: components["parameters"]["ClassId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Bài đã giao, sắp theo mã bài */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            exercise_id: components["schemas"]["Id"];
+                            code: components["schemas"]["ExerciseCode"];
+                            title: string;
+                            /** Format: date-time */
+                            due_at?: string;
+                            /** @description null: chưa phát hành, học viên chưa làm được */
+                            published_revision?: number | null;
+                        }[];
+                    };
+                };
+                403: components["responses"]["Forbidden"];
+            };
+        };
         put?: never;
         /** Giao bài cho lớp */
         post: {
@@ -405,6 +454,47 @@ export interface paths {
             };
         };
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/classes/{class_id}/exercises/{exercise_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                class_id: components["parameters"]["ClassId"];
+                exercise_id: components["parameters"]["ExerciseId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Gỡ bài khỏi lớp */
+        delete: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    class_id: components["parameters"]["ClassId"];
+                    exercise_id: components["parameters"]["ExerciseId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Đã gỡ */
+                204: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content?: never;
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
         options?: never;
         head?: never;
         patch?: never;
@@ -1731,6 +1821,18 @@ export interface components {
             role: components["schemas"]["Role"];
             password: string;
         };
+        UserImportResult: {
+            created: number;
+            skipped: {
+                line: number;
+                reason: string;
+            }[];
+            /** @description Mật khẩu tự tạo cho dòng không có cột password, chỉ trả về một lần */
+            generated_passwords: {
+                email: string;
+                password: string;
+            }[];
+        };
         Class: {
             id: components["schemas"]["Id"];
             name: string;
@@ -1740,6 +1842,8 @@ export interface components {
             /** Format: date */
             ends_on?: string;
             member_count?: number;
+            /** @description Họ tên giảng viên phụ trách */
+            teacher_name?: string;
         };
         Textbook: {
             id: components["schemas"]["Id"];
@@ -2986,6 +3090,15 @@ export interface components {
     responses: {
         /** @description Chưa đăng nhập hoặc token hết hạn */
         Unauthorized: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/problem+json": components["schemas"]["Problem"];
+            };
+        };
+        /** @description Không có quyền (ví dụ giảng viên xem lớp người khác) */
+        Forbidden: {
             headers: {
                 [name: string]: unknown;
             };

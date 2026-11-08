@@ -141,3 +141,31 @@ def test_class_teacher_must_be_a_teacher(client: TestClient, make_user: Callable
         "/api/v1/classes", json={"name": "Lớp B", "teacher_id": str(student.id)}, headers=auth(admin)
     )
     assert response.json()["code"] == "not_a_teacher"
+
+
+def test_class_members_and_assignments_can_be_read_and_unassigned(
+    client: TestClient, db: Session, make_user: Callable[..., User], auth
+):
+    admin, teacher, other_teacher = make_user("admin"), make_user("teacher"), make_user("teacher")
+    student = make_user("student", full_name="Trần Thị B")
+    class_id = client.post(
+        "/api/v1/classes", json={"name": "Lớp A", "teacher_id": str(teacher.id)}, headers=auth(admin)
+    ).json()["id"]
+    members = [{"student_id": str(student.id), "study_group": "control"}]
+    client.put(f"/api/v1/classes/{class_id}/members", json=members, headers=auth(admin))
+    exercise = make_exercise(db, teacher)
+    url = f"/api/v1/classes/{class_id}/exercises"
+    client.post(url, json={"exercise_id": str(exercise.id)}, headers=auth(teacher))
+
+    read = client.get(f"/api/v1/classes/{class_id}/members", headers=auth(teacher)).json()
+    assigned = client.get(url, headers=auth(teacher)).json()
+
+    assert [(m["full_name"], m["study_group"]) for m in read] == [("Trần Thị B", "control")]
+    assert [(a["code"], a["published_revision"]) for a in assigned] == [(exercise.code, None)]
+    assert client.get("/api/v1/classes", headers=auth(teacher)).json()[0]["teacher_name"] == teacher.full_name
+    assert client.get(url, headers=auth(other_teacher)).status_code == 403
+    assert client.delete(f"{url}/{exercise.id}", headers=auth(teacher)).status_code == 204
+    assert client.get(url, headers=auth(teacher)).json() == []
+    assert (
+        client.delete(f"{url}/{exercise.id}", headers=auth(teacher)).json()["code"] == "assignment_not_found"
+    )

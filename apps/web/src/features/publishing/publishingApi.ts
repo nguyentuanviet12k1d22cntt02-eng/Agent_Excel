@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, downloadFile, unwrap } from "@/api/client";
 import { queryKeys } from "@/api/queryKeys";
 import type { ScriptVersion, ScriptVersionSummary } from "@/api/types";
+import { saveBlob } from "@/lib/download";
 
 export function useScriptVersions(exerciseId: string) {
   return useQuery({
@@ -51,12 +52,5 @@ export function useReviewAction(version: { id: string; exercise_id: string }) {
 /** Tải file đề đã nhúng mã bài và revision (chỉ có khi đã phát hành) để phát cho học viên. */
 export async function downloadStarterFile(exerciseId: string, fallbackName: string): Promise<void> {
   const { blob, filename } = await downloadFile(`/exercises/${exerciseId}/starter-file`);
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename ?? fallbackName;
-  document.body.append(link);
-  link.click();
-  link.remove();
-  URL.revokeObjectURL(url);
+  saveBlob(blob, filename ?? fallbackName);
 }

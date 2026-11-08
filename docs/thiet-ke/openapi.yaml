@@ -140,14 +140,7 @@ paths:
           description: Kết quả nhập
           content:
             application/json:
-              schema:
-                type: object
-                properties:
-                  created: { type: integer }
-                  skipped: { type: array, items: { type: object, properties: { line: { type: integer }, reason: { type: string } } } }
-                  generated_passwords:
-                    type: array
-                    items: { type: object, properties: { email: { type: string }, password: { type: string } } }
+              schema: { $ref: "#/components/schemas/UserImportResult" }
 
   /classes:
     get:
@@ -184,6 +177,26 @@ paths:
               schema: { $ref: "#/components/schemas/Class" }
   /classes/{class_id}/members:
     parameters: [{ $ref: "#/components/parameters/ClassId" }]
+    get:
+      tags: [accounts]
+      summary: Học viên của lớp và nhóm thực nghiệm (giảng viên chỉ xem lớp mình)
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Học viên, sắp theo họ tên
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [student_id, email, full_name, study_group]
+                  properties:
+                    student_id: { $ref: "#/components/schemas/Id" }
+                    email: { type: string }
+                    full_name: { type: string }
+                    study_group: { $ref: "#/components/schemas/StudyGroup" }
+        "403": { $ref: "#/components/responses/Forbidden" }
     put:
       tags: [accounts]
       summary: Đặt danh sách học viên của lớp và nhóm thực nghiệm (thay toàn bộ)
@@ -204,6 +217,27 @@ paths:
         "204": { description: Đã cập nhật }
   /classes/{class_id}/exercises:
     parameters: [{ $ref: "#/components/parameters/ClassId" }]
+    get:
+      tags: [accounts]
+      summary: Bài đã giao cho lớp, kèm bản đang phát hành
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Bài đã giao, sắp theo mã bài
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  required: [exercise_id, code, title]
+                  properties:
+                    exercise_id: { $ref: "#/components/schemas/Id" }
+                    code: { $ref: "#/components/schemas/ExerciseCode" }
+                    title: { type: string }
+                    due_at: { type: string, format: date-time }
+                    published_revision: { type: [integer, "null"], description: "null: chưa phát hành, học viên chưa làm được" }
+        "403": { $ref: "#/components/responses/Forbidden" }
     post:
       tags: [accounts]
       summary: Giao bài cho lớp
@@ -220,6 +254,18 @@ paths:
                 due_at: { type: string, format: date-time }
       responses:
         "204": { description: Đã giao }
+
+  /classes/{class_id}/exercises/{exercise_id}:
+    parameters:
+      - { $ref: "#/components/parameters/ClassId" }
+      - { $ref: "#/components/parameters/ExerciseId" }
+    delete:
+      tags: [accounts]
+      summary: Gỡ bài khỏi lớp
+      x-roles: [admin, teacher]
+      responses:
+        "204": { description: Đã gỡ }
+        "404": { $ref: "#/components/responses/NotFound" }
 
   /textbooks:
     get:
@@ -766,6 +812,9 @@ components:
     Unauthorized:
       description: Chưa đăng nhập hoặc token hết hạn
       content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
+    Forbidden:
+      description: Không có quyền (ví dụ giảng viên xem lớp người khác)
+      content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
     NotFound:
       description: Không tìm thấy
       content: { application/problem+json: { schema: { $ref: "#/components/schemas/Problem" } } }
@@ -826,6 +875,24 @@ components:
         full_name: { type: string }
         role: { $ref: "#/components/schemas/Role" }
         password: { type: string, minLength: 8 }
+    UserImportResult:
+      type: object
+      required: [created, skipped, generated_passwords]
+      properties:
+        created: { type: integer }
+        skipped:
+          type: array
+          items:
+            type: object
+            required: [line, reason]
+            properties: { line: { type: integer }, reason: { type: string } }
+        generated_passwords:
+          type: array
+          description: Mật khẩu tự tạo cho dòng không có cột password, chỉ trả về một lần
+          items:
+            type: object
+            required: [email, password]
+            properties: { email: { type: string }, password: { type: string } }
     Class:
       type: object
       required: [id, name, teacher_id]
@@ -836,6 +903,7 @@ components:
         starts_on: { type: string, format: date }
         ends_on: { type: string, format: date }
         member_count: { type: integer }
+        teacher_name: { type: string, description: Họ tên giảng viên phụ trách }
     Textbook:
       type: object
       required: [id, title, status]
