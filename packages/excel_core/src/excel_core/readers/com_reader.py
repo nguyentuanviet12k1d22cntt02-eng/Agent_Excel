@@ -12,6 +12,8 @@ Backend (tự kiểm trên file) và Desktop (bài học viên đang làm).
   khác nhau) rồi mới đọc từng ô, vì đọc định dạng từng ô chậm (~2 ms/ô, T2.1).
 - Excel đang bận (học viên đang sửa ô, mở hộp thoại) thì COM ném lỗi; nơi gọi tự thử lại (quy tắc code 2.3
   mục 2), bộ đọc không thử lại.
+- Không đọc Range.MergeCells: thuộc tính này làm Excel nới vùng chọn của người dùng theo ô gộp (xem
+  `_merged_areas`). Test `test_reading_keeps_the_users_selection` giữ điều này.
 """
 
 import logging
@@ -19,8 +21,16 @@ from collections.abc import Callable, Iterator
 from datetime import datetime
 from decimal import Decimal
 from typing import Any
+from xml.etree import ElementTree
 
-from excel_core.address import CellRange, cell_address, column_letter, parse_range, split_sheet_reference
+from excel_core.address import (
+    CellRange,
+    cell_address,
+    column_letter,
+    parse_area,
+    parse_range,
+    split_sheet_reference,
+)
 from excel_core.formula import FormulaError, normalize_formula, to_r1c1
 from excel_core.readers.openpyxl_objects import CM_PER_INCH, PAPER_SIZES
 from excel_core.readers.openpyxl_reader import DEFAULT_FONT_COLOR, EXERCISE_ID_PROPERTY
@@ -67,6 +77,9 @@ XL_CONTINUOUS, XL_DOUBLE, XL_DASH, XL_DOT, XL_DASH_DOT, XL_DASH_DOT_DOT, XL_SLAN
     13,
 )
 XL_HAIRLINE, XL_THIN, XL_MEDIUM, XL_THICK = 1, 2, -4138, 4
+XL_RANGE_VALUE_XML = 11  # xlRangeValueXMLSpreadsheet
+MAX_XML_CELLS = 200_000  # vùng đang dùng lớn hơn thì hỏi MergeArea từng ô của vùng cần đọc
+_SS = "{urn:schemas-microsoft-com:office:spreadsheet}"
 _HORIZONTAL = {
     1: "general",
     -4131: "left",
@@ -265,19 +278,84 @@ def _read_range(ws: Com, request: RangeRequest) -> dict[tuple[int, int], dict[st
     return fields
 
 
+def range_xml(rng: Com) -> str:
+    """Range.Value(xlRangeValueXMLSpreadsheet): vùng dạng XML Spreadsheet 2003 (ô gộp có ss:MergeAcross)."""
+    import pythoncom  # noqa: PLC0415 — chỉ có trên Windows, không import ở mức module
+
+    dispid = rng._oleobj_.GetIDsOfNames("Value")
+    return str(rng._oleobj_.Invoke(dispid, 0, pythoncom.DISPATCH_PROPERTYGET, True, XL_RANGE_VALUE_XML))
+
+
+def merge_starts(xml: str) -> Iterator[tuple[int, int]]:
+    """(dòng, cột) tính từ 1 trong vùng của các ô XML mang ss:MergeAcross/ss:MergeDown.
+
+    Chỉ đúng khi ô gộp không bị cắt mép vùng (cắt thì Excel ghi ss:MergeAcross sai, các ô sau lệch vị trí).
+    """
+    table = ElementTree.fromstring(xml).find(f"{_SS}Worksheet/{_SS}Table")
+    if table is None:
+        return
+    row = 0
+    for row_el in table.findall(f"{_SS}Row"):
+        row = int(row_el.get(f"{_SS}Index", row + 1))
+        col = 0
+        for cell in row_el.findall(f"{_SS}Cell"):
+            col = int(cell.get(f"{_SS}Index", col + 1))
+            if cell.get(f"{_SS}MergeAcross") or cell.get(f"{_SS}MergeDown"):
+                yield row, col
+            col += int(cell.get(f"{_SS}MergeAcross", 0))
+
+
+def _scan_merges(ws: Com, ranges: list[CellRange]) -> list[CellRange]:
+    """Hỏi MergeArea từng ô của vùng cần đọc: chắc chắn đúng nhưng chậm (~1,5 ms/ô)."""
+    found: list[CellRange] = []
+    for rng in ranges:
+        for row, col in _cells(rng):
+            if any(box.contains_cell(col, row) for box in found):
+                continue
+            area = ws.Cells(row, col).MergeArea
+            if int(area.Count) > 1:
+                found.append(parse_range(_address(area)))
+    return found
+
+
+def _xml_merges(ws: Com, used: CellRange) -> list[CellRange] | None:
+    """Mọi ô gộp của sheet qua một lần đọc XML; None nếu vị trí trong XML không tin được.
+
+    Đọc từ cột A, dòng đầu vùng đang dùng tới hết vùng đang dùng: không ô gộp nào bị cắt mép, nên mỗi ô XML
+    đánh dấu phải là góc trên trái của ô gộp. Excel có lúc bỏ dòng trống đầu vùng mà không ghi ss:Index cho
+    dòng sau (b09: tiêu đề B2:I2 thành dòng 1), nên kiểm từng ô bằng MergeArea, lệch là bỏ cả kết quả XML.
+    """
+    xml = range_xml(ws.Range(str(CellRange(1, used.min_row, used.max_col, used.max_row))))
+    found = []
+    for row, col in merge_starts(xml):
+        row += used.min_row - 1
+        area = parse_range(_address(ws.Cells(row, col).MergeArea))
+        if area.size == 1 or (area.min_row, area.min_col) != (row, col):
+            return None
+        found.append(area)
+    return found
+
+
+def _merged_areas(ws: Com, ranges: list[CellRange]) -> set[str]:
+    """Ô gộp cắt các vùng cần đọc.
+
+    KHÔNG đọc Range.MergeCells: chỉ đọc thuộc tính đó là Excel tự nới vùng chọn đang có của người dùng cho
+    trọn ô gộp (bài 06: đang chọn cột H, app đọc lại thì thành B:J). Range.MergeArea và Range.Value(XML) không
+    có tác dụng phụ này. Ô gộp luôn nằm trong vùng đang dùng.
+    """
+    used = parse_range(_address(ws.UsedRange))
+    found = _xml_merges(ws, used) if used.max_row * used.max_col <= MAX_XML_CELLS else None
+    if found is None:
+        found = _scan_merges(ws, [rng for rng in ranges if rng.intersects(used)])
+    return {str(box) for box in found if any(box.intersects(rng) for rng in ranges)}
+
+
 def _structure(ws: Com, ranges: list[CellRange]) -> dict[str, Any]:
     if not ranges:
         return {}
     rows = sorted({r for rng in ranges for r in rng.rows()})
     cols = sorted({c for rng in ranges for c in rng.cols()})
-    merged: set[str] = set()
-    for rng in ranges:
-        if ws.Range(str(rng)).MergeCells is False:
-            continue
-        for row, col in _cells(rng):
-            cell = ws.Cells(row, col)
-            if cell.MergeCells:
-                merged.add(_address(cell.MergeArea))
+    merged = _merged_areas(ws, ranges)
     hidden_rows = frozenset(r for r in rows if ws.Rows(r).Hidden)
     hidden_cols = frozenset(column_letter(c) for c in cols if ws.Columns(c).Hidden)
     # Dòng/cột ẩn: COM trả kích thước 0 (bộ đọc openpyxl làm giống)
@@ -345,7 +423,7 @@ def _read_page_setup(ws: Com) -> PageSetupInfo:
     if setup.Zoom is False:
         fit = (int(setup.FitToPagesWide) or None, int(setup.FitToPagesTall) or None)
     area = str(setup.PrintArea or "")
-    print_area = str(parse_range(split_sheet_reference(area.split(",")[0])[1])) if area else None
+    print_area = str(parse_area(split_sheet_reference(area.split(",")[0])[1])) if area else None
     return PageSetupInfo(
         orientation="landscape" if setup.Orientation == 2 else "portrait",  # noqa: PLR2004 — xlLandscape
         paper_size=PAPER_SIZES.get(int(setup.PaperSize)),

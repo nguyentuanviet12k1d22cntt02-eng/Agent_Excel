@@ -9,18 +9,28 @@ Chỗ khác hợp lệ giữa hai bộ đọc (so theo ý nghĩa, như điều k
   "m/d/yyyy");
 - viền: COM thấy cả cạnh chung do ô bên cạnh kẻ (điều kiện border vốn chấp nhận cả hai phía);
 - độ rộng cột: Excel làm tròn theo pixel của màn hình (150% → 8,09 thay vì 8,43), lệch dưới 0,5 ký tự;
-- khổ giấy: file không ghi thì Excel báo theo máy in mặc định.
+- khổ giấy: file không ghi thì Excel báo theo máy in mặc định;
+- vùng in cả cột ($B:$J): openpyxl bỏ qua (có cảnh báo), COM đọc được B1:J1048576.
 """
 
 import os
+import random
 from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
 import pytest
 
+from excel_core.address import CellRange, parse_range
 from excel_core.readers import full_request, read_workbook
-from excel_core.snapshot import BorderInfo, CellSnapshot, SheetSnapshot
+from excel_core.snapshot import (
+    BorderInfo,
+    CellSnapshot,
+    PropertyGroup,
+    RangeRequest,
+    ReadRequest,
+    SheetSnapshot,
+)
 
 pytestmark = [
     pytest.mark.excel,
@@ -153,3 +163,70 @@ def test_com_reader_matches_openpyxl(excel: Any, folder: str, name: str):
                 pb.print_area,
             )
             assert pa.paper_size in (None, pb.paper_size)
+
+
+# Tiêu đề gộp tràn qua nhiều cột (như "PHIẾU NHẬP KHO" B9:J9 của bài 06), ô gộp dọc, chữ nhật, sát nhau
+MERGES = ("B2:G2", "B4:B5", "D4:E4", "F6:F9", "H3:I8", "C10:D10", "J1:J12")
+
+
+def _merged_book(path: Path) -> Path:
+    import openpyxl  # noqa: PLC0415
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    assert ws is not None
+    ws.title = "S"
+    ws["B2"] = "TIÊU ĐỀ"
+    for rng in MERGES:
+        ws.merge_cells(rng)
+    for col in range(1, 12):
+        ws.cell(14, col, col)
+    ws.column_dimensions["E"].hidden = True
+    ws.row_dimensions[7].hidden = True
+    wb.save(path)
+    return path
+
+
+def test_reading_keeps_the_users_selection(excel: Any, tmp_path: Path):
+    """Đọc Range.MergeCells làm Excel nới vùng chọn của người dùng theo ô gộp (bài 06: chọn cột H, app đọc
+    lại thì thành B:J). Bộ đọc không được làm đổi vùng chọn, với mọi nhóm thuộc tính."""
+    from excel_core.readers.com_reader import full_request_com, read_workbook_com  # noqa: PLC0415
+
+    workbook = excel.Workbooks.Open(str(_merged_book(tmp_path / "gop.xlsx")), ReadOnly=True)
+    try:
+        ws = workbook.Worksheets("S")
+        ws.Activate()
+        # Bấm chuột vào tiêu đề cột thì Excel KHÔNG nới theo ô gộp; lệnh Select qua COM thì có. Tạo lại trạng
+        # thái bấm chuột: bỏ gộp, chọn cột D, gộp lại
+        for rng in MERGES:
+            ws.Range(rng).UnMerge()
+        ws.Range("D:D").Select()
+        for rng in MERGES:
+            ws.Range(rng).Merge()
+        assert str(excel.Selection.Address) == "$D:$D"
+
+        snapshot = read_workbook_com(workbook, full_request_com(workbook))
+
+        assert str(excel.Selection.Address) == "$D:$D"
+        assert set(snapshot.sheets["S"].merged) == set(MERGES)
+    finally:
+        workbook.Close(SaveChanges=False)
+
+
+def test_merged_cells_cutting_the_read_range_are_all_found(excel: Any, tmp_path: Path):
+    """Ô gộp cắt mép vùng đọc (bắt đầu trước, tràn sau, nằm trong) đều được tìm thấy, đúng địa chỉ."""
+    from excel_core.readers.com_reader import read_workbook_com  # noqa: PLC0415
+
+    workbook = excel.Workbooks.Open(str(_merged_book(tmp_path / "gop.xlsx")), ReadOnly=True)
+    try:
+        merges = [parse_range(m) for m in MERGES]
+        rng = random.Random(6)
+        for _ in range(60):
+            r1, r2 = sorted(rng.sample(range(1, 16), 2))
+            c1, c2 = sorted(rng.sample(range(1, 13), 2))
+            box = CellRange(c1, r1, c1 if rng.random() < 0.3 else c2, r1 if rng.random() < 0.3 else r2)
+            request = ReadRequest((RangeRequest("S", str(box), frozenset({PropertyGroup.STRUCTURE})),))
+            found = set(read_workbook_com(workbook, request).sheets["S"].merged)
+            assert found == {str(m) for m in merges if m.intersects(box)}, str(box)
+    finally:
+        workbook.Close(SaveChanges=False)

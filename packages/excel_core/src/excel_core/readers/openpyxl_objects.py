@@ -4,7 +4,7 @@ import logging
 
 from openpyxl.worksheet.worksheet import Worksheet
 
-from excel_core.address import cell_address, parse_range, split_sheet_reference
+from excel_core.address import cell_address, parse_area, parse_range, split_sheet_reference
 from excel_core.snapshot import AutoFilterInfo, ChartInfo, ChartSeriesInfo, PageSetupInfo
 
 logger = logging.getLogger(__name__)
@@ -86,7 +86,7 @@ def _print_area(ws: Worksheet) -> str | None:
     if not area:
         return None
     first = area.split(",")[0] if isinstance(area, str) else area[0]
-    return str(parse_range(split_sheet_reference(first)[1]))
+    return str(parse_area(split_sheet_reference(first)[1]))
 
 
 def _fit_to_pages(ws: Worksheet) -> tuple[int | None, int | None]:

@@ -6,6 +6,7 @@ from excel_core.address import (
     column_index,
     column_letter,
     group_into_ranges,
+    parse_area,
     parse_cell,
     parse_cols,
     parse_range,
@@ -59,6 +60,16 @@ def test_rows_and_cols_ranges():
     assert list(parse_rows("7:5")) == [5, 6, 7]
     assert parse_cols("C:E") == ["C", "D", "E"]
     assert parse_cols("B") == ["B"]
+
+
+def test_parse_area_accepts_whole_columns_and_rows():
+    # Vùng in trong Excel hay ghi kiểu cả cột (bài 06: $B:$J)
+    assert str(parse_area("$B:$J")) == "B1:J1048576"
+    assert str(parse_area("3:5")) == "A3:XFD5"
+    assert str(parse_area("$B$2:$H$30")) == "B2:H30"
+    assert str(parse_area("C7")) == "C7"
+    with pytest.raises(AddressError):
+        parse_area("B:J,L:M")
 
 
 def test_invalid_range_object_rejected():

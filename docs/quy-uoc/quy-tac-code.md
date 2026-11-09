@@ -66,6 +66,7 @@ logger = logging.getLogger(__name__)
 10. **Tọa độ ô trên màn hình:** dùng COM `PointsToScreenPixelsX/Y` **chỉ khi** `GetDpiForWindow(Excel) == GetDpiForSystem()`. Khác nhau (Excel nằm ở màn hình phụ khác tỉ lệ) thì COM lệch hàng trăm pixel, phải dùng UIA `DataItem.BoundingRectangle`. Đã kiểm chứng ở T2.5.
 11. **Tìm nút Ribbon theo AutomationId (`idMso`), không theo tên hiển thị.** Tên đổi theo ngôn ngữ Office và có thể khác tên quen gọi (nút AutoSum có tên "Sum"). Danh mục mã: `spikes/t2-4-uia-ribbon/danh-muc-idmso.md`.
 12. **Overlay: mỗi màn hình một cửa sổ**, quy đổi pixel vật lý → logic theo `devicePixelRatio` của chính màn hình chứa điểm cần vẽ.
+13. **Không đọc `Range.MergeCells`.** Chỉ cần đọc thuộc tính này, Excel tự nới vùng chọn đang có của người học cho trọn ô gộp (bài 06: đang chọn cột H thì thành B:J vì tiêu đề gộp B9:J9), dù code không gọi `Select`. Muốn biết ô gộp thì dùng `Range.MergeArea` (từng ô) hoặc `Range.Value(11)` (XML), như `_merged_areas` trong `excel_core/readers/com_reader.py`. Đã kiểm chứng ở T7.2. Bấm chuột vào tiêu đề cột thì Excel **không** nới theo ô gộp, còn `Range.Select` qua COM thì có.
 
 ### 2.4. Quy tắc riêng cho Backend
 

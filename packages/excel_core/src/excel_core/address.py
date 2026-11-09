@@ -176,6 +176,21 @@ def parse_cols(text: str) -> list[str]:
     return [column_letter(i) for i in range(min(first, last), max(first, last) + 1)]
 
 
+def parse_area(address: str) -> CellRange:
+    """Như parse_range, nhận thêm cả cột "B:J" (→ B1:J1048576) và cả dòng "3:5" (→ A3:XFD5).
+
+    Vùng in, tiêu đề in trong Excel hay ghi kiểu cả cột (bài 06: vùng in $B:$J).
+    """
+    text = address.strip().replace("$", "")
+    if _COLS.match(text) and ":" in text:
+        cols = parse_cols(text)
+        return CellRange(column_index(cols[0]), 1, column_index(cols[-1]), MAX_ROW)
+    if _ROWS.match(text) and ":" in text:
+        rows = parse_rows(text)
+        return CellRange(1, rows.start, MAX_COL, rows.stop - 1)
+    return parse_range(text)
+
+
 def split_sheet_reference(reference: str) -> tuple[str | None, str]:
     """ "'Bài 01'!$G$10:$G$14" → ("Bài 01", "G10:G14"). Không có sheet thì phần đầu là None."""
     text = reference.strip()
