@@ -182,7 +182,7 @@ Agent_Excel/
 | ID | Việc cần làm | Hoàn thành khi | Cần trước | Phụ trách | TT |
 |---|---|---|---|---|---|
 | T7.1 | Khung PyQt6: cấu hình, đăng nhập, gọi API, lưu kịch bản trên máy để dùng khi mất mạng | Đăng nhập, tải và lưu được kịch bản (dùng API giả nếu backend chưa xong) | T3.7 | Hòa | ⬜ |
-| T7.2 | Bộ đọc COM cho `excel_core`: tạo snapshot từ Excel đang chạy; tự kết nối lại khi Excel đóng hoặc mở lại | Cùng một file, kết quả giống bộ đọc openpyxl | T4.1, T2.2 | Linh | ⬜ |
+| T7.2 | Bộ đọc COM cho `excel_core`: tạo snapshot từ Excel đang chạy; tự kết nối lại khi Excel đóng hoặc mở lại | Cùng một file, kết quả giống bộ đọc openpyxl | T4.1, T2.2 | Linh | ✅ |
 | T7.3 | **Bộ giám sát:** gộp sự kiện COM, bộ đếm thời gian và UIA thành một luồng "sự kiện quan sát" chuẩn hóa | Log sự kiện ghi đúng khi thao tác | T7.2, T2.4 | Linh | ⬜ |
 | T7.4 | Nhận diện bài tập: đọc mã bài trong file đang mở rồi chọn đúng kịch bản | Mở file đề là app tự nhận ra bài | T7.1, T7.2 | Hòa | ⬜ |
 | T7.5 | **Teaching Agent:** quản lý bước hiện tại; kiểm chứng bằng `excel_core`; phát hiện tín hiệu; điều tiết cấp gợi ý theo T3.4; chuyển bước | Chạy hết bài 1 từ đầu đến cuối, log đúng | T7.3, T7.4, T3.4 | Linh | ⬜ |
