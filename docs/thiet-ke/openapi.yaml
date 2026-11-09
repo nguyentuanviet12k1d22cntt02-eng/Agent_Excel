@@ -546,6 +546,33 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ScriptVersion" }
         "404": { $ref: "#/components/responses/NotFound" }
+  /scripts/{version_id}/preview-bundle:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    get:
+      tags: [scripts]
+      summary: Kịch bản kèm snapshot tham chiếu để chạy thử trên Desktop (mọi trạng thái, kể cả nháp)
+      description: Giảng viên chạy thử kịch bản ngay trên Excel trước khi duyệt (chế độ chạy thử của Desktop).
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: Gói chạy thử
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PreviewBundle" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /exercises/{exercise_id}/original-starter-file:
+    parameters: [{ $ref: "#/components/parameters/ExerciseId" }]
+    get:
+      tags: [scripts]
+      summary: Tải file đề gốc (chưa nhúng mã bài) để giảng viên chạy thử
+      x-roles: [admin, teacher]
+      responses:
+        "200":
+          description: File .xlsx
+          content:
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema: { type: string, contentMediaType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet }
+        "404": { $ref: "#/components/responses/NotFound" }
   /scripts/{version_id}/try-out:
     parameters: [{ $ref: "#/components/parameters/VersionId" }]
     post:
@@ -1083,6 +1110,23 @@ components:
             attempts: { type: integer }
             model: { type: string }
             remaining_issues: { type: array, items: { type: string }, description: Lỗi AI chưa sửa được sau N lần }
+    PreviewBundle:
+      type: object
+      required: [version_id, exercise_id, exercise_code, exercise_title, revision, status, content, references]
+      properties:
+        version_id: { $ref: "#/components/schemas/Id" }
+        exercise_id: { $ref: "#/components/schemas/Id" }
+        exercise_code: { $ref: "#/components/schemas/ExerciseCode" }
+        exercise_title: { type: string }
+        revision: { type: integer }
+        status: { enum: [draft, pending_review, approved, published, archived] }
+        content: { $ref: "#/components/schemas/TutorScript" }
+        references:
+          type: object
+          description: Snapshot tham chiếu của file đề và đáp án, như khi Desktop tải bản phát hành
+          properties:
+            starter: { type: object }
+            solution: { type: object }
     CheckGrade:
       type: object
       required: [index, type, status, cells, detail]

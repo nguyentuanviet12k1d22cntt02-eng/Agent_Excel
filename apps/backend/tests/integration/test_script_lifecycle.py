@@ -194,3 +194,21 @@ def test_try_out_grades_an_uploaded_workbook_like_desktop(client: TestClient, se
     assert {s["status"] for s in finished["steps"]} == {"passed"}
     not_xlsx = client.post(url, files={"file": ("a.xlsx", b"%PDF-1.4", "application/pdf")}, headers=headers)
     assert (not_xlsx.status_code, not_xlsx.json()["code"]) == (422, "file_type_invalid")
+
+
+def test_preview_bundle_and_original_starter_for_any_status(client: TestClient, setup, b22_script: dict):
+    headers, exercise = setup
+    draft = save(client, setup, b22_script).json()
+
+    bundle = client.get(f"/api/v1/scripts/{draft['id']}/preview-bundle", headers=headers).json()
+    original = client.get(f"/api/v1/exercises/{exercise['id']}/original-starter-file", headers=headers)
+
+    assert (bundle["status"], bundle["exercise_code"], bundle["revision"]) == (
+        "draft",
+        "b22-ham-tinh-tong",
+        1,
+    )
+    assert bundle["content"]["steps"][0]["id"] == "s1_first_total"
+    assert set(bundle["references"]) == {"starter", "solution"}
+    assert original.status_code == 200 and original.content.startswith(b"PK")
+    assert 'filename="b22-ham-tinh-tong-de.xlsx"' in original.headers["content-disposition"]

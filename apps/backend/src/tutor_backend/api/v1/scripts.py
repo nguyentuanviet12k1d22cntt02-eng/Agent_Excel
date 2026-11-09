@@ -7,7 +7,13 @@ from fastapi import APIRouter, UploadFile, status
 from fastapi.responses import FileResponse
 
 from tutor_backend.api.deps import AnyRole, AppSettings, DbSession, Staff, Store
-from tutor_backend.schemas.script import RejectRequest, ScriptCreate, ScriptVersionOut, ScriptVersionSummary
+from tutor_backend.schemas.script import (
+    PreviewBundle,
+    RejectRequest,
+    ScriptCreate,
+    ScriptVersionOut,
+    ScriptVersionSummary,
+)
 from tutor_backend.services import publish_service, script_service
 from tutor_backend.services.exercise_service import get_exercise
 from tutor_backend.services.uploads import read_limited
@@ -39,6 +45,28 @@ def save_script(
 @router.get("/scripts/{version_id}", summary="Một revision, kèm nội dung và báo cáo tự kiểm")
 def get_script(version_id: uuid.UUID, db: DbSession, _: Staff) -> ScriptVersionOut:
     return ScriptVersionOut.model_validate(script_service.get_version(db, version_id))
+
+
+@router.get(
+    "/scripts/{version_id}/preview-bundle",
+    summary="Kịch bản kèm snapshot tham chiếu để chạy thử trên Desktop (mọi trạng thái, kể cả nháp)",
+)
+def preview_bundle(version_id: uuid.UUID, db: DbSession, store: Store, _: Staff) -> PreviewBundle:
+    return script_service.preview_bundle(db, store, script_service.get_version(db, version_id))
+
+
+@router.get(
+    "/exercises/{exercise_id}/original-starter-file",
+    summary="Tải file đề gốc (chưa nhúng mã bài) để giảng viên chạy thử",
+    response_class=FileResponse,
+)
+def original_starter_file(exercise_id: uuid.UUID, db: DbSession, store: Store, _: Staff) -> FileResponse:
+    exercise = get_exercise(db, exercise_id)
+    return FileResponse(
+        store.path(exercise.starter_file_path),
+        media_type=XLSX_MEDIA_TYPE,
+        filename=f"{exercise.code}-de.xlsx",
+    )
 
 
 @router.post("/scripts/{version_id}/self-check", summary="Chạy lại tự kiểm tầng 3 trên file đề và đáp án")

@@ -1162,6 +1162,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/scripts/{version_id}/preview-bundle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: components["parameters"]["VersionId"];
+            };
+            cookie?: never;
+        };
+        /**
+         * Kịch bản kèm snapshot tham chiếu để chạy thử trên Desktop (mọi trạng thái, kể cả nháp)
+         * @description Giảng viên chạy thử kịch bản ngay trên Excel trước khi duyệt (chế độ chạy thử của Desktop).
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    version_id: components["parameters"]["VersionId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Gói chạy thử */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["PreviewBundle"];
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/exercises/{exercise_id}/original-starter-file": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                exercise_id: components["parameters"]["ExerciseId"];
+            };
+            cookie?: never;
+        };
+        /** Tải file đề gốc (chưa nhúng mã bài) để giảng viên chạy thử */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    exercise_id: components["parameters"]["ExerciseId"];
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description File .xlsx */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                    };
+                };
+                404: components["responses"]["NotFound"];
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scripts/{version_id}/try-out": {
         parameters: {
             query?: never;
@@ -2053,6 +2138,21 @@ export interface components {
                 model?: string;
                 /** @description Lỗi AI chưa sửa được sau N lần */
                 remaining_issues?: string[];
+            };
+        };
+        PreviewBundle: {
+            version_id: components["schemas"]["Id"];
+            exercise_id: components["schemas"]["Id"];
+            exercise_code: components["schemas"]["ExerciseCode"];
+            exercise_title: string;
+            revision: number;
+            /** @enum {unknown} */
+            status: "draft" | "pending_review" | "approved" | "published" | "archived";
+            content: components["schemas"]["tutor-script.schema"];
+            /** @description Snapshot tham chiếu của file đề và đáp án, như khi Desktop tải bản phát hành */
+            references: {
+                starter?: Record<string, never>;
+                solution?: Record<string, never>;
             };
         };
         CheckGrade: {

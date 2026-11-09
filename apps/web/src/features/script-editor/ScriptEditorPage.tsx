@@ -22,6 +22,7 @@ import { useRerunSelfCheck, useSaveScript, useScriptVersion } from "./scriptApi"
 import { describePath, validateScript } from "./scriptSchema";
 import { sectionKey, type Section } from "./sections";
 import { SelfCheckSummary } from "./SelfCheckSummary";
+import { RunInExcelDialog } from "./RunInExcelDialog";
 import { StepPanel } from "./StepPanel";
 import { TryOutDialog } from "./TryOutDialog";
 import { useScriptDraft } from "./useScriptDraft";
@@ -78,6 +79,7 @@ function Editor({ version, exercise }: { version: ScriptVersion; exercise: Exerc
   const [section, setSection] = useState<Section>({ kind: "overview" });
   const [focus, setFocus] = useState<FocusRange | null>(null);
   const [tryingOut, setTryingOut] = useState(false);
+  const [runningInExcel, setRunningInExcel] = useState(false);
   const leaving = useRef(false);
   const issues = useMemo(() => validateScript(draft), [draft]);
   const savedRevision = (location.state as SavedState | null)?.savedRevision;
@@ -213,6 +215,9 @@ function Editor({ version, exercise }: { version: ScriptVersion; exercise: Exerc
               Bỏ thay đổi
             </button>
           )}
+          <button type="button" className="btn" onClick={() => setRunningInExcel(true)}>
+            Chạy thử trên Excel
+          </button>
           <button type="button" className="btn" onClick={() => setTryingOut(true)}>
             Chấm thử bằng file Excel
           </button>
@@ -265,6 +270,9 @@ function Editor({ version, exercise }: { version: ScriptVersion; exercise: Exerc
           <GridPanel exerciseId={exercise.id} defaultSheet={draft.exercise.sheet} marks={marks} />
         </aside>
       </div>
+      {runningInExcel && (
+        <RunInExcelDialog version={version} dirty={dirty} onClose={() => setRunningInExcel(false)} />
+      )}
       {tryingOut && <TryOutDialog version={version} dirty={dirty} onClose={() => setTryingOut(false)} />}
       {blocker.state === "blocked" && (
         <ConfirmDialog

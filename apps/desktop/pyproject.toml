@@ -10,6 +10,7 @@ requires-python = ">=3.14"
 # Ứng dụng: ghim cứng phiên bản (==). Thêm thư viện thì nêu lý do trong Pull Request.
 # excel-core được cài dạng editable qua requirements-dev.txt ở gốc repo.
 dependencies = [
+    "httpx==0.28.1",  # gọi API Backend (cùng phiên bản với Backend)
     "PyQt6==6.12.0",
     "pywin32==312",
     # UI Automation cho Ribbon và hộp thoại (chốt ở T2.4)

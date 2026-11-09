@@ -181,16 +181,18 @@ Agent_Excel/
 
 | ID | Việc cần làm | Hoàn thành khi | Cần trước | Phụ trách | TT |
 |---|---|---|---|---|---|
-| T7.1 | Khung PyQt6: cấu hình, đăng nhập, gọi API, lưu kịch bản trên máy để dùng khi mất mạng | Đăng nhập, tải và lưu được kịch bản (dùng API giả nếu backend chưa xong) | T3.7 | Hòa | ⬜ |
+| T7.1 | Khung PyQt6: cấu hình, đăng nhập, gọi API, lưu kịch bản trên máy để dùng khi mất mạng | Đăng nhập, tải và lưu được kịch bản (dùng API giả nếu backend chưa xong) | T3.7 | Hòa | 🔄 |
 | T7.2 | Bộ đọc COM cho `excel_core`: tạo snapshot từ Excel đang chạy; tự kết nối lại khi Excel đóng hoặc mở lại | Cùng một file, kết quả giống bộ đọc openpyxl | T4.1, T2.2 | Linh | ✅ |
 | T7.3 | **Bộ giám sát:** gộp sự kiện COM, bộ đếm thời gian và UIA thành một luồng "sự kiện quan sát" chuẩn hóa | Log sự kiện ghi đúng khi thao tác | T7.2, T2.4 | Linh | ⬜ |
 | T7.4 | Nhận diện bài tập: đọc mã bài trong file đang mở rồi chọn đúng kịch bản | Mở file đề là app tự nhận ra bài | T7.1, T7.2 | Hòa | ⬜ |
 | T7.5 | **Teaching Agent:** quản lý bước hiện tại; kiểm chứng bằng `excel_core`; phát hiện tín hiệu; điều tiết cấp gợi ý theo T3.4; chuyển bước | Chạy hết bài 1 từ đầu đến cuối, log đúng | T7.3, T7.4, T3.4 | Linh | ⬜ |
-| T7.6 | Cửa sổ gia sư: thẻ yêu cầu của bước hiện tại, khu vực gợi ý, nút xin trợ giúp, thanh tiến độ | Giao diện phản ánh đúng trạng thái của agent | T7.5 | Hòa | ⬜ |
-| T7.7 | **Overlay hướng dẫn:** khung quanh vùng mục tiêu, chỉ tới nút Ribbon hoặc hộp thoại (dựa trên T2.5) | Hiện đúng vị trí khi gợi ý ở cấp "chỉ vị trí thao tác" | T7.5, T2.5 | Linh | ⬜ |
+| T7.6 | Cửa sổ gia sư: thẻ yêu cầu của bước hiện tại, khu vực gợi ý, nút xin trợ giúp, thanh tiến độ | Giao diện phản ánh đúng trạng thái của agent | T7.5 | Hòa | 🔄 |
+| T7.7 | **Overlay hướng dẫn:** khung quanh vùng mục tiêu, chỉ tới nút Ribbon hoặc hộp thoại (dựa trên T2.5) | Hiện đúng vị trí khi gợi ý ở cấp "chỉ vị trí thao tác" | T7.5, T2.5 | Linh | 🔄 |
 | T7.8 | Mascot: các trạng thái chờ, gợi ý, khen, nhắc nhở | Mascot đổi trạng thái theo sự kiện của agent | T7.6 | Hòa | ⬜ |
 | T7.9 | Nhật ký và đồng bộ: ghi log thực hành, gửi tiến độ về backend, giữ hàng đợi khi mất mạng | Tắt mạng rồi bật lại không mất dữ liệu | T7.5, T5.7 | Hòa | ⬜ |
 | T7.10 | Đóng gói `.exe` bằng PyInstaller, chạy thử trên máy chưa cài Python | Bộ cài chạy được trên ít nhất 2 máy khác máy phát triển | T7.1 – T7.9 | Linh | ⬜ |
+
+**Đã làm trước (09/11/2026):** chế độ **chạy thử cho giảng viên** — đăng nhập, chọn bản kịch bản (kể cả nháp), mở bản sao file đề trong Excel, cửa sổ gia sư chấm từng bước và tự chuyển bước, gợi ý 4 cấp theo yêu cầu, khung chỉ vị trí ô và nút Ribbon (`apps/desktop/README.md`). Gồm một phần T7.1 (đăng nhập, gọi API), T7.2 (✅), T7.6, T7.7. Còn: chế độ học viên, T7.4, T7.5 (tín hiệu, luật thích ứng), T7.8–T7.10.
 
 ### GĐ8 — Tích hợp, kiểm thử, thử nghiệm nhỏ (18/01 – 31/01)
 

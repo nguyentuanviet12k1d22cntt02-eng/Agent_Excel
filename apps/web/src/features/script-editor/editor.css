@@ -450,3 +450,28 @@ blockquote p {
   margin: 6px 0 0;
   font-style: italic;
 }
+
+/* ===== Chạy thử trên Excel ===== */
+.run-steps {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.run-steps li + li {
+  margin-top: 8px;
+}
+
+.run-command {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  padding: 8px 10px;
+  border-radius: var(--radius-small);
+  background: var(--color-surface-muted);
+}
+
+.run-command code {
+  word-break: break-all;
+}

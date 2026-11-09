@@ -21,6 +21,7 @@ from tutor_backend.core.errors import ConflictError, InvalidError, NotFoundError
 from tutor_backend.db.base import utcnow
 from tutor_backend.models import Exercise, ScriptVersion, User
 from tutor_backend.models.enums import ScriptOrigin, ScriptStatus
+from tutor_backend.schemas.script import PreviewBundle
 from tutor_backend.services.storage import FileStore
 from tutor_backend.services.uploads import require_type
 
@@ -164,6 +165,25 @@ def try_out(db: Session, store: FileStore, version: ScriptVersion, data: bytes) 
                 errors=[{"path": "/file", "message": "không phải file .xlsx hợp lệ"}],
             ) from exc
     return report.to_dict()
+
+
+def preview_bundle(db: Session, store: FileStore, version: ScriptVersion) -> PreviewBundle:
+    """Kịch bản, snapshot tham chiếu cho chế độ chạy thử của Desktop (như gói học viên nhận khi phát hành)."""
+    from tutor_backend.services.desktop_service import reference_snapshots  # noqa: PLC0415 — tránh vòng import
+
+    exercise = db.get(Exercise, version.exercise_id)
+    if exercise is None:
+        raise NotFoundError("Không tìm thấy bài tập", code="exercise_not_found")
+    return PreviewBundle(
+        version_id=version.id,
+        exercise_id=exercise.id,
+        exercise_code=exercise.code,
+        exercise_title=exercise.title,
+        revision=version.revision,
+        status=ScriptStatus(version.status),
+        content=version.content,
+        references=reference_snapshots(store, exercise, version),
+    )
 
 
 def refresh_report(db: Session, store: FileStore, version: ScriptVersion) -> dict[str, Any]:

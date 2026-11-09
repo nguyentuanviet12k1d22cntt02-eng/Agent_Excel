@@ -39,5 +39,18 @@ class ScriptCreate(BaseModel):
     content: dict[str, Any]
 
 
+class PreviewBundle(BaseModel):
+    """Một revision bất kỳ (kể cả nháp) kèm snapshot tham chiếu, để giảng viên chạy thử trên Desktop."""
+
+    version_id: uuid.UUID
+    exercise_id: uuid.UUID
+    exercise_code: str
+    exercise_title: str
+    revision: int
+    status: ScriptStatus
+    content: dict[str, Any]
+    references: dict[str, Any]  # như DesktopScript.references (snapshot.md mục 7)
+
+
 class RejectRequest(BaseModel):
     note: str = Field(min_length=1, max_length=2000)

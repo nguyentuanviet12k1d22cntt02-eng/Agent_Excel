@@ -237,3 +237,16 @@ test("chấm thử bằng file Excel: hiện bước học viên đang làm, đi
   expect(within(dialog).getByText("Gia sư nói: “Bài yêu cầu dùng hàm SUM.”")).toBeInTheDocument();
   expect(api.callsTo("POST", `/scripts/${VERSION_ID}/try-out`)).toHaveLength(1);
 });
+
+test("chạy thử trên Excel: hiện lệnh mở ứng dụng gia sư đúng bản kịch bản", async () => {
+  setup();
+  renderApp(`/scripts/${VERSION_ID}`);
+  const user = userEvent.setup();
+
+  await user.click(await screen.findByRole("button", { name: "Chạy thử trên Excel" }, { timeout: 5000 }));
+
+  const dialog = screen.getByRole("dialog", { name: "Chạy thử trên Excel" });
+  expect(
+    within(dialog).getByText(new RegExp(`-m tutor_desktop --version ${VERSION_ID}$`)),
+  ).toBeInTheDocument();
+});
