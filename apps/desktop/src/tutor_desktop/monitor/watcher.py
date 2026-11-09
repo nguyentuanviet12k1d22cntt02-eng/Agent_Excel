@@ -29,6 +29,7 @@ from tutor_desktop.monitor.excel_link import (
     Rect,
     WorkbookClosedError,
     attach_or_start_excel,
+    call_with_retry,
     pump_messages,
 )
 
@@ -37,6 +38,7 @@ logger = logging.getLogger(__name__)
 POLL_SECONDS = 1.5  # đọc lại định kỳ: đổi định dạng không phát sự kiện
 RECT_SECONDS = 0.3  # khung chỉ dẫn bám theo cuộn, phóng to, di chuyển cửa sổ (NFR-02 ≤ 300 ms)
 LOOP_SECONDS = 0.05
+MAX_READ_FAILURES = 5  # lỗi COM lạ liên tiếp chừng này lượt đọc mới dừng giám sát (một lượt hỏng thì đọc lại)
 
 
 @dataclass(frozen=True)
@@ -90,6 +92,7 @@ class ExcelWatcher(QThread):
         self._read_now = True
         self._stop = False
         self._events: Any = None
+        self._read_failures = 0
 
     # ------------------------------------------------------------ gọi từ luồng giao diện
     def set_request(self, request: ReadRequest) -> None:
@@ -121,6 +124,11 @@ class ExcelWatcher(QThread):
                 self._loop(self._open())
         except WorkbookClosedError:
             self.closed.emit()
+        except ExcelBusyError:
+            logger.warning("Excel bận quá lâu khi mở file")
+            self.failed.emit(
+                "Excel đang bận (có hộp thoại đang mở?). Đóng hộp thoại rồi mở lại chế độ chạy thử."
+            )
         except (pywintypes.com_error, OSError) as exc:
             logger.exception("Luồng giám sát dừng")
             self.failed.emit(f"Không làm việc được với Excel: {exc}")
@@ -137,9 +145,9 @@ class ExcelWatcher(QThread):
         link = ExcelLink(self.path, self._factory)
         link.open()
         events = win32com.client.WithEvents(link.excel, _AppEvents)
-        events.watcher, events.full_name = self, str(link.workbook.FullName)
+        events.watcher, events.full_name = self, str(call_with_retry(lambda: link.workbook.FullName))
         self._events = events  # giữ tham chiếu: mất thì không nhận sự kiện nữa
-        self.opened.emit(str(link.workbook.Name))
+        self.opened.emit(str(call_with_retry(lambda: link.workbook.Name)))
         return link
 
     def _take(self) -> tuple[bool, ReadRequest, list[Highlight], bool]:
@@ -158,11 +166,8 @@ class ExcelWatcher(QThread):
             link.ensure_open()
             now = time.monotonic()
             if (read_now or now - last_read >= POLL_SECONDS) and not link.is_busy():
-                try:
-                    self.snapshot_ready.emit(link.snapshot(request))
-                    last_read = now
-                except ExcelBusyError:
-                    self.request_read()
+                last_read = now
+                self._read(link, request)
             if now - last_marks >= RECT_SECONDS:
                 marks = self._marks(link, highlights)
                 if marks != previous_marks:
@@ -170,6 +175,27 @@ class ExcelWatcher(QThread):
                     previous_marks = marks
                 last_marks = now
             time.sleep(LOOP_SECONDS)
+
+    def _read(self, link: ExcelLink, request: ReadRequest) -> bool:
+        """Một lượt đọc snapshot.
+
+        Excel bận thì đọc lại ngay vòng sau. Lỗi COM lạ thì bỏ lượt, chờ lượt đọc định kỳ; chỉ dừng giám sát
+        khi hỏng MAX_READ_FAILURES lượt liền (Excel lỡ trả lỗi lúc đang tải file thì không sao).
+        """
+        try:
+            snapshot = link.snapshot(request)
+        except ExcelBusyError:
+            self.request_read()
+            return False
+        except pywintypes.com_error:
+            self._read_failures += 1
+            if self._read_failures >= MAX_READ_FAILURES:
+                raise
+            logger.warning("Đọc Excel lỗi (lần %d), đọc lại sau", self._read_failures, exc_info=True)
+            return False
+        self._read_failures = 0
+        self.snapshot_ready.emit(snapshot)
+        return True
 
     def _marks(self, link: ExcelLink, highlights: list[Highlight]) -> list[MarkRect]:
         if not highlights:

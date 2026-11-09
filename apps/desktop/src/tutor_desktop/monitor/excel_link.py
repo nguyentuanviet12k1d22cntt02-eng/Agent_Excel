@@ -4,8 +4,9 @@ Mọi hàm ở đây chạy trên luồng giám sát (đã CoInitialize), không
 mục 1). Chỉ đọc: không ghi gì vào workbook (NFR-06), không bao giờ đóng Excel của người dùng (mục 4).
 
 Kết quả spike GĐ2 dùng ở đây:
-- Excel bận (đang sửa ô, mở hộp thoại) có hai dạng lỗi: com_error 0x80010001/0x8001010A và AttributeError khi
-  gọi trễ; biết Excel bận bằng GetIDsOfNames thô lên CommandBars, không dùng Excel.Ready (T2.2).
+- Excel bận (đang sửa ô, mở hộp thoại) có hai dạng lỗi: com_error 0x80010001/0x8001010A (và 0x800AC472 khi
+  Excel bỏ qua lệnh) và AttributeError khi gọi trễ; biết Excel bận bằng GetIDsOfNames thô lên CommandBars,
+  không dùng Excel.Ready (T2.2).
 - Tọa độ ô: COM PointsToScreenPixels chỉ đúng khi DPI cửa sổ Excel bằng DPI hệ thống; khác thì dùng UIA ô
   đầu, ô cuối của phần vùng đang hiện (T2.5). Nút Ribbon tìm theo AutomationId = idMso (T2.4).
 """
@@ -31,9 +32,12 @@ logger = logging.getLogger(__name__)
 
 RPC_E_CALL_REJECTED = -2147418111  # 0x80010001
 RPC_E_SERVERCALL_RETRYLATER = -2147417846  # 0x8001010A
-BUSY_CODES = {RPC_E_CALL_REJECTED, RPC_E_SERVERCALL_RETRYLATER}
+# Excel bỏ qua lệnh vì đang bận việc khác: vừa mở file, đang kéo chuột chọn vùng… (gặp khi chạy thử bài 06)
+VBA_E_IGNORE = -2146777998  # 0x800AC472
+BUSY_CODES = {RPC_E_CALL_REJECTED, RPC_E_SERVERCALL_RETRYLATER, VBA_E_IGNORE}
 BUSY_ATTEMPTS = 5
 BUSY_DELAY_SECONDS = 0.1
+OPEN_ATTEMPTS = 50  # mở file: Excel có thể bận vài giây (đang tải, đang vẽ)
 UIA_SEARCH_DEPTH = 30
 
 type Com = Any
@@ -102,10 +106,10 @@ class ExcelLink:
     # ------------------------------------------------------------ mở, kiểm còn mở
     def open(self) -> None:
         self.excel = self._factory()
-        self.workbook = self._find_open() or call_with_retry(
-            lambda: self.excel.Workbooks.Open(str(self.path))
+        self.workbook = call_with_retry(self._find_open, OPEN_ATTEMPTS) or call_with_retry(
+            lambda: self.excel.Workbooks.Open(str(self.path)), OPEN_ATTEMPTS
         )
-        call_with_retry(self.workbook.Activate)
+        call_with_retry(self.workbook.Activate, OPEN_ATTEMPTS)
 
     def _find_open(self) -> Com:
         for index in range(1, self.excel.Workbooks.Count + 1):
@@ -115,9 +119,11 @@ class ExcelLink:
         return None
 
     def ensure_open(self) -> None:
-        """Ném WorkbookClosedError nếu file đã bị đóng (hoặc Excel đã tắt)."""
+        """Ném WorkbookClosedError nếu file đã bị đóng (hoặc Excel đã tắt). Excel bận thì coi như còn mở."""
         try:
             call_with_retry(lambda: self.workbook.Name)
+        except ExcelBusyError:
+            return
         except pywintypes.com_error as exc:
             raise WorkbookClosedError(str(self.path)) from exc
 
