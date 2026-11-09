@@ -33,6 +33,7 @@ class FakeWatcher(QObject):
     changed = pyqtSignal()
     printed = pyqtSignal()
     marks_ready = pyqtSignal(list)
+    guide_moved = pyqtSignal(int)
     closed = pyqtSignal()
     failed = pyqtSignal(str)
 
@@ -47,6 +48,9 @@ class FakeWatcher(QObject):
 
     def set_highlights(self, highlights: list[Any]) -> None:
         self.highlights = highlights
+
+    def set_guide(self, guide: Any) -> None:
+        self.guide = guide
 
     def request_read(self) -> None:
         self.reads += 1

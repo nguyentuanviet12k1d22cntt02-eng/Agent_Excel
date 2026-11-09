@@ -106,6 +106,15 @@ def test_wrong_procedure_is_sent_back_and_the_fixed_one_becomes_steps(files: tup
     assert p2.operation == {"action": "delete", "axis": "cols", "lines": ["D", "E"]}
     assert [c["range"] for c in p2.checks] == ["C4", "D4", "E4"]  # Tên hàng giữ chỗ, Số lượng/Đơn giá dời
     assert p2.codes() == ["wrong_value", "empty"]
+    # Chuỗi thao tác dẫn từng bước: chọn đúng cột (hiện cột E: kéo D → F) rồi nút, mục menu
+    steps = [g.get("lines") or g["control"] for g in p1.guide]
+    assert steps == [["D", "E", "F"], "FormatCellsMenu", "HideUnhideMenu", "ColumnsUnhide"]
+    assert p1.guide[1]["tab"] == "TabHome" and "tab" not in p1.guide[2]
+    assert [g.get("lines") or g["control"] for g in p2.guide] == [
+        ["D", "E"],
+        "TableDeleteRowsAndColumnsMenu_Dropdown",
+        "SheetColumnsDelete",
+    ]
     assert (
         outcome.analysis.global_checks == ()
     )  # dữ liệu dời chỗ giữa chừng: không kiểm giữ nguyên theo địa chỉ

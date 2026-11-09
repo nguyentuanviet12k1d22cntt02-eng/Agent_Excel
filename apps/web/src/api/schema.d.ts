@@ -2644,6 +2644,23 @@ export interface components {
                 [key: string]: number;
             };
         };
+        guide_item: {
+            /** @constant */
+            action: "select";
+            /** @enum {unknown} */
+            axis: "cols" | "rows";
+            /** @description Vùng chọn phải phủ ĐÚNG các cột/dòng này (bấm tiêu đề, kéo hay chọn ô đều được). */
+            lines: string[];
+            text: components["schemas"]["message"];
+        } | {
+            /** @constant */
+            action: "click";
+            /** @description idMso của nút Ribbon, hoặc mã mục trong menu thả xuống (ColumnsUnhide, SheetColumnsDelete…: Desktop tra danh mục menu). */
+            control: string;
+            /** @description Thẻ Ribbon chứa nút (nút chưa hiện thì chỉ vào thẻ). */
+            tab?: string;
+            text: components["schemas"]["message"];
+        };
         feedback: {
             code: components["schemas"]["error_code"];
             message: components["schemas"]["message"];
@@ -2745,6 +2762,8 @@ export interface components {
             checks: components["schemas"]["check"][];
             signals?: components["schemas"]["step_signals"];
             operation?: components["schemas"]["operation"];
+            /** @description Chuỗi thao tác dẫn từng bước trên Excel: gia sư chỉ khoanh MỘT chỗ mỗi lúc (chọn vùng xong mới chỉ nút, mở menu xong mới chỉ mục trong menu); làm lệch (bỏ chọn, đóng menu) thì quay lại chỗ đó. */
+            guide?: components["schemas"]["guide_item"][];
             /** @description Phản hồi riêng cho lỗi hay gặp, theo mã lỗi của điều kiện. */
             feedback?: components["schemas"]["feedback"][];
             /** @description Đúng 4 cấp gợi ý theo thứ tự: 1 định hướng, 2 gợi ý công cụ, 3 chỉ vị trí, 4 hướng dẫn chi tiết. */
@@ -2857,6 +2876,23 @@ export interface components {
                     /** @description Đoạn trích nguyên văn, ngắn. */
                     quote?: string;
                 };
+                guide_item: {
+                    /** @constant */
+                    action: "select";
+                    /** @enum {unknown} */
+                    axis: "cols" | "rows";
+                    /** @description Vùng chọn phải phủ ĐÚNG các cột/dòng này (bấm tiêu đề, kéo hay chọn ô đều được). */
+                    lines: string[];
+                    text: components["schemas"]["message"];
+                } | {
+                    /** @constant */
+                    action: "click";
+                    /** @description idMso của nút Ribbon, hoặc mã mục trong menu thả xuống (ColumnsUnhide, SheetColumnsDelete…: Desktop tra danh mục menu). */
+                    control: string;
+                    /** @description Thẻ Ribbon chứa nút (nút chưa hiện thì chỉ vào thẻ). */
+                    tab?: string;
+                    text: components["schemas"]["message"];
+                };
                 /** @description Thao tác cấu trúc của bước khi đề yêu cầu làm theo quy trình (ẩn/hiện, chèn, xóa, đổi kích thước dòng/cột), dòng/cột ghi theo bố cục lúc làm bước. Có trường này thì tự kiểm và chấm thử làm lần lượt các thao tác trên file đề để có trạng thái mong đợi sau từng bước; điều kiện của bước ghi theo trạng thái đó. */
                 operation: {
                     /** @enum {unknown} */
@@ -2887,6 +2923,8 @@ export interface components {
                     checks: components["schemas"]["check"][];
                     signals?: components["schemas"]["step_signals"];
                     operation?: components["schemas"]["operation"];
+                    /** @description Chuỗi thao tác dẫn từng bước trên Excel: gia sư chỉ khoanh MỘT chỗ mỗi lúc (chọn vùng xong mới chỉ nút, mở menu xong mới chỉ mục trong menu); làm lệch (bỏ chọn, đóng menu) thì quay lại chỗ đó. */
+                    guide?: components["schemas"]["guide_item"][];
                     /** @description Phản hồi riêng cho lỗi hay gặp, theo mã lỗi của điều kiện. */
                     feedback?: components["schemas"]["feedback"][];
                     /** @description Đúng 4 cấp gợi ý theo thứ tự: 1 định hướng, 2 gợi ý công cụ, 3 chỉ vị trí, 4 hướng dẫn chi tiết. */

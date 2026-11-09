@@ -24,6 +24,7 @@ from PyQt6.QtWidgets import (
 
 from excel_core.checks import CheckStatus
 from excel_core.snapshot import WorkbookSnapshot
+from tutor_desktop.agent.guide import Guide
 from tutor_desktop.agent.preview_session import Evaluation, PreviewSession
 from tutor_desktop.monitor.watcher import ExcelWatcher, MarkRect
 from tutor_desktop.ui.overlay import OverlayManager
@@ -67,6 +68,7 @@ class PreviewWindow(QWidget):
         self.session, self.bundle, self.watcher, self.overlay = session, bundle, watcher, overlay
         self.last: Evaluation | None = None
         self.message = ""
+        self.guide_index = 0
         self.setWindowTitle("Gia sư Excel — chạy thử")
         self.setWindowFlags(Qt.WindowType.Window | Qt.WindowType.WindowStaysOnTopHint)
         self.setAttribute(Qt.WidgetAttribute.WA_ShowWithoutActivating)
@@ -76,6 +78,7 @@ class PreviewWindow(QWidget):
         watcher.changed.connect(self.session.note_change)
         watcher.printed.connect(self._on_printed)
         watcher.marks_ready.connect(self._on_marks)
+        watcher.guide_moved.connect(self._on_guide_moved)
         watcher.closed.connect(
             lambda: self._fatal("File chạy thử đã bị đóng trong Excel. Mở lại để chạy tiếp.")
         )
@@ -100,6 +103,7 @@ class PreviewWindow(QWidget):
         self.hint_button = QPushButton("Xin gợi ý")
         self.hint_button.clicked.connect(self._next_hint)
         self.hints = _label()
+        self.guide = _label()
         self.show_targets = QCheckBox("Khoanh vùng của bước trên Excel")
         self.show_targets.toggled.connect(lambda _: self._sync_highlights())
         self.show_checks = QCheckBox("Xem chi tiết điều kiện kiểm")
@@ -135,6 +139,7 @@ class PreviewWindow(QWidget):
             self.confirm,
             self.hint_button,
             self.hints,
+            self.guide,
             self.show_targets,
             self.show_checks,
             self.checks,
@@ -166,6 +171,12 @@ class PreviewWindow(QWidget):
             self.message = f"✓ Đạt bước {evaluation.step_index + 1}: {done}"
             self.watcher.set_request(self.session.read_request())
             self._sync()
+        elif evaluation.rewound_to is not None:
+            step = self.session.steps[evaluation.rewound_to]
+            number = evaluation.rewound_to + 1
+            self.message = f"↩ Bảng đã quay về trước bước {number} ({step['title']}): làm lại từ bước này."
+            self.watcher.set_request(self.session.read_request())
+            self._sync()
         else:
             self._render_status()
 
@@ -177,6 +188,10 @@ class PreviewWindow(QWidget):
         if self.overlay is not None:
             self.overlay.show(marks)
 
+    def _on_guide_moved(self, index: int) -> None:
+        self.guide_index = index
+        self._render_guide()
+
     def _fatal(self, message: str) -> None:
         self.status.setText(f"<span style='color:#b42318'>{escape(message)}</span>")
         if self.overlay is not None:
@@ -187,6 +202,7 @@ class PreviewWindow(QWidget):
         action()
         self.message = ""
         self.last = None
+        self.guide_index = 0
         self.watcher.set_request(self.session.read_request())
         self._sync()
 
@@ -246,8 +262,14 @@ class PreviewWindow(QWidget):
             lines.append("Có điều kiện không chấm được trên Excel đang mở (xem chi tiết).")
         self.status.setText("<br>".join(escape(line) for line in lines))
         violations = evaluation.global_violations if evaluation else ()
-        self.violation.setVisible(bool(violations))
-        if violations:
+        off = evaluation.deviation if evaluation else ()
+        self.violation.setVisible(bool(violations or off))
+        if off:
+            self.violation.setText(
+                f"⚠ Thao tác vừa rồi làm khác hướng dẫn: {escape('; '.join(off))}. "
+                "Bấm Ctrl+Z (Undo) để hoàn tác rồi làm lại theo từng thao tác bên dưới."
+            )
+        elif violations:
             text = "; ".join(v.check.get("description") or v.check["type"] for v in violations)
             self.violation.setText(f"⚠ Gia sư nhắc ngay: {escape(text)} Bấm Ctrl+Z để hoàn tác.")
         feedback = evaluation.feedback if evaluation and not evaluation.advanced else None
@@ -288,7 +310,29 @@ class PreviewWindow(QWidget):
         self.checks.setText("<br>".join(rows))
 
     def _sync_highlights(self) -> None:
-        self.watcher.set_highlights(self.session.highlights(self.show_targets.isChecked()))
+        """Bước có chuỗi thao tác: dẫn từng chỗ một (vùng chọn → nút → mục menu); bước khác: khoanh như cũ."""
+        if self.session.guiding(self.show_targets.isChecked()):
+            self.watcher.set_highlights([])
+            self.watcher.set_guide(Guide(self.session.guide(), self.session.sheet))
+        else:
+            self.watcher.set_guide(None)
+            self.watcher.set_highlights(self.session.highlights(self.show_targets.isChecked()))
+        self._render_guide()
+
+    def _render_guide(self) -> None:
+        items = self.session.guide() if self.session.guiding(self.show_targets.isChecked()) else ()
+        self.guide.setVisible(bool(items))
+        if not items:
+            return
+        rows = []
+        for number, item in enumerate(items):
+            if number < self.guide_index:
+                rows.append(f"<span style='color:#1d6f42'>✓ {escape(item.text)}</span>")
+            elif number == self.guide_index:
+                rows.append(f"<b style='color:#e8590c'>▶ {escape(item.text)}</b>")
+            else:
+                rows.append(f"<span style='color:#5d6a63'>• {escape(item.text)}</span>")
+        self.guide.setText("<b>Làm theo từng thao tác trên Excel:</b><br>" + "<br>".join(rows))
 
     def closeEvent(self, event: QCloseEvent | None) -> None:  # noqa: N802 — tên do Qt quy định
         self.watcher.stop()

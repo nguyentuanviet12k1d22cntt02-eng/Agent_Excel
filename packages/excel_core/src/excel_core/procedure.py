@@ -25,6 +25,7 @@ from excel_core.address import (
     parse_cell,
     parse_range,
 )
+from excel_core.diff import LAYOUT_KINDS, Change, ChangeKind, diff_workbooks
 from excel_core.snapshot import CellSnapshot, RangeRead, SheetSnapshot, WorkbookSnapshot
 
 ACTIONS = ("hide", "unhide", "insert", "delete", "resize")
@@ -284,3 +285,55 @@ def resolve_sizes(operations: Sequence[Operation], solution: SheetSnapshot) -> l
             sizes[line] = source[key]
         resolved.append(dataclasses.replace(op, sizes=sizes))
     return resolved
+
+
+# ---------------------------------------------------------------- so bài làm với trạng thái mong đợi
+# Không so độ rộng/chiều cao: COM đọc theo pixel màn hình, cột độ rộng mặc định lệch file tới 0,3 ký tự
+STRUCTURE_KINDS = LAYOUT_KINDS | {ChangeKind.COL_HIDDEN, ChangeKind.ROW_HIDDEN}
+
+
+def structure_changes(expected: WorkbookSnapshot, current: WorkbookSnapshot, sheet: str) -> list[Change]:
+    """Chỗ bố cục (chèn/xóa) và dòng/cột ẩn của bài làm khác trạng thái mong đợi."""
+    return [
+        c for c in diff_workbooks(expected, current).changes if c.sheet == sheet and c.kind in STRUCTURE_KINDS
+    ]
+
+
+def _keys(change: Change) -> list[tuple[str, str, str]]:
+    """Một thay đổi tách theo từng cột/dòng: (loại, cột/dòng, ẩn|hiện); chèn/xóa gộp chung một khóa."""
+    if change.kind in LAYOUT_KINDS:
+        return [("layout", "", "")]
+    first, _, last = (change.range or "").partition(":")
+    last = last or first
+    if change.kind == ChangeKind.COL_HIDDEN:
+        names = [column_letter(c) for c in range(column_index(first), column_index(last) + 1)]
+    else:
+        names = [str(r) for r in range(int(first), int(last) + 1)]
+    return [(change.kind.value, name, change.after) for name in names]
+
+
+def deviation(
+    before: WorkbookSnapshot, after: WorkbookSnapshot, current: WorkbookSnapshot, sheet: str
+) -> list[str]:
+    """Chỗ bài làm khác CẢ trạng thái trước lẫn sau bước: học viên bấm nhầm lệnh (ẩn nhầm cột, chèn nhầm chỗ).
+
+    Cột (dòng) giống một trong hai trạng thái là đang đúng hướng (đang làm dở bước); rỗng là không lệch.
+    """
+    off_before = {key for change in structure_changes(before, current, sheet) for key in _keys(change)}
+    if not off_before:
+        return []
+    off_both = [k for c in structure_changes(after, current, sheet) for k in _keys(c) if k in off_before]
+    found = []
+    for kind, name, state in dict.fromkeys(off_both):
+        if kind == "layout":
+            found.append("các cột/dòng bị chèn hoặc xóa khác hướng dẫn")
+        else:
+            unit = "cột" if kind == ChangeKind.COL_HIDDEN.value else "dòng"
+            found.append(f"{unit} {name} đang {'bị ẩn' if state == 'ẩn' else 'hiện'}")
+    return found
+
+
+def matching_state(states: Sequence[WorkbookSnapshot], current: WorkbookSnapshot, sheet: str) -> int | None:
+    """Trạng thái mong đợi cuối cùng (chỉ số lớn nhất) có bố cục, dòng/cột ẩn giống bài làm."""
+    matched = [i for i, state in enumerate(states) if not structure_changes(state, current, sheet)]
+    return matched[-1] if matched else None

@@ -170,6 +170,41 @@
         "quote": { "description": "Đoạn trích nguyên văn, ngắn.", "type": "string", "maxLength": 1000 }
       }
     },
+    "guide_item": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "axis", "lines", "text"],
+          "properties": {
+            "action": { "const": "select" },
+            "axis": { "enum": ["cols", "rows"] },
+            "lines": {
+              "description": "Vùng chọn phải phủ ĐÚNG các cột/dòng này (bấm tiêu đề, kéo hay chọn ô đều được).",
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "pattern": "^([A-Z]{1,3}|[1-9][0-9]{0,6})$" }
+            },
+            "text": { "$ref": "#/$defs/message" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["action", "control", "text"],
+          "properties": {
+            "action": { "const": "click" },
+            "control": {
+              "description": "idMso của nút Ribbon, hoặc mã mục trong menu thả xuống (ColumnsUnhide, SheetColumnsDelete…: Desktop tra danh mục menu).",
+              "type": "string",
+              "pattern": "^[A-Za-z][A-Za-z0-9_]*$"
+            },
+            "tab": { "description": "Thẻ Ribbon chứa nút (nút chưa hiện thì chỉ vào thẻ).", "type": "string" },
+            "text": { "$ref": "#/$defs/message" }
+          }
+        }
+      ]
+    },
     "operation": {
       "description": "Thao tác cấu trúc của bước khi đề yêu cầu làm theo quy trình (ẩn/hiện, chèn, xóa, đổi kích thước dòng/cột), dòng/cột ghi theo bố cục lúc làm bước. Có trường này thì tự kiểm và chấm thử làm lần lượt các thao tác trên file đề để có trạng thái mong đợi sau từng bước; điều kiện của bước ghi theo trạng thái đó.",
       "type": "object",
@@ -221,6 +256,13 @@
         },
         "signals": { "$ref": "#/$defs/step_signals" },
         "operation": { "$ref": "#/$defs/operation" },
+        "guide": {
+          "description": "Chuỗi thao tác dẫn từng bước trên Excel: gia sư chỉ khoanh MỘT chỗ mỗi lúc (chọn vùng xong mới chỉ nút, mở menu xong mới chỉ mục trong menu); làm lệch (bỏ chọn, đóng menu) thì quay lại chỗ đó.",
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 8,
+          "items": { "$ref": "#/$defs/guide_item" }
+        },
         "feedback": {
           "description": "Phản hồi riêng cho lỗi hay gặp, theo mã lỗi của điều kiện.",
           "type": "array",

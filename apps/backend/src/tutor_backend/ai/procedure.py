@@ -358,6 +358,80 @@ def _kind(op: Operation) -> str:
     return f"{axis}_{suffix}"
 
 
+# Nút Ribbon (idMso, thẻ Home) rồi mục trong menu thả xuống (mã theo idMso, Desktop tra tên hiển thị)
+_CLICKS = {
+    ("hide", True): ("FormatCellsMenu", "HideUnhideMenu", "ColumnsHide"),
+    ("hide", False): ("FormatCellsMenu", "HideUnhideMenu", "RowsHide"),
+    ("unhide", True): ("FormatCellsMenu", "HideUnhideMenu", "ColumnsUnhide"),
+    ("unhide", False): ("FormatCellsMenu", "HideUnhideMenu", "RowsUnhide"),
+    ("resize", True): ("FormatCellsMenu", "ColumnWidth"),
+    ("resize", False): ("FormatCellsMenu", "RowHeight"),
+    ("insert", True): ("InsertCellstMenu_Dropdown", "SheetColumnsInsert"),
+    ("insert", False): ("InsertCellstMenu_Dropdown", "SheetRowsInsert"),
+    ("delete", True): ("TableDeleteRowsAndColumnsMenu_Dropdown", "SheetColumnsDelete"),
+    ("delete", False): ("TableDeleteRowsAndColumnsMenu_Dropdown", "SheetRowsDelete"),
+}
+_CLICK_TEXTS = {
+    "FormatCellsMenu": "Bấm nút Format (thẻ Home, nhóm Cells)",
+    "HideUnhideMenu": "Trỏ vào Hide & Unhide",
+    "ColumnsHide": "Chọn Hide Columns",
+    "ColumnsUnhide": "Chọn Unhide Columns",
+    "RowsHide": "Chọn Hide Rows",
+    "RowsUnhide": "Chọn Unhide Rows",
+    "ColumnWidth": "Chọn Column Width…",
+    "RowHeight": "Chọn Row Height…",
+    "InsertCellstMenu_Dropdown": "Bấm mũi tên ▾ của nút Insert (thẻ Home)",
+    "SheetColumnsInsert": "Chọn Insert Sheet Columns",
+    "SheetRowsInsert": "Chọn Insert Sheet Rows",
+    "TableDeleteRowsAndColumnsMenu_Dropdown": "Bấm mũi tên ▾ của nút Delete (thẻ Home)",
+    "SheetColumnsDelete": "Chọn Delete Sheet Columns",
+    "SheetRowsDelete": "Chọn Delete Sheet Rows",
+}
+TOP_LEVEL_TAB = "TabHome"
+
+
+def _select_text(op: Operation, lines: list[int]) -> str:
+    unit = "cột" if op.is_col else "dòng"
+    blocks = _blocks(lines)
+    parts = [f"{unit} {op.name(a)}" if a == b else f"{unit} {op.name(a)} → {op.name(b)}" for a, b in blocks]
+    if len(parts) > 1:
+        return f"Chọn tiêu đề {parts[0]}, giữ Ctrl rồi chọn thêm " + ", ".join(parts[1:])
+    verb = "Bấm" if blocks[0][0] == blocks[0][1] else "Kéo chọn"
+    return f"{verb} tiêu đề {parts[0]}"
+
+
+def guide(op: Operation, before: SheetSnapshot) -> tuple[dict[str, Any], ...]:
+    """Chuỗi thao tác dẫn từng bước: chọn đúng cột/dòng (qua tiêu đề) rồi lần lượt nút và mục trong menu."""
+    unit = "cột" if op.is_col else "dòng"
+    if op.action == "unhide":
+        lines = sorted({n for a, b in _blocks(op.lines) for n in range(max(a - 1, 1), b + 2)})
+        text = f"{_select_text(op, lines)} (bao cả {unit} {_names(op, op.lines)} đang ẩn, không giữ Ctrl)"
+    elif op.action == "insert":
+        lines = list(range(op.lines[0], op.lines[0] + op.count))
+        text = f"{_select_text(op, lines)} ({unit} mới sẽ chèn vào trước)"
+    else:
+        lines = list(op.lines)
+        text = _select_text(op, lines)
+    items: list[dict[str, Any]] = [
+        {"action": "select", "axis": op.axis, "lines": [op.name(n) for n in lines], "text": text}
+    ]
+    clicks = _CLICKS[(op.action, op.is_col)]
+    for number, control in enumerate(clicks):
+        item: dict[str, Any] = {"action": "click", "control": control, "text": _CLICK_TEXTS[control]}
+        if number == 0:
+            item["tab"] = TOP_LEVEL_TAB
+        items.append(item)
+    if op.action == "resize":
+        values = {_number(op.sizes[n]) for n in op.lines}
+        size = (
+            values.pop()
+            if len(values) == 1
+            else "; ".join(f"{op.name(n)}: {_number(op.sizes[n])}" for n in op.lines)
+        )
+        items[-1]["text"] += f", nhập {size} rồi bấm OK"
+    return tuple(items)
+
+
 def _number(value: float) -> str:
     return f"{value:g}".replace(".", ",")
 
@@ -422,6 +496,7 @@ def procedure_items(
                 operation=op.to_json(),
                 more_ranges=tuple(str(t) for t in targets[1:]),
                 feedback_codes=("wrong_value", "empty") if op.action in ("insert", "delete") else (),
+                guide=guide(op, before),
             )
         )
         before = after

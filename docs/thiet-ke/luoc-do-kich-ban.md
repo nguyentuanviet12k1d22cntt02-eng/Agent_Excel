@@ -33,6 +33,7 @@ kịch bản
 │  ├─ checks[]     điều kiện kiểm chứng; bước đạt khi mọi điều kiện đạt
 │  ├─ signals      tham số tín hiệu riêng: idle_seconds, immediate_codes, max_auto_level
 │  ├─ operation    (tùy chọn) thao tác cấu trúc khi đề yêu cầu làm theo quy trình, mục 2.5
+│  ├─ guide[]      (tùy chọn) chuỗi thao tác dẫn từng chỗ trên Excel, mục 2.6
 │  ├─ feedback[]   phản hồi riêng theo mã lỗi (error / info)
 │  ├─ hints[4]     đúng 4 cấp, đúng thứ tự
 │  └─ reference_ids[]
@@ -98,6 +99,19 @@ thì kiểm vài ô tiêu đề nằm đúng chỗ bằng `value_equals` giá tr
 bắt chèn nhầm chỗ). Tầng 3 và chấm thử dựng trạng thái mong đợi sau từng bước bằng cách làm lần lượt các thao
 tác trên file đề (`excel_core.procedure`; đã đối chiếu Excel thật trên bài 06: giá trị, ô gộp, cột ẩn, độ rộng
 khớp từng bước). Desktop không cần trường này: gia sư đi theo thứ tự bước, chấm trên Excel đang mở.
+
+### 2.6. Dẫn từng thao tác (`guide`)
+
+Chuỗi thao tác của bước, gia sư khoanh **một chỗ mỗi lúc**: chọn đúng cột/dòng (`select`, khoanh dải tiêu đề
+cột, nhãn nằm phía trên) → bấm nút Ribbon (`click` + `tab`) → chọn mục trong menu thả xuống (`click` với mã mục
+theo idMso: `HideUnhideMenu`, `ColumnsUnhide`, `ColumnWidth`, `SheetColumnsInsert`, `SheetColumnsDelete`…;
+Desktop tra tên hiển thị trong `MENU_ITEMS` của `monitor/excel_link.py`). Chỗ đang dẫn tính lại liên tục từ vùng
+đang chọn và menu đang mở, nên tự quay lui: bỏ chọn hay chọn sai cột thì về bước chọn, đóng menu thì về nút
+mở menu. Backend sinh `guide` cho mọi bước quy trình (T5.9); bước khác chưa có thì khoanh như cũ.
+
+Bước có `operation`, Desktop còn so bài làm với trạng thái mong đợi trước/sau bước (bố cục, dòng/cột ẩn): khác
+cả hai là bấm nhầm lệnh, gia sư nêu chỗ sai và nhắc Ctrl+Z; bài làm quay về trạng thái lúc bắt đầu một bước
+trước (đã hoàn tác) thì phiên lùi về bước đó.
 
 ## 3. Kiểm tra kịch bản: 3 tầng
 

@@ -17,6 +17,10 @@ from pathlib import Path
 from PyQt6.QtCore import QSettings, QStandardPaths
 from PyQt6.QtWidgets import QApplication, QDialog, QMessageBox
 
+from excel_core.address import CellRange, parse_range
+from excel_core.readers import full_request, read_workbook
+from excel_core.script.self_check import is_procedure
+from excel_core.snapshot import PropertyGroup, RangeRequest, ReadRequest, WorkbookSnapshot
 from tutor_desktop.agent.preview_session import PreviewSession
 from tutor_desktop.api_client.client import ApiClient, ApiError
 from tutor_desktop.monitor.watcher import ExcelWatcher
@@ -38,6 +42,20 @@ def _preview_copy(client: ApiClient, bundle: dict) -> Path:
     return client.download_original_starter(str(bundle["exercise_id"]), target)
 
 
+def layout_starter(path: Path, script: dict) -> WorkbookSnapshot | None:
+    """File đề đọc từ A1 tới hết vùng đang dùng (giá trị + cấu trúc): dựng trạng thái mong đợi sau từng bước
+    của kịch bản theo quy trình (báo bấm nhầm lệnh, quay lui khi hoàn tác). Đọc trước khi Excel mở file."""
+    sheet = script["exercise"]["sheet"]
+    if not is_procedure(script):
+        return None
+    used = next((parse_range(r.range) for r in full_request(path).ranges if r.sheet == sheet), None)
+    if used is None:
+        return None
+    box = CellRange(1, 1, used.max_col, used.max_row)
+    groups = frozenset({PropertyGroup.VALUES, PropertyGroup.STRUCTURE})
+    return read_workbook(path, ReadRequest((RangeRequest(sheet, str(box), groups),)))
+
+
 def run_preview(app: QApplication, version_id: str | None) -> int:
     settings = QSettings("TDMU", "GiaSuExcel")
     login = LoginDialog(settings)
@@ -55,7 +73,7 @@ def run_preview(app: QApplication, version_id: str | None) -> int:
     except ApiError as exc:
         QMessageBox.critical(None, APP_NAME, f"Không tải được kịch bản: {exc}")
         return 1
-    session = PreviewSession(bundle["content"], bundle["references"])
+    session = PreviewSession(bundle["content"], bundle["references"], layout_starter(path, bundle["content"]))
     watcher = ExcelWatcher(path)
     watcher.set_request(session.read_request())
     window = PreviewWindow(session, bundle, watcher, OverlayManager(app))

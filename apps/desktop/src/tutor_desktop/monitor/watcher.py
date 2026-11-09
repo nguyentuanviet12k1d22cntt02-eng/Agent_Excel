@@ -5,6 +5,7 @@ mục 1, 5). Định dạng ô không phát sự kiện SheetChange, nên ngoài
 bận).
 """
 
+import contextlib
 import gc
 import logging
 import os
@@ -22,6 +23,7 @@ import win32com.client
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from excel_core.snapshot import ReadRequest
+from tutor_desktop.agent.guide import Guide, position, selection_matches
 from tutor_desktop.agent.preview_session import Highlight
 from tutor_desktop.monitor.excel_link import (
     ExcelBusyError,
@@ -79,6 +81,7 @@ class ExcelWatcher(QThread):
     changed = pyqtSignal()  # người làm vừa sửa ô
     printed = pyqtSignal()
     marks_ready = pyqtSignal(list)  # list[MarkRect]
+    guide_moved = pyqtSignal(int)  # chỗ đang dẫn trong chuỗi thao tác của bước
     closed = pyqtSignal()
     failed = pyqtSignal(str)
 
@@ -93,6 +96,9 @@ class ExcelWatcher(QThread):
         self._stop = False
         self._events: Any = None
         self._read_failures = 0
+        self._guide: Guide | None = None
+        self._guide_index = -1
+        self._last_selection: str | None = None
 
     # ------------------------------------------------------------ gọi từ luồng giao diện
     def set_request(self, request: ReadRequest) -> None:
@@ -103,6 +109,12 @@ class ExcelWatcher(QThread):
     def set_highlights(self, highlights: list[Highlight]) -> None:
         with self._lock:
             self._highlights = list(highlights)
+
+    def set_guide(self, guide: Guide | None) -> None:
+        """Dẫn từng bước theo chuỗi thao tác (thay cho khoanh mọi vùng một lúc); None để tắt."""
+        with self._lock:
+            if guide != self._guide:
+                self._guide, self._guide_index = guide, -1
 
     def request_read(self) -> None:
         with self._lock:
@@ -150,17 +162,17 @@ class ExcelWatcher(QThread):
         self.opened.emit(str(call_with_retry(lambda: link.workbook.Name)))
         return link
 
-    def _take(self) -> tuple[bool, ReadRequest, list[Highlight], bool]:
+    def _take(self) -> tuple[bool, ReadRequest, list[Highlight], Guide | None, bool]:
         with self._lock:
             read_now, self._read_now = self._read_now, False
-            return read_now, self._request, list(self._highlights), self._stop
+            return read_now, self._request, list(self._highlights), self._guide, self._stop
 
     def _loop(self, link: ExcelLink) -> None:
         last_read = last_marks = 0.0
         previous_marks: list[MarkRect] | None = None
         while True:
             pump_messages()
-            read_now, request, highlights, stop = self._take()
+            read_now, request, highlights, guide, stop = self._take()
             if stop:
                 return
             link.ensure_open()
@@ -169,7 +181,7 @@ class ExcelWatcher(QThread):
                 last_read = now
                 self._read(link, request)
             if now - last_marks >= RECT_SECONDS:
-                marks = self._marks(link, highlights)
+                marks = self._marks(link, highlights, guide)
                 if marks != previous_marks:
                     self.marks_ready.emit(marks)
                     previous_marks = marks
@@ -197,11 +209,53 @@ class ExcelWatcher(QThread):
         self.snapshot_ready.emit(snapshot)
         return True
 
-    def _marks(self, link: ExcelLink, highlights: list[Highlight]) -> list[MarkRect]:
-        if not highlights:
+    def _guide_marks(self, link: ExcelLink, guide: Guide, busy: bool) -> list[MarkRect]:
+        """Khung cho đúng chỗ đang dẫn: chưa chọn đúng vùng thì khoanh tiêu đề cột/dòng cần chọn (nhãn nằm
+        trên dải tiêu đề), chọn rồi thì khoanh nút, mở menu rồi thì khoanh mục trong menu."""
+        items, total = guide.items, len(guide.items)
+        if not busy:
+            # Excel bận giữa chừng: dùng vùng chọn đọc lần trước
+            with contextlib.suppress(pywintypes.com_error, AttributeError):
+                self._last_selection = link.selection(guide.sheet)
+        selected = selection_matches(items[0], self._last_selection)
+        found: dict[int, tuple[Rect, str]] = {}
+
+        def shown(index: int) -> bool:
+            item = items[index]
+            target = link.ui_target(item.control or "", item.tab)
+            if target is not None:
+                found[index] = target
+            return target is not None and target[1] == "control"
+
+        index = position(items, selected, shown)
+        if index != self._guide_index:
+            self._guide_index = index
+            self.guide_moved.emit(index)
+        item = items[index]
+        label = f"{index + 1}/{total}. {item.text}"
+        if item.action == "select":
+            rect = link.header_rect(item.lines)
+            return [MarkRect(rect, label, "location")] if rect else []
+        target = found.get(index) or link.ui_target(item.control or "", item.tab)
+        if target is None:
+            return []
+        rect, kind = target
+        if kind == "tab":
+            return [MarkRect(rect, f"{index + 1}/{total}. Mở thẻ chứa nút trước: {item.text}", "tab")]
+        return [MarkRect(rect, label, "location")]
+
+    def _marks(
+        self, link: ExcelLink, highlights: list[Highlight], guide: Guide | None = None
+    ) -> list[MarkRect]:
+        if not highlights and guide is None:
             return []
         try:
-            if link.is_busy() or not link.is_foreground(os.getpid()):
+            if not link.is_foreground(os.getpid()):
+                return []
+            busy = link.is_busy()
+            if guide is not None and guide.items:
+                return self._guide_marks(link, guide, busy)
+            if busy:
                 return []
             marks = []
             for item in highlights:

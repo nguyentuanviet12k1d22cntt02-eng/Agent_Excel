@@ -188,7 +188,7 @@ Agent_Excel/
 | T7.4 | Nhận diện bài tập: đọc mã bài trong file đang mở rồi chọn đúng kịch bản | Mở file đề là app tự nhận ra bài | T7.1, T7.2 | Hòa | ⬜ |
 | T7.5 | **Teaching Agent:** quản lý bước hiện tại; kiểm chứng bằng `excel_core`; phát hiện tín hiệu; điều tiết cấp gợi ý theo T3.4; chuyển bước | Chạy hết bài 1 từ đầu đến cuối, log đúng | T7.3, T7.4, T3.4 | Linh | ⬜ |
 | T7.6 | Cửa sổ gia sư: thẻ yêu cầu của bước hiện tại, khu vực gợi ý, nút xin trợ giúp, thanh tiến độ | Giao diện phản ánh đúng trạng thái của agent | T7.5 | Hòa | 🔄 |
-| T7.7 | **Overlay hướng dẫn:** khung quanh vùng mục tiêu, chỉ tới nút Ribbon hoặc hộp thoại (dựa trên T2.5) | Hiện đúng vị trí khi gợi ý ở cấp "chỉ vị trí thao tác" | T7.5, T2.5 | Linh | 🔄 |
+| T7.7 | **Overlay hướng dẫn:** khung quanh vùng mục tiêu, chỉ tới nút Ribbon hoặc hộp thoại (dựa trên T2.5). *Đã có (09/11/2026): dẫn từng thao tác theo `step.guide` — tiêu đề cột, nút, mục trong menu thả xuống — tự quay lui khi lệch* | Hiện đúng vị trí khi gợi ý ở cấp "chỉ vị trí thao tác" | T7.5, T2.5 | Linh | 🔄 |
 | T7.8 | Mascot: các trạng thái chờ, gợi ý, khen, nhắc nhở | Mascot đổi trạng thái theo sự kiện của agent | T7.6 | Hòa | ⬜ |
 | T7.9 | Nhật ký và đồng bộ: ghi log thực hành, gửi tiến độ về backend, giữ hàng đợi khi mất mạng | Tắt mạng rồi bật lại không mất dữ liệu | T7.5, T5.7 | Hòa | ⬜ |
 | T7.10 | Đóng gói `.exe` bằng PyInstaller, chạy thử trên máy chưa cài Python | Bộ cài chạy được trên ít nhất 2 máy khác máy phát triển | T7.1 – T7.9 | Linh | ⬜ |

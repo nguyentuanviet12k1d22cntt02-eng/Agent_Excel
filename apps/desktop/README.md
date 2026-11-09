@@ -23,6 +23,10 @@ Thử kịch bản AI sinh ngay trên Excel trước khi duyệt:
    - hiện **phản hồi theo mã lỗi** khi làm sai (sau khi đã sửa trang tính);
    - **nhắc ngay** khi sửa dữ liệu gốc hoặc gõ đè công thức có sẵn (điều kiện toàn bài);
    - **Xin gợi ý** từng cấp; ở cấp 3 khoanh vùng ô (cam) và nút Ribbon trên Excel, nút chưa hiện thì chỉ vào thẻ chứa nút;
+   - bước có **chuỗi thao tác** (kịch bản theo quy trình): dẫn từng chỗ một — khoanh tiêu đề cột cần chọn, chọn
+     đúng rồi mới chỉ nút Format, mở menu rồi mới chỉ mục Hide & Unhide, Unhide Columns…; bỏ chọn hay đóng menu
+     thì quay lại chỗ đó; bấm nhầm lệnh (ẩn nhầm cột…) thì báo chỗ sai, nhắc Ctrl+Z; hoàn tác về trước một
+     bước đã qua thì lùi về bước đó;
    - đánh dấu "Khoanh vùng của bước" để luôn thấy vùng học viên làm (xanh) và dữ liệu nguồn (xanh lá, nét đứt);
    - "Xem chi tiết điều kiện kiểm" để xem điều kiện nào chưa đạt, mã lỗi, ô nào.
 
@@ -37,7 +41,8 @@ App chỉ đọc Excel (không ghi vào file, không đóng Excel). Định dạ
 | `api_client/client.py` | Đăng nhập, tự làm mới token, gói chạy thử, tải file đề gốc |
 | `monitor/excel_link.py` | Mở file trong Excel, đọc snapshot (`excel_core.readers.com_reader`), thử lại khi Excel bận, tọa độ ô (COM hoặc UIA tùy DPI) và nút Ribbon (UIA, `idMso`) |
 | `monitor/watcher.py` | Luồng giám sát (QThread, COM STA): sự kiện SheetChange/in, đọc định kỳ, tính khung chỉ dẫn; giao diện nhận qua signal |
-| `agent/preview_session.py` | Phiên chạy thử: bước hiện tại, chấm bằng `excel_core.checks`, tự chuyển bước, gợi ý từng cấp, phản hồi theo mã lỗi |
+| `agent/preview_session.py` | Phiên chạy thử: bước hiện tại, chấm bằng `excel_core.checks`, tự chuyển bước, gợi ý từng cấp, phản hồi theo mã lỗi, báo lệch quy trình và lùi bước |
+| `agent/guide.py` | Chuỗi thao tác của bước: vùng chọn phủ đúng cột/dòng chưa, đang dẫn ở chỗ nào |
 | `ui/` | Đăng nhập, chọn kịch bản, cửa sổ gia sư, overlay mỗi màn hình một cửa sổ |
 
 ## Test

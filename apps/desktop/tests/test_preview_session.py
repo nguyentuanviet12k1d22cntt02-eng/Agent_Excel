@@ -99,6 +99,13 @@ def test_hints_go_up_one_level_at_a_time_and_location_level_highlights():
     assert levels == [1, 2, 3, 4, 4]
     marks = preview.highlights()
     assert [m.range or m.control for m in marks] == ["F9", "C9:E9", "AutoSum"]
+    assert [(m.label, m.role) for m in marks[:2]] == [
+        ("Tổng tiền ngày đầu", "hint"),
+        ("3 khoản tiền ngày đầu", "source"),
+    ]
+    # Bật khoanh vùng của bước khi đã có gợi ý cấp 3: mỗi vùng chỉ một khung (trước đây hai khung chồng nhãn)
+    assert preview.highlights(show_targets=True) == marks
+    preview.go_to(0)
     targets = preview.highlights(show_targets=True)
     assert [(m.range, m.role) for m in targets[:2]] == [("F9", "target"), ("C9:E9", "source")]
 

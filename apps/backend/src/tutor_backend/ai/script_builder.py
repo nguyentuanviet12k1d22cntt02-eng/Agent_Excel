@@ -188,6 +188,9 @@ def build_step(
     operations = [change.operation for change in changes if change.operation is not None]
     if len(operations) == 1:
         built["operation"] = dict(operations[0])
+    guides = [change.guide for change in changes if change.guide]
+    if len(guides) == 1:
+        built["guide"] = [dict(item) for item in guides[0]]
     if feedback:
         built["feedback"] = feedback
     if step.reference_ids:

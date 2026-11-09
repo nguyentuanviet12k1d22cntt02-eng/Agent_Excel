@@ -92,6 +92,7 @@ class ChangeItem:
     operation: Mapping[str, Any] | None = None  # thao tác cấu trúc theo quy trình trong đề (mã p1, p2…)
     more_ranges: tuple[str, ...] = ()  # vùng khoanh thêm (xóa các cột không liền nhau D, E, H)
     feedback_codes: tuple[str, ...] = ()  # mã lỗi đáng viết phản hồi; rỗng: mọi mã của các điều kiện
+    guide: tuple[Mapping[str, Any], ...] = ()  # chuỗi thao tác dẫn từng bước trên Excel (step.guide)
 
     def codes(self) -> list[str]:
         """Mã lỗi AI được viết phản hồi cho mục này."""

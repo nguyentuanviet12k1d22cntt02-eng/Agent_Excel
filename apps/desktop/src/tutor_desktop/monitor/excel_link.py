@@ -9,12 +9,18 @@ Kết quả spike GĐ2 dùng ở đây:
   không dùng Excel.Ready (T2.2).
 - Tọa độ ô: COM PointsToScreenPixels chỉ đúng khi DPI cửa sổ Excel bằng DPI hệ thống; khác thì dùng UIA ô
   đầu, ô cuối của phần vùng đang hiện (T2.5). Nút Ribbon tìm theo AutomationId = idMso (T2.4).
+- Tiêu đề cột/dòng là DataItem con trực tiếp của lưới "Grid", tên là chữ cột/số dòng ("D", "19").
+- Mục trong menu thả xuống (Format, mũi tên Insert/Delete) KHÔNG có AutomationId, chỉ có tên hiển thị; chỉ
+  hiện trong cây UIA khi menu cha đang mở (ExpandCollapseState = Expanded), nằm dưới nút mở menu hoặc dưới
+  nút cha của nó (nút tách Insert/Delete). Popup menu là cửa sổ riêng của tiến trình Excel.
+- Đọc vùng chọn (ActiveWindow.RangeSelection.Address) không làm đổi vùng chọn, đọc được cả khi menu đang mở.
 """
 
 import ctypes
 import logging
 import time
-from collections.abc import Callable
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
@@ -39,9 +45,40 @@ BUSY_ATTEMPTS = 5
 BUSY_DELAY_SECONDS = 0.1
 OPEN_ATTEMPTS = 50  # mở file: Excel có thể bận vài giây (đang tải, đang vẽ)
 UIA_SEARCH_DEPTH = 30
+MENU_SEARCH_DEPTH = 8
+EXPANDED = 1  # ExpandCollapseState.Expanded
 
 type Com = Any
 type Rect = tuple[int, int, int, int]  # pixel vật lý: trái, trên, phải, dưới
+
+
+@dataclass(frozen=True)
+class MenuItem:
+    """Mục menu thả xuống: mở từ `parent` (idMso nút Ribbon hoặc mã mục menu cha), tìm theo tên hiển thị."""
+
+    parent: str
+    names: tuple[str, ...]  # Office tiếng Anh; thêm tên tiếng Việt khi có máy cài gói ngôn ngữ để kiểm
+
+
+# Mã theo idMso của Office (backend ghi trong step.guide); tên đã dò bằng UIA trên Excel 365 tiếng Anh
+MENU_ITEMS = {
+    "HideUnhideMenu": MenuItem("FormatCellsMenu", ("Hide & Unhide",)),
+    "ColumnsHide": MenuItem("HideUnhideMenu", ("Hide Columns",)),
+    "ColumnsUnhide": MenuItem("HideUnhideMenu", ("Unhide Columns",)),
+    "RowsHide": MenuItem("HideUnhideMenu", ("Hide Rows",)),
+    "RowsUnhide": MenuItem("HideUnhideMenu", ("Unhide Rows",)),
+    "ColumnWidth": MenuItem("FormatCellsMenu", ("Column Width",)),
+    "RowHeight": MenuItem("FormatCellsMenu", ("Row Height",)),
+    "SheetColumnsInsert": MenuItem("InsertCellstMenu_Dropdown", ("Insert Sheet Columns",)),
+    "SheetRowsInsert": MenuItem("InsertCellstMenu_Dropdown", ("Insert Sheet Rows",)),
+    "SheetColumnsDelete": MenuItem("TableDeleteRowsAndColumnsMenu_Dropdown", ("Delete Sheet Columns",)),
+    "SheetRowsDelete": MenuItem("TableDeleteRowsAndColumnsMenu_Dropdown", ("Delete Sheet Rows",)),
+}
+
+
+def menu_name(text: str) -> str:
+    """Tên mục menu để so: bỏ dấu ba chấm (Column Width...), khoảng trắng thừa, không phân biệt hoa thường."""
+    return " ".join(text.replace("…", "").rstrip(".").split()).casefold()
 
 
 class ExcelBusyError(RuntimeError):
@@ -102,6 +139,8 @@ class ExcelLink:
         self.excel: Com = None
         self.workbook: Com = None
         self._window: auto.Control | None = None
+        self._grid: auto.Control | None = None
+        self._ribbon: dict[str, auto.Control] = {}  # nút Ribbon đã tìm thấy (tìm lại cả cây mất ~100 ms)
 
     # ------------------------------------------------------------ mở, kiểm còn mở
     def open(self) -> None:
@@ -140,12 +179,106 @@ class ExcelLink:
         return int(self.excel.Hwnd)
 
     def is_foreground(self, own_pid: int) -> bool:
-        """Excel (hoặc chính ứng dụng gia sư) đang ở trước: chỉ lúc đó mới vẽ khung chỉ vị trí."""
+        """Excel (kể cả popup menu) hoặc ứng dụng gia sư đang ở trước: lúc đó mới vẽ khung chỉ dẫn."""
         foreground = win32gui.GetForegroundWindow()
         if not foreground:
             return False
         pid = win32process.GetWindowThreadProcessId(foreground)[1]
-        return foreground == self.hwnd or pid == own_pid
+        excel_pid = win32process.GetWindowThreadProcessId(self.hwnd)[1]
+        return pid in (excel_pid, own_pid)
+
+    def selection(self, sheet: str | None) -> str | None:
+        """Địa chỉ vùng đang chọn ("$D:$F", "$D:$E,$H:$H"); None nếu không ở file/sheet chạy thử."""
+        excel = self.excel
+        if excel.ActiveWorkbook is None or str(excel.ActiveWorkbook.FullName) != str(self.workbook.FullName):
+            return None
+        if sheet and str(excel.ActiveSheet.Name) != sheet:
+            return None
+        return str(excel.ActiveWindow.RangeSelection.Address)
+
+    def _uia_grid(self) -> auto.Control | None:
+        if self._grid is None:
+            grid = self._uia_window().DataGridControl(searchDepth=UIA_SEARCH_DEPTH, AutomationId="Grid")
+            if not grid.Exists(0, 0):
+                return None
+            self._grid = grid
+        return self._grid
+
+    def header_rect(self, names: Sequence[str]) -> Rect | None:
+        """Khung bao các ô tiêu đề cột ("D", "F") hoặc dòng ("5") đang hiện; cột ẩn, cột khuất thì bỏ qua."""
+        grid = self._uia_grid()
+        if grid is None:
+            return None
+        rects = []
+        try:
+            for name in names:
+                item = grid.DataItemControl(searchDepth=1, Name=name)
+                if item.Exists(0, 0):
+                    r = item.BoundingRectangle
+                    if r.width() > 0 and r.height() > 0:
+                        rects.append((r.left, r.top, r.right, r.bottom))
+        except LookupError, OSError:
+            self._grid = None  # lưới vẽ lại (đổi sheet, cuộn): tìm lại lần sau
+            return None
+        if not rects:
+            return None
+        return (
+            min(r[0] for r in rects),
+            min(r[1] for r in rects),
+            max(r[2] for r in rects),
+            max(r[3] for r in rects),
+        )
+
+    def _ribbon_control(self, automation_id: str) -> auto.Control | None:
+        control = self._ribbon.get(automation_id)
+        if control is None:
+            control = self._uia_window().Control(searchDepth=UIA_SEARCH_DEPTH, AutomationId=automation_id)
+            if not control.Exists(0, 0):
+                return None
+            self._ribbon[automation_id] = control
+        return control
+
+    def _expanded(self, control: auto.Control) -> bool:
+        pattern = control.GetPattern(auto.PatternId.ExpandCollapsePattern)
+        return pattern is not None and pattern.ExpandCollapseState == EXPANDED
+
+    def _menu_element(self, key: str) -> auto.Control | None:
+        """Mục menu đang hiện (menu cha đang mở); chưa mở thì None."""
+        item = MENU_ITEMS[key]
+        parent = (
+            self._menu_element(item.parent)
+            if item.parent in MENU_ITEMS
+            else self._ribbon_control(item.parent)
+        )
+        if parent is None or not self._expanded(parent):
+            return None
+        wanted = {menu_name(n) for n in item.names}
+
+        def compare(control: auto.Control, _depth: int) -> bool:
+            return control.ControlTypeName == "MenuItemControl" and menu_name(control.Name) in wanted
+
+        # Menu của nút Format nằm ngay dưới nút; menu của mũi tên Insert/Delete nằm dưới nút tách cha
+        for root in (parent, parent.GetParentControl()):
+            if root is None:
+                continue
+            found = root.Control(searchDepth=MENU_SEARCH_DEPTH, Compare=compare)
+            if found.Exists(0, 0):
+                return found
+        return None
+
+    def ui_target(self, control: str, tab: str | None) -> tuple[Rect, str] | None:
+        """Nút Ribbon hoặc mục menu thả xuống: (vùng, "control" | "tab"). Mục menu chỉ có khi menu đang mở."""
+        try:
+            if control in MENU_ITEMS:
+                element = self._menu_element(control)
+                if element is None:
+                    return None
+                r = element.BoundingRectangle
+                return ((r.left, r.top, r.right, r.bottom), "control") if r.width() > 0 else None
+            return self.ribbon_rect(control, tab)
+        except LookupError, OSError:
+            self._ribbon.clear()  # Ribbon vẽ lại (đổi thẻ, đổi cỡ cửa sổ): tìm lại lần sau
+            return None
 
     def _uia_window(self) -> auto.Control:
         if self._window is None:
@@ -187,12 +320,11 @@ class ExcelLink:
 
     def ribbon_rect(self, control: str, tab: str | None) -> tuple[Rect, str] | None:
         """(vùng, "control" | "tab"). Nút chưa hiện (đang chọn thẻ khác) thì chỉ vào thẻ (T2.7, QĐ 5)."""
-        window = self._uia_window()
         for automation_id, kind in ((control, "control"), (tab, "tab")):
             if not automation_id:
                 continue
-            found = window.Control(searchDepth=UIA_SEARCH_DEPTH, AutomationId=automation_id)
-            if found.Exists(0, 0):
+            found = self._ribbon_control(automation_id)
+            if found is not None:
                 r = found.BoundingRectangle
                 if r.width() > 0 and r.height() > 0:
                     return (r.left, r.top, r.right, r.bottom), kind

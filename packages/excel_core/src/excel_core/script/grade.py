@@ -5,9 +5,9 @@ viên, lưu lại rồi chấm. Trên file không có sự kiện trực tiếp 
 chấm được.
 
 Kịch bản theo quy trình (bước có `operation`): file chỉ cho thấy trạng thái lúc lưu, các bước trung gian (ẩn
-cột H rồi lại hiện) không còn dấu vết. So bố cục, dòng/cột ẩn, kích thước của file với trạng thái mong đợi sau
-từng bước (làm lần lượt các thao tác trên file đề) để biết học viên làm tới đâu: các bước trước đó tính là đã
-qua, bước kế tiếp chấm như thường, các bước sau nữa là "chưa tới".
+cột H rồi lại hiện) không còn dấu vết. So bố cục, dòng/cột ẩn của file với trạng thái mong đợi sau từng bước
+(làm lần lượt các thao tác trên file đề) để biết học viên làm tới đâu: các bước trước đó tính là đã qua, bước
+kế tiếp chấm như thường, các bước sau nữa là "chưa tới".
 """
 
 from collections.abc import Mapping
@@ -16,8 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from excel_core.checks import CheckContext, CheckResult, CheckStatus, read_requests, run_check
-from excel_core.diff import LAYOUT_KINDS, ChangeKind, diff_workbooks
-from excel_core.procedure import ProcedureError
+from excel_core.procedure import ProcedureError, structure_changes
 from excel_core.readers import read_workbook
 from excel_core.script.self_check import is_procedure, self_check_request, step_states
 from excel_core.snapshot import WorkbookSnapshot, merge_requests
@@ -114,19 +113,9 @@ def grade(
     return GradeReport(_grade_checks(list(script.get("global_checks", [])), ctx), tuple(steps))
 
 
-_STRUCTURE = LAYOUT_KINDS | {
-    ChangeKind.COL_HIDDEN,
-    ChangeKind.ROW_HIDDEN,
-    ChangeKind.COL_WIDTH,
-    ChangeKind.ROW_HEIGHT,
-}
-
-
 def _same_structure(expected: WorkbookSnapshot, current: WorkbookSnapshot, sheet: str) -> bool:
-    """Bố cục (chèn/xóa), dòng/cột ẩn, kích thước của file bài làm giống trạng thái mong đợi."""
-    return not any(
-        c.sheet == sheet and c.kind in _STRUCTURE for c in diff_workbooks(expected, current).changes
-    )
+    """Bố cục (chèn/xóa), dòng/cột ẩn của file bài làm giống trạng thái mong đợi."""
+    return not structure_changes(expected, current, sheet)
 
 
 def _procedure_progress(
@@ -146,7 +135,17 @@ def _procedure_progress(
     candidates = [(0, starter)] + [
         (n, states[script["steps"][i]["id"]][1]) for n, i in enumerate(procedural, start=1)
     ]
-    done = max((n for n, state in candidates if _same_structure(state, current, sheet)), default=None)
+    # Không so độ rộng (COM lệch theo màn hình): "đã ẩn H" và "đã ẩn H, đã chỉnh độ rộng" giống nhau, nên
+    # chỉ nhận đã làm tới bước n khi điều kiện của chính bước n cũng đạt trên file
+    done = max(
+        (
+            n
+            for n, state in candidates
+            if _same_structure(state, current, sheet)
+            and (n == 0 or steps[procedural[n - 1]].status == CheckStatus.PASSED)
+        ),
+        default=None,
+    )
     if done is None:  # làm khác mọi trạng thái mong đợi: chấm từng bước như thường
         return steps
     passed = CheckResult(CheckStatus.PASSED, detail="đã làm tới bước quy trình sau")
