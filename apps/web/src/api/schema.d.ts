@@ -2056,7 +2056,7 @@ export interface components {
             exercise_id: components["schemas"]["Id"];
             /** @enum {unknown} */
             status: "queued" | "running" | "succeeded" | "failed";
-            /** @description Bước đang chạy: diff, rag, llm, self_check */
+            /** @description Bước đang chạy: diff, rag, procedure, llm, self_check */
             stage?: string;
             attempts?: number;
             model?: string;
@@ -2138,6 +2138,12 @@ export interface components {
                 model?: string;
                 /** @description Lỗi AI chưa sửa được sau N lần */
                 remaining_issues?: string[];
+                /** @description Có khi bài có thay đổi cấu trúc và đề có quy trình thao tác (T5.9): số thao tác AI chép được (0 là đề không có quy trình hoặc chưa dựng được), số lần gọi AI, lỗi còn lại. */
+                procedure?: {
+                    operations?: number;
+                    attempts?: number;
+                    issues?: string[];
+                };
             };
         };
         PreviewBundle: {
@@ -2623,6 +2629,21 @@ export interface components {
             /** @description Cấp gợi ý cao nhất gia sư tự đưa ra khi chưa được hỏi. Cấp cao hơn chỉ hiện khi học viên bấm trợ giúp. */
             max_auto_level?: number;
         };
+        /** @description Thao tác cấu trúc của bước khi đề yêu cầu làm theo quy trình (ẩn/hiện, chèn, xóa, đổi kích thước dòng/cột), dòng/cột ghi theo bố cục lúc làm bước. Có trường này thì tự kiểm và chấm thử làm lần lượt các thao tác trên file đề để có trạng thái mong đợi sau từng bước; điều kiện của bước ghi theo trạng thái đó. */
+        operation: {
+            /** @enum {unknown} */
+            action: "hide" | "unhide" | "insert" | "delete" | "resize";
+            /** @enum {unknown} */
+            axis: "cols" | "rows";
+            /** @description Các cột (chữ) hoặc dòng (số). insert: chèn TRƯỚC dòng/cột này (một phần tử). */
+            lines: string[];
+            /** @description insert: số dòng/cột chèn, mặc định 1. */
+            count?: number;
+            /** @description resize: kích thước sau thao tác theo từng dòng/cột (độ rộng: số ký tự; chiều cao: pt). */
+            sizes?: {
+                [key: string]: number;
+            };
+        };
         feedback: {
             code: components["schemas"]["error_code"];
             message: components["schemas"]["message"];
@@ -2723,6 +2744,7 @@ export interface components {
             /** @description Điều kiện kiểm chứng. Bước đạt khi MỌI điều kiện đạt. */
             checks: components["schemas"]["check"][];
             signals?: components["schemas"]["step_signals"];
+            operation?: components["schemas"]["operation"];
             /** @description Phản hồi riêng cho lỗi hay gặp, theo mã lỗi của điều kiện. */
             feedback?: components["schemas"]["feedback"][];
             /** @description Đúng 4 cấp gợi ý theo thứ tự: 1 định hướng, 2 gợi ý công cụ, 3 chỉ vị trí, 4 hướng dẫn chi tiết. */
@@ -2835,6 +2857,21 @@ export interface components {
                     /** @description Đoạn trích nguyên văn, ngắn. */
                     quote?: string;
                 };
+                /** @description Thao tác cấu trúc của bước khi đề yêu cầu làm theo quy trình (ẩn/hiện, chèn, xóa, đổi kích thước dòng/cột), dòng/cột ghi theo bố cục lúc làm bước. Có trường này thì tự kiểm và chấm thử làm lần lượt các thao tác trên file đề để có trạng thái mong đợi sau từng bước; điều kiện của bước ghi theo trạng thái đó. */
+                operation: {
+                    /** @enum {unknown} */
+                    action: "hide" | "unhide" | "insert" | "delete" | "resize";
+                    /** @enum {unknown} */
+                    axis: "cols" | "rows";
+                    /** @description Các cột (chữ) hoặc dòng (số). insert: chèn TRƯỚC dòng/cột này (một phần tử). */
+                    lines: string[];
+                    /** @description insert: số dòng/cột chèn, mặc định 1. */
+                    count?: number;
+                    /** @description resize: kích thước sau thao tác theo từng dòng/cột (độ rộng: số ký tự; chiều cao: pt). */
+                    sizes?: {
+                        [key: string]: number;
+                    };
+                };
                 step: {
                     id: components["schemas"]["id"];
                     title: string;
@@ -2849,6 +2886,7 @@ export interface components {
                     /** @description Điều kiện kiểm chứng. Bước đạt khi MỌI điều kiện đạt. */
                     checks: components["schemas"]["check"][];
                     signals?: components["schemas"]["step_signals"];
+                    operation?: components["schemas"]["operation"];
                     /** @description Phản hồi riêng cho lỗi hay gặp, theo mã lỗi của điều kiện. */
                     feedback?: components["schemas"]["feedback"][];
                     /** @description Đúng 4 cấp gợi ý theo thứ tự: 1 định hướng, 2 gợi ý công cụ, 3 chỉ vị trí, 4 hướng dẫn chi tiết. */

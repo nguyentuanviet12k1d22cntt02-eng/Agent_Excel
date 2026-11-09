@@ -72,7 +72,7 @@ def _enum_array(values: Sequence[str], description: str) -> dict[str, Any]:
 
 def plan_schema(analysis: ExerciseAnalysis, reference_ids: Sequence[str]) -> dict[str, Any]:
     codes = sorted(
-        {code for change in analysis.changes for check in change.checks for code in codes_for(check["type"])}
+        {code for change in analysis.changes for code in change.codes()}
         | {code for check in analysis.global_checks for code in codes_for(check["type"])}
     )
     feedback_item = {
@@ -177,6 +177,36 @@ def parse_plan(data: Any, schema: dict[str, Any]) -> Plan:
     )
 
 
+def _procedure_issues(plan: Plan, analysis: ExerciseAnalysis) -> list[str]:
+    """Bước quy trình trong đề (p1, p2…): mỗi thao tác một bước riêng, đúng thứ tự, trước mọi bước khác.
+
+    Điều kiện của bước quy trình ghi theo trạng thái ngay sau thao tác; đổi thứ tự là điều kiện sai chỗ.
+    """
+    procedure = [c.id for c in analysis.changes if c.operation is not None]
+    if not procedure:
+        return []
+    issues = []
+    order = []
+    for number, step in enumerate(plan.steps, start=1):
+        mine = [c for c in step.change_ids if c in procedure]
+        if mine and len(step.change_ids) > 1:
+            issues.append(
+                f"Bước {number} gộp {', '.join(step.change_ids)}: mỗi thao tác của quy trình "
+                f"({', '.join(mine)}) phải là một bước riêng"
+            )
+        order += [(number, c) for c in mine] if mine else [(number, None)]
+    ids = [c for _, c in order if c is not None]
+    first_other = next((n for n, c in order if c is None), None)
+    last_procedure = max((n for n, c in order if c is not None), default=0)
+    if ids != [c for c in procedure if c in ids] or (
+        first_other is not None and first_other < last_procedure
+    ):
+        issues.append(
+            f"Các bước quy trình {', '.join(procedure)} phải đúng thứ tự đề ghi, đứng trước mọi bước khác"
+        )
+    return issues
+
+
 def plan_issues(plan: Plan, analysis: ExerciseAnalysis) -> list[str]:
     """Lỗi chia bước: thay đổi chưa thuộc bước nào, thuộc hai bước, bước rỗng, quá nhiều bước."""
     issues = []
@@ -190,6 +220,7 @@ def plan_issues(plan: Plan, analysis: ExerciseAnalysis) -> list[str]:
                     f"Thay đổi {change_id} nằm ở cả bước {seen[change_id]} và bước {number}: chỉ để một bước"
                 )
             seen.setdefault(change_id, number)
+    issues += _procedure_issues(plan, analysis)
     missing = [c.id for c in analysis.changes if c.id not in seen]
     if missing:
         issues.append(

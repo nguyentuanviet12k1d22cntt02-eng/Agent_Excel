@@ -52,10 +52,12 @@ export function useStartGeneration(exerciseId: string) {
   });
 }
 
-/** Giai đoạn của job theo thứ tự chạy (generation_service: diff → rag → llm → self_check). */
+/** Giai đoạn của job theo thứ tự chạy (generation_service: diff → rag → procedure → llm → self_check).
+ * "procedure" chỉ có khi đề có quy trình thao tác cấu trúc (ẩn/hiện, chèn, xóa dòng/cột). */
 export const STAGES = [
   { id: "diff", label: "So sánh file đề với file đáp án" },
   { id: "rag", label: "Tìm đoạn giáo trình liên quan" },
+  { id: "procedure", label: "Đọc quy trình thao tác trong đề (nếu đề có)" },
   { id: "llm", label: "AI chia bước và viết gợi ý" },
   { id: "self_check", label: "Tự kiểm kịch bản trên file đề và đáp án" },
 ] as const;

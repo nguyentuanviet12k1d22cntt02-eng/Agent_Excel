@@ -1030,7 +1030,7 @@ components:
         id: { $ref: "#/components/schemas/Id" }
         exercise_id: { $ref: "#/components/schemas/Id" }
         status: { enum: [queued, running, succeeded, failed] }
-        stage: { type: string, description: "Bước đang chạy: diff, rag, llm, self_check" }
+        stage: { type: string, description: "Bước đang chạy: diff, rag, procedure, llm, self_check" }
         attempts: { type: integer }
         model: { type: string }
         prompt_tokens: { type: integer }
@@ -1110,6 +1110,15 @@ components:
             attempts: { type: integer }
             model: { type: string }
             remaining_issues: { type: array, items: { type: string }, description: Lỗi AI chưa sửa được sau N lần }
+            procedure:
+              type: object
+              description: >-
+                Có khi bài có thay đổi cấu trúc và đề có quy trình thao tác (T5.9): số thao tác AI chép được
+                (0 là đề không có quy trình hoặc chưa dựng được), số lần gọi AI, lỗi còn lại.
+              properties:
+                operations: { type: integer }
+                attempts: { type: integer }
+                issues: { type: array, items: { type: string } }
     PreviewBundle:
       type: object
       required: [version_id, exercise_id, exercise_code, exercise_title, revision, status, content, references]

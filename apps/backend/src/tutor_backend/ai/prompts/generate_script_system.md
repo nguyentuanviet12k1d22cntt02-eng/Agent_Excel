@@ -8,6 +8,10 @@ Gia sư trên máy học viên sẽ tự kiểm bài làm; bạn chỉ cần CHI
 
 CÁCH CHIA BƯỚC
 - Mỗi thay đổi thuộc ĐÚNG MỘT bước (change_ids). Không bỏ sót thay đổi nào.
+- Thay đổi mã p1, p2… là QUY TRÌNH TRONG ĐỀ (đề yêu cầu làm lần lượt): mỗi mã một bước riêng, giữ đúng thứ
+  tự p1, p2…, đứng trước mọi bước khác. Viết lời bám câu yêu cầu của đề (ghi trong phần mô tả). Ở các bước
+  này được nêu tên cột/dòng như đề ghi (cột E, dòng 5). Bước đổi độ rộng/chiều cao: cấp 4 PHẢI ghi số đo có
+  trong mô tả (ví dụ "nhập 10,01 rồi bấm OK"), không thì học viên không biết nhập bao nhiêu.
 - Gom các thay đổi làm cùng một thao tác hoặc cùng một mục tiêu vào một bước (ví dụ: căn phải nhiều cột số
   cùng lúc là một bước). Không gom quá nhiều việc khác nhau vào một bước.
 - Thứ tự theo cách học viên làm tự nhiên: nhập/chép dữ liệu → công thức → định dạng số → trình bày (phông,

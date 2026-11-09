@@ -107,12 +107,17 @@ def _targets(
     for sheet, items in by_sheet.items():
         cells: set[tuple[int, int]] = set()
         for item in items:
-            rng = parse_range(item.range or "")
-            cells.update((c, r) for r in rng.rows() for c in rng.cols())
+            for text in (item.range or "", *item.more_ranges):
+                rng = parse_range(text)
+                cells.update((c, r) for r in rng.rows() for c in rng.cols())
         for rng in group_into_ranges(cells):
             label = next((i.label for i in items if parse_range(i.range or "") == rng), None)
             label = label or " và ".join(
-                dict.fromkeys(i.label for i in items if rng.contains(parse_range(i.range or "")))
+                dict.fromkeys(
+                    i.label
+                    for i in items
+                    if any(rng.contains(parse_range(r)) for r in (i.range or "", *i.more_ranges))
+                )
             )
             targets.append(_cell_target(sheet, default_sheet, str(rng), "target", label or "vùng cần làm"))
     return sources, targets
@@ -164,7 +169,7 @@ def build_step(
         if c in RIBBON
     ]
     checks = merge_checks([dict(check) for change in changes for check in change.checks])
-    returnable = global_codes | {code for check in checks for code in codes_for(check["type"])}
+    returnable = global_codes | {code for change in changes for code in change.codes()}
     feedback, seen = [], set()
     for code, message in step.feedback:
         if code in returnable and code not in seen:  # mã không trả về được thì phản hồi vô dụng: bỏ
@@ -180,6 +185,9 @@ def build_step(
     }
     if ui:
         built["targets"]["ui"] = ui
+    operations = [change.operation for change in changes if change.operation is not None]
+    if len(operations) == 1:
+        built["operation"] = dict(operations[0])
     if feedback:
         built["feedback"] = feedback
     if step.reference_ids:

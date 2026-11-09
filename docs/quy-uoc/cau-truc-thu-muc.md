@@ -73,10 +73,11 @@ Lý do dùng `src/`: test luôn chạy trên package **đã cài**, nên tránh 
 | Thư mục | Trách nhiệm |
 |---|---|
 | `snapshot/` | Kiểu dữ liệu snapshot workbook |
-| `readers/` | Đọc workbook thành snapshot: `openpyxl_reader.py`, `com_reader.py` |
+| `readers/` | Đọc workbook thành snapshot: `openpyxl_reader.py`, `com_reader.py`; chữ trong hình vẽ: `shapes.py` |
 | `diff/` | So sánh file đề và file mẫu |
 | `checks/` | Kiểm tra điều kiện: **mỗi loại điều kiện một file** |
 | `script/` | Đọc và kiểm tra kịch bản JSON theo lược đồ trong `schemas/` |
+| `procedure.py` | Làm lần lượt thao tác cấu trúc (ẩn/hiện, chèn, xóa, kích thước) trên snapshot: trạng thái mong đợi sau từng bước của kịch bản theo quy trình |
 
 ## 3. Quy tắc phụ thuộc giữa các phần
 

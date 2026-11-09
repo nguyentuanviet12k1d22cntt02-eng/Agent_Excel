@@ -32,6 +32,7 @@ kịch bản
 │  ├─ targets      cells[] (vùng target / source) + ui[] (nút Ribbon theo idMso)
 │  ├─ checks[]     điều kiện kiểm chứng; bước đạt khi mọi điều kiện đạt
 │  ├─ signals      tham số tín hiệu riêng: idle_seconds, immediate_codes, max_auto_level
+│  ├─ operation    (tùy chọn) thao tác cấu trúc khi đề yêu cầu làm theo quy trình, mục 2.5
 │  ├─ feedback[]   phản hồi riêng theo mã lỗi (error / info)
 │  ├─ hints[4]     đúng 4 cấp, đúng thứ tự
 │  └─ reference_ids[]
@@ -77,13 +78,34 @@ Khi nào hiện cấp nào: [luat-goi-y.md](luat-goi-y.md).
 - `signals.immediate_codes`: mã lỗi phải phản hồi **ngay**, không chờ (b09 bước 4: gõ đè lên công thức).
 - `signals.max_auto_level`: cấp cao nhất gia sư tự đưa ra; cấp cao hơn chỉ khi học viên bấm trợ giúp (không làm thay).
 
+### 2.5. Bước theo quy trình trong đề (`operation`, T5.9)
+
+Có đề yêu cầu làm lần lượt các thao tác cấu trúc mà nhiều bước triệt tiêu nhau. Bài 06 ghi trong khối chữ của
+hình vẽ: hiện cột E → chèn cột sau G → ẩn H → chỉnh độ rộng I, J → hiện H → xóa D, E, H. So file đề với file
+đáp án chỉ còn "xóa 2 cột, đổi độ rộng". Bước ứng với một thao tác như vậy ghi thêm:
+
+```json
+"operation": { "action": "delete", "axis": "cols", "lines": ["D", "E", "H"] }
+```
+
+| Trường | Ý nghĩa |
+|---|---|
+| `action` | `hide`, `unhide`, `insert` (chèn **trước** `lines[0]`, `count` dòng/cột), `delete`, `resize` (`sizes` theo từng dòng/cột) |
+| `axis`, `lines` | `cols` + chữ cột hoặc `rows` + số dòng, **theo bố cục lúc làm bước** (như đề ghi) |
+
+Điều kiện của bước này ghi theo **trạng thái ngay sau thao tác**: `row_col_hidden`, `row_col_size`; chèn/xóa
+thì kiểm vài ô tiêu đề nằm đúng chỗ bằng `value_equals` giá trị ghi sẵn (kể cả cột ngay trước chỗ chèn, để
+bắt chèn nhầm chỗ). Tầng 3 và chấm thử dựng trạng thái mong đợi sau từng bước bằng cách làm lần lượt các thao
+tác trên file đề (`excel_core.procedure`; đã đối chiếu Excel thật trên bài 06: giá trị, ô gộp, cột ẩn, độ rộng
+khớp từng bước). Desktop không cần trường này: gia sư đi theo thứ tự bước, chấm trên Excel đang mở.
+
 ## 3. Kiểm tra kịch bản: 3 tầng
 
 | Tầng | Kiểm gì | Ở đâu | Có từ |
 |---|---|---|---|
 | 1. Lược đồ | Cấu trúc, kiểu, tham số, đúng 4 cấp gợi ý | `excel_core.script.schema_issues()` (`jsonschema`) | T3.2 |
 | 2. Tham chiếu chéo | id bước, id điều kiện không trùng; `reference_ids`, `completion.step_ids` trỏ tới cái có thật; `feedback.code` và `signals.immediate_codes` là mã mà điều kiện của bước (hoặc điều kiện toàn bài) **trả về được**; một mã chỉ một phản hồi; vùng/nút `highlight` nằm trong `targets` của bước; `expected.range` cùng kích thước vùng kiểm | `excel_core.script.cross_reference_issues()` | T4.5 |
-| 3. Tự kiểm trên file | Mọi điều kiện **đạt trên đáp án**; mọi bước **chưa đạt trên đề** (điều kiện riêng lẻ đạt sẵn chỉ là cảnh báo: điều kiện giữ); điều kiện toàn bài đạt trên cả hai; **độ phủ diff** theo loại thay đổi (thay đổi định dạng số phải có điều kiện `number_format` phủ...); chữ gợi ý không có địa chỉ ô và số liệu không có trong bài | `excel_core.script.self_check_files()`, Backend (T5.5) | T4.5 |
+| 3. Tự kiểm trên file | Mọi điều kiện **đạt trên đáp án**; mọi bước **chưa đạt trên đề** (điều kiện riêng lẻ đạt sẵn chỉ là cảnh báo: điều kiện giữ); điều kiện toàn bài đạt trên cả hai; **độ phủ diff** theo loại thay đổi (thay đổi định dạng số phải có điều kiện `number_format` phủ...); chữ gợi ý không có địa chỉ ô và số liệu không có trong bài. Kịch bản có `operation`: so trên trạng thái ngay trước/sau từng bước; làm hết các thao tác phải ra bố cục, dòng/cột ẩn như đáp án; thao tác vô nghĩa (hiện cột đang không ẩn) là lỗi | `excel_core.script.self_check_files()`, Backend (T5.5) | T4.5, T5.9 |
 
 Kết quả tầng 3 chia **lỗi** (phải sửa trước khi gửi duyệt) và **cảnh báo** (giảng viên xem lại). Kiểm nhanh một kịch bản:
 

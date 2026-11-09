@@ -7,7 +7,7 @@ Kết luận T2.6 áp dụng ở đây:
 """
 
 from collections import Counter
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -21,6 +21,7 @@ from excel_core.address import (
     parse_cell,
     parse_range,
 )
+from excel_core.checks import codes_for
 from excel_core.checks.sorted_by import sort_key
 from excel_core.diff import (
     LAYOUT_KINDS,
@@ -33,6 +34,7 @@ from excel_core.diff import (
 )
 from excel_core.formula import FormulaError, parse_formula
 from excel_core.readers import read_workbook
+from excel_core.readers.shapes import ShapeText, shape_texts
 from excel_core.snapshot import CellValue, SheetSnapshot, WorkbookSnapshot
 from tutor_backend.ai.check_synthesis import (
     cell_change_checks,
@@ -87,6 +89,15 @@ class ChangeItem:
     checks: tuple[Check, ...]
     sources: tuple[tuple[str, str], ...] = ()  # (vùng, nhãn) dữ liệu nguồn để chỉ cho học viên
     context: str = ""  # chỉ cho AI: mỗi dòng của vùng ứng với gì ("Ngày", "Mã hàng"…)
+    operation: Mapping[str, Any] | None = None  # thao tác cấu trúc theo quy trình trong đề (mã p1, p2…)
+    more_ranges: tuple[str, ...] = ()  # vùng khoanh thêm (xóa các cột không liền nhau D, E, H)
+    feedback_codes: tuple[str, ...] = ()  # mã lỗi đáng viết phản hồi; rỗng: mọi mã của các điều kiện
+
+    def codes(self) -> list[str]:
+        """Mã lỗi AI được viết phản hồi cho mục này."""
+        if self.feedback_codes:
+            return list(self.feedback_codes)
+        return sorted({code for check in self.checks for code in codes_for(check["type"])})
 
 
 @dataclass(frozen=True)
@@ -746,9 +757,13 @@ def protection(
     return checks, preserved
 
 
-def workbook_text(starter: WorkbookSnapshot) -> list[str]:
-    """Câu chữ dài trong file đề (yêu cầu, hướng dẫn) để AI hiểu đề bài."""
-    texts = []
+def workbook_text(starter: WorkbookSnapshot, shapes: Sequence[ShapeText] = ()) -> list[str]:
+    """Câu chữ trong file đề (yêu cầu, hướng dẫn) để AI hiểu đề bài: khối chữ trong hình vẽ (đề hay ghi các
+    bước thực hành ở đây, bài 06) rồi câu dài trong ô."""
+    texts = [
+        f"[{shape.sheet}, khối chữ “{shape.name}”]\n" + "\n".join(f"  - {line}" for line in shape.lines)
+        for shape in shapes
+    ]
     for sheet in starter.sheets.values():
         for cell in sheet.cells.values():
             if cell.value_kind == "text" and len(str(cell.value)) >= MIN_INSTRUCTION_LENGTH:
@@ -781,6 +796,13 @@ def _detect_sorts(
 def analyze_exercise(starter_path: Path | str, solution_path: Path | str, sheet: str) -> ExerciseAnalysis:
     request = pair_request(starter_path, solution_path)
     starter, solution = read_workbook(starter_path, request), read_workbook(solution_path, request)
+    return analyze_snapshots(starter, solution, sheet, shape_texts(starter_path))
+
+
+def analyze_snapshots(
+    starter: WorkbookSnapshot, solution: WorkbookSnapshot, sheet: str, shapes: Sequence[ShapeText] = ()
+) -> ExerciseAnalysis:
+    """Như analyze_exercise trên hai snapshot (file đề có thể là trạng thái sau quy trình, procedure.py)."""
     diff = diff_workbooks(starter, solution)
     builder = _Builder(starter, solution, diff.changes)
     covered = _detect_sorts(starter, solution, diff.changes, builder)
@@ -793,7 +815,7 @@ def analyze_exercise(starter_path: Path | str, solution_path: Path | str, sheet:
         changes=tuple(builder.items),
         global_checks=tuple(global_checks),
         preserved=tuple(preserved),
-        workbook_text=tuple(workbook_text(starter)),
+        workbook_text=tuple(workbook_text(starter, shapes)),
         starter=starter,
         solution=solution,
     )

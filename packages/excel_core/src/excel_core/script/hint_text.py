@@ -2,7 +2,8 @@
 
 - Địa chỉ ô: vị trí đã có overlay chỉ (cấp 3), ghi trong chữ dễ sai khi bài đổi bố cục (quyết định 8 GĐ2).
 - Số liệu: T2.6 thấy AI bịa số. Chỉ xét số "đáng kể" (có phần thập phân hoặc từ 3 chữ số trở lên), vì số
-  nhỏ như "2 số lẻ", "bấm 2 lần" là chữ hướng dẫn bình thường.
+  nhỏ như "2 số lẻ", "bấm 2 lần" là chữ hướng dẫn bình thường. Số đo trong `operation.sizes` của bước (lấy
+  từ file đáp án) được ghi trong chữ của bước đó.
 """
 
 import re
@@ -80,6 +81,9 @@ def hint_text_issues(
 ) -> Iterator[dict[str, str]]:
     pool = _workbook_numbers(starter, solution)
     for step in script["steps"]:
+        # Bước đổi kích thước theo quy trình: số đo trong `operation` lấy từ file đáp án, ghi trong chữ được
+        sizes = [float(v) for v in step.get("operation", {}).get("sizes", {}).values()]
+        step_pool = pool + sizes
         for text in _texts(step):
             for address in _addresses(text):
                 yield {
@@ -88,7 +92,7 @@ def hint_text_issues(
                     "issue": "có địa chỉ ô trong chữ (đã có overlay chỉ)",
                 }
             for token, value in _significant_numbers(text):
-                if not _number_in(value, pool):
+                if not _number_in(value, step_pool):
                     yield {
                         "step_id": step["id"],
                         "text": token,

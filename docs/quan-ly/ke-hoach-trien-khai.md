@@ -160,6 +160,7 @@ Agent_Excel/
 | T5.6 | Vòng đời kịch bản: nháp → chờ duyệt → đã duyệt → phát hành; lưu lịch sử phiên bản; khi phát hành thì nhúng mã bài và phiên bản vào file đề | API chuyển trạng thái chạy được; file đề tải về có mã bài | T5.5 | Việt | ✅ |
 | T5.7 | API cho Desktop: danh sách bài, tải kịch bản theo mã bài + phiên bản, tải file đề, nhận tiến độ và nhật ký | Kiểm tra được bằng một client giả | T5.6 | Hoài | ✅ |
 | T5.8 | **Đánh giá chất lượng sinh kịch bản:** so kịch bản AI với kịch bản viết tay (tỷ lệ bước đúng, tỷ lệ bước phải sửa) | Có bảng số liệu cho mục 5.2 của báo cáo | T5.5 | Việt | ✅ |
+| T5.9 | **Kịch bản theo quy trình trong đề:** đọc chữ trong hình vẽ của file đề; AI chép quy trình thao tác cấu trúc (ẩn/hiện, chèn, xóa, kích thước); làm thử trên file đề phải ra đáp án; mỗi thao tác một bước, kiểm theo trạng thái sau thao tác; tự kiểm và chấm thử theo trạng thái từng bước *(bổ sung 09/11/2026, gặp ở bài 06)* | Bài 06 sinh đủ 6 bước theo đề, tự kiểm đạt; gia sư Desktop dẫn đúng từng bước trên Excel | T5.5, T7.6 | Việt | ✅ |
 
 ### GĐ6 — Web quản trị React (14/12 – 10/01)
 

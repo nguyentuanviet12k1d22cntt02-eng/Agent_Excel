@@ -12,11 +12,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from excel_core.checks import codes_for
 from excel_core.script import self_check_files, validate_script
 from tutor_backend.ai.exercise_analysis import ExerciseAnalysis
 from tutor_backend.ai.llm_client import LLMClient, LLMError, LLMOutputError
 from tutor_backend.ai.plan import Plan, PlanFormatError, parse_plan, plan_issues, plan_schema
+from tutor_backend.ai.procedure import extract_procedure, wants_procedure
 from tutor_backend.ai.prompts import render
 from tutor_backend.ai.rag import Passage
 from tutor_backend.ai.ribbon_catalog import catalog_text
@@ -53,7 +53,7 @@ def _change_lines(analysis: ExerciseAnalysis) -> str:
     lines = []
     for change in analysis.changes:
         sources = "; ".join(label for _, label in change.sources) or "-"
-        codes = sorted({code for check in change.checks for code in codes_for(check["type"])})
+        codes = change.codes()
         where = change.label if change.sheet == analysis.sheet else f"{change.label} (sheet {change.sheet})"
         if change.context:
             where += f" ({change.context})"
@@ -127,6 +127,13 @@ def generate_script(
 ) -> GenerationOutcome:
     """Sinh kịch bản cho một bài; `files` = (file đề, file đáp án) để tự kiểm tầng 3."""
     notify = on_stage or (lambda _: None)
+    procedure = None
+    if wants_procedure(analysis, info.prompt_text):
+        notify("procedure")
+        procedure = extract_procedure(
+            analysis, info.title, info.prompt_text, info.instructions, llm, max_attempts
+        )
+        analysis = procedure.analysis or analysis
     if len(analysis.changes) > MAX_CHANGES:
         # Quá nhiều mục thì AI chia bước không nổi (đã gặp: bố cục lệch làm diff ra hơn 100 mục): báo sớm,
         # không tốn token
@@ -145,6 +152,10 @@ def generate_script(
     request = build_request(analysis, info, refs)
     user = request
     outcome = GenerationOutcome(script=None, report=None)
+    if procedure is not None:
+        outcome.prompt_tokens += procedure.prompt_tokens
+        outcome.completion_tokens += procedure.completion_tokens
+        outcome.llm_ms += procedure.llm_ms
     for attempt in range(1, max_attempts + 1):
         outcome.attempts = attempt
         notify("llm")
@@ -184,6 +195,18 @@ def generate_script(
             "remaining_issues": outcome.remaining_issues,
             "model": llm.model,
         }
+        if procedure is not None:
+            outcome.report["generation"]["procedure"] = {
+                "operations": procedure.operations,
+                "attempts": procedure.attempts,
+                "issues": procedure.issues,
+            }
+            if procedure.analysis is None and procedure.issues:
+                outcome.report.setdefault("warnings", []).append(
+                    "Đề có quy trình thao tác nhưng chưa dựng được ("
+                    + "; ".join(procedure.issues)
+                    + "): kịch bản dựng theo khác biệt file đề/đáp án."
+                )
     return outcome
 
 
