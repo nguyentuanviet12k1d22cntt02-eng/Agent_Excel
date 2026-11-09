@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 type LLMFactory = Callable[[Settings, str], LLMClient]
 
 RAG_PASSAGES = 5
+MAX_ERROR_REASONS = 3
+MAX_ERROR_CHARS = 1000  # lỗi hiện trên Web: đủ đọc, không chép cả đầu ra của AI
 JOB_HISTORY_LIMIT = 20
 MAX_QUERY_PROMPT_CHARS = 400
 
@@ -161,7 +163,9 @@ def _generate(
         outcome.completion_tokens,
     )
     if outcome.script is None:
-        raise LLMError("AI không trả về kế hoạch hợp lệ: " + "; ".join(outcome.remaining_issues[:3]))
+        db.commit()  # giữ số lần gọi, token của job thất bại (đánh giá kỹ thuật)
+        reasons = "; ".join(outcome.remaining_issues[:MAX_ERROR_REASONS])
+        raise LLMError(f"AI chưa tạo được kế hoạch hợp lệ sau {outcome.attempts} lần gọi: {reasons}")
     script_service.create_version(
         db,
         exercise,
@@ -193,7 +197,7 @@ def run_generation_job(
             job.status, job.stage = JobStatus.SUCCEEDED, None
         except LLMError as exc:
             db.rollback()
-            job.status, job.error = JobStatus.FAILED, str(exc)
+            job.status, job.error = JobStatus.FAILED, str(exc)[:MAX_ERROR_CHARS]
         except Exception as exc:  # noqa: BLE001 — tiến trình nền phải ghi lỗi vào job thay vì treo
             logger.exception("Job sinh kịch bản %s lỗi", job_id)
             db.rollback()

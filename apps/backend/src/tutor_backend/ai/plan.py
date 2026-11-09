@@ -9,7 +9,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
-from jsonschema import Draft202012Validator
+from jsonschema import Draft202012Validator, ValidationError
 
 from excel_core.checks import codes_for
 from tutor_backend.ai.exercise_analysis import ExerciseAnalysis
@@ -33,6 +33,7 @@ SKILLS = [
 ]
 MAX_STEPS = 30
 MAX_ACTIONS = 10
+MAX_ERROR_MESSAGE = 200  # ký tự: lỗi lược đồ gửi lại cho AI và hiện trên Web
 
 
 @dataclass(frozen=True)
@@ -136,11 +137,21 @@ class PlanFormatError(ValueError):
     """LLM trả về JSON không đúng lược đồ kế hoạch."""
 
 
+def _short_message(error: ValidationError) -> str:
+    """Lỗi lược đồ ngắn gọn: thông báo của jsonschema chép cả giá trị sai (AI lạc đề thì dài hàng chục KB)."""
+    if error.validator == "type":
+        return f"phải là kiểu {error.validator_value}, nhận được {type(error.instance).__name__}"
+    if error.validator == "enum":
+        return "giá trị không thuộc danh sách cho phép"
+    message = error.message
+    return message if len(message) <= MAX_ERROR_MESSAGE else message[:MAX_ERROR_MESSAGE] + "…"
+
+
 def parse_plan(data: Any, schema: dict[str, Any]) -> Plan:
     errors = sorted(Draft202012Validator(schema).iter_errors(data), key=lambda e: list(e.absolute_path))
     if errors:
         where = "/".join(str(p) for p in errors[0].absolute_path)
-        raise PlanFormatError(f"Kế hoạch sai lược đồ tại /{where}: {errors[0].message}")
+        raise PlanFormatError(f"Kế hoạch sai lược đồ tại /{where}: {_short_message(errors[0])}")
     steps = tuple(
         PlanStep(
             title=s["title"].strip(),

@@ -11,9 +11,24 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-from excel_core.address import CellRange, cell_address, group_into_ranges, parse_cell, parse_range
+from excel_core.address import (
+    CellRange,
+    cell_address,
+    column_index,
+    group_into_ranges,
+    parse_cell,
+    parse_range,
+)
 from excel_core.checks.sorted_by import sort_key
-from excel_core.diff import Change, ChangeKind, diff_workbooks, pair_request
+from excel_core.diff import (
+    LAYOUT_KINDS,
+    Change,
+    ChangeKind,
+    SheetLayout,
+    diff_workbooks,
+    pair_request,
+    sheet_layout,
+)
 from excel_core.formula import FormulaError, parse_formula
 from excel_core.readers import read_workbook
 from excel_core.snapshot import CellValue, SheetSnapshot, WorkbookSnapshot
@@ -51,6 +66,10 @@ KIND_NAMES = {
     "page_setup": "thiết lập trang in",
     "chart": "biểu đồ",
     "sheet_added": "thêm trang tính",
+    "col_inserted": "chèn cột",
+    "col_deleted": "xóa cột",
+    "row_inserted": "chèn dòng",
+    "row_deleted": "xóa dòng",
     "sort": "sắp xếp bảng",
 }
 
@@ -275,6 +294,74 @@ SHEET_LEVEL = frozenset(
     {ChangeKind.AUTOFILTER, ChangeKind.PAGE_SETUP, ChangeKind.CHART, ChangeKind.SHEET_ADDED}
 )
 MAX_GLOBAL_RANGES = 6
+LAYOUT_KIND_NAMES = frozenset(kind.value for kind in LAYOUT_KINDS)
+
+
+def _filled(sheet: SheetSnapshot, rng: CellRange) -> CellRange | None:
+    """Khung nhỏ nhất bao các ô có nội dung trong vùng; vùng trống thì None."""
+    cells = [(c, r) for r in rng.rows() for c in rng.cols() if not sheet.cell(cell_address(c, r)).is_empty]
+    if not cells:
+        return None
+    cols, rows = [c for c, _ in cells], [r for _, r in cells]
+    return CellRange(min(cols), min(rows), max(cols), max(rows))
+
+
+def _moved_span(layout: SheetLayout, starter: SheetSnapshot, solution: SheetSnapshot, is_col: bool) -> range:
+    """Dải cột (dòng) của đáp án bị dời chỗ mà nội dung giữ nguyên: chỉ cần chèn/xóa đúng là khớp."""
+    axis = layout.cols if is_col else layout.rows
+    used = _used(solution)
+
+    def line(index: int) -> CellRange:
+        if is_col:
+            return CellRange(index, used.min_row, index, used.max_row)
+        return CellRange(used.min_col, index, used.max_col, index)
+
+    moved = []
+    for index, source in sorted(axis.to_starter.items()):
+        after, before = line(index), line(source)
+        if (
+            index != source
+            and _has_content(solution, after)
+            and _values(solution, after) == _values(starter, before)
+        ):
+            moved.append(index)
+    if not moved:
+        return range(0)
+    end = moved[0]
+    while end + 1 in moved:
+        end += 1
+    return range(moved[0], end + 1)
+
+
+def layout_check(starter: SheetSnapshot, solution: SheetSnapshot, is_col: bool) -> Check | None:
+    """layout_matches trên phần bị dời chỗ: đạt khi chèn/xóa đúng, không chờ học viên làm xong bước khác."""
+    layout = sheet_layout(starter, solution)
+    span = _moved_span(layout, starter, solution, is_col)
+    if not span:
+        return None
+    used = _used(solution)
+    region = (
+        CellRange(span.start, used.min_row, span.stop - 1, used.max_row)
+        if is_col
+        else CellRange(used.min_col, span.start, used.max_col, span.stop - 1)
+    )
+    table = _filled(solution, region)
+    if table is None:
+        return None
+    key = next(
+        (
+            str(cell.value)
+            for col in table.cols()
+            if not (cell := solution.cell(cell_address(col, table.min_row))).is_empty
+        ),
+        "",
+    )
+    return {
+        "type": "layout_matches",
+        "range": str(table),
+        "key_column": key[:100],
+        "description": "Dữ liệu dời đúng chỗ sau khi chèn/xóa.",
+    }
 
 
 def _split(change: Change) -> list[CellRange]:
@@ -333,7 +420,9 @@ class _Builder:
         )
 
     def add(self, change: Change) -> None:
-        if change.kind in CELL_LEVEL and change.range:
+        if change.kind in LAYOUT_KINDS and change.range:
+            self._add_layout(change)
+        elif change.kind in CELL_LEVEL and change.range:
             self._add_cells(change)
         elif change.kind in LINE_LEVEL and change.range:
             self._add_line(change)
@@ -350,6 +439,31 @@ class _Builder:
                 self.next_id(), change.sheet, change.kind.value, str(rng), description, label, tuple(checks)
             )
             self.items.append(item)
+
+    def _add_layout(self, change: Change) -> None:
+        """Chèn/xóa cột, dòng: vùng mục tiêu theo bố cục học viên đang thấy, điều kiện kiểm phần bị dịch."""
+        starter, solution = self.starter.sheet(change.sheet), self.solution.sheet(change.sheet)
+        deleted = change.kind in (ChangeKind.COL_DELETED, ChangeKind.ROW_DELETED)
+        is_col = change.kind in (ChangeKind.COL_DELETED, ChangeKind.COL_INSERTED)
+        # Xóa: học viên làm trên bố cục của đề; chèn: chỗ chèn tính theo đáp án
+        base = starter if deleted else solution
+        target = _line_range(change, _used(base))[0]
+        check = layout_check(starter, solution, is_col)
+        if check is None:
+            return
+        first, _, last = (change.range or "").partition(":")
+        count = (column_index(last) - column_index(first) if is_col else int(last) - int(first)) + 1
+        unit = "cột" if is_col else "dòng"
+        empty = deleted and not _has_content(starter, target)
+        description = f"{'xóa' if deleted else 'chèn'} {count} {unit}{' trống' if empty else ''}"
+        label = (
+            f"{unit} {first}" + (f"–{last}" if last != first else "") + (" của file đề" if deleted else "")
+        )
+        self.items.append(
+            ChangeItem(
+                self.next_id(), change.sheet, change.kind.value, str(target), description, label, (check,)
+            )
+        )
 
     def _add_sheet_object(self, change: Change) -> None:
         checks = sheet_object_checks(change.kind, change.sheet, self.starter, self.solution)
@@ -426,6 +540,9 @@ def protection(
 ) -> tuple[list[Check], list[str]]:
     """Điều kiện toàn bài: công thức có sẵn không bị gõ đè, dữ liệu gốc không bị sửa."""
     if sheet not in starter.sheets or sheet not in solution.sheets:
+        return [], []
+    if any(i.sheet == sheet and i.kind in LAYOUT_KIND_NAMES for i in items):
+        # Bài chèn/xóa cột, dòng: dữ liệu dời chỗ hợp lệ, so theo địa chỉ sẽ báo nhầm "sửa dữ liệu gốc"
         return [], []
     before, after = starter.sheet(sheet), solution.sheet(sheet)
     mine = [i for i in items if i.sheet == sheet and i.range]

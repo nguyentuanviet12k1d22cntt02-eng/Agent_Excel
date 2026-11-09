@@ -15,7 +15,7 @@ from typing import Any
 from excel_core.checks import codes_for
 from excel_core.script import self_check_files, validate_script
 from tutor_backend.ai.exercise_analysis import ExerciseAnalysis
-from tutor_backend.ai.llm_client import LLMClient, LLMError
+from tutor_backend.ai.llm_client import LLMClient, LLMError, LLMOutputError
 from tutor_backend.ai.plan import Plan, PlanFormatError, parse_plan, plan_issues, plan_schema
 from tutor_backend.ai.prompts import render
 from tutor_backend.ai.rag import Passage
@@ -26,6 +26,8 @@ logger = logging.getLogger(__name__)
 
 MAX_PASSAGE_CHARS = 700
 PLAN_SCHEMA_NAME = "tutor_script_plan"
+MAX_CHANGES = 80  # số mục thay đổi tối đa gửi AI chia bước một lần
+MAX_PREVIOUS_PLAN_CHARS = 12000
 
 
 @dataclass
@@ -100,6 +102,20 @@ def _self_check_issues(
     return issues, report
 
 
+def _repair_request(previous: Any, issues: list[str], request: str) -> str:
+    """Yêu cầu sửa. Kế hoạch trước không phải đối tượng JSON (AI lạc đề) thì không gửi lại, bảo viết lại."""
+    if isinstance(previous, dict):
+        previous_plan = json.dumps(previous, ensure_ascii=False)[:MAX_PREVIOUS_PLAN_CHARS]
+    else:
+        previous_plan = "(không dùng được: không đúng dạng kế hoạch; viết lại từ đầu theo đúng lược đồ JSON)"
+    return render(
+        "repair_script_user",
+        previous_plan=previous_plan,
+        issues="\n".join(f"- {i}" for i in issues),
+        original_request=request,
+    )
+
+
 def generate_script(
     analysis: ExerciseAnalysis,
     info: ExerciseInfo,
@@ -111,6 +127,18 @@ def generate_script(
 ) -> GenerationOutcome:
     """Sinh kịch bản cho một bài; `files` = (file đề, file đáp án) để tự kiểm tầng 3."""
     notify = on_stage or (lambda _: None)
+    if len(analysis.changes) > MAX_CHANGES:
+        # Quá nhiều mục thì AI chia bước không nổi (đã gặp: bố cục lệch làm diff ra hơn 100 mục): báo sớm,
+        # không tốn token
+        return GenerationOutcome(
+            script=None,
+            report=None,
+            remaining_issues=[
+                f"Bài có {len(analysis.changes)} thay đổi từ file đề sang file đáp án, quá nhiều để AI "
+                f"chia bước (tối đa {MAX_CHANGES}). Kiểm tra file đáp án có đúng là file đề đã làm xong "
+                "không, hoặc tách thành nhiều bài nhỏ."
+            ],
+        )
     refs = _passage_ids(passages)
     schema = plan_schema(analysis, list(refs))
     system = render("generate_script_system")
@@ -120,7 +148,17 @@ def generate_script(
     for attempt in range(1, max_attempts + 1):
         outcome.attempts = attempt
         notify("llm")
-        response = llm.complete_json(system, user, schema, PLAN_SCHEMA_NAME)
+        try:
+            response = llm.complete_json(system, user, schema, PLAN_SCHEMA_NAME)
+        except LLMOutputError as exc:
+            # Trả lời rỗng, bị cắt, không phải JSON: tính là một lần thử rồi gọi lại, không dừng cả job
+            outcome.prompt_tokens += exc.prompt_tokens
+            outcome.completion_tokens += exc.completion_tokens
+            outcome.llm_ms += exc.duration_ms
+            outcome.remaining_issues = [str(exc)]
+            logger.info("Sinh kịch bản %s lần %d: %s", info.code, attempt, exc)
+            user = _repair_request(None, [str(exc)], request)
+            continue
         outcome.prompt_tokens += response.prompt_tokens
         outcome.completion_tokens += response.completion_tokens
         outcome.llm_ms += response.duration_ms
@@ -139,12 +177,7 @@ def generate_script(
         logger.info("Sinh kịch bản %s lần %d: %d lỗi", info.code, attempt, len(issues))
         if not issues:
             break
-        user = render(
-            "repair_script_user",
-            previous_plan=json.dumps(response.data, ensure_ascii=False)[:12000],
-            issues="\n".join(f"- {i}" for i in issues),
-            original_request=request,
-        )
+        user = _repair_request(response.data, issues, request)
     if outcome.report is not None:
         outcome.report["generation"] = {
             "attempts": outcome.attempts,

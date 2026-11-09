@@ -46,6 +46,8 @@ _CONTROLS = [
     ("CellsInsertSmart", "TabHome", "Insert (chèn ô/dòng/cột)"),
     ("CellsDeleteSmart", "TabHome", "Delete (xóa ô/dòng/cột)"),
     ("FormatCellsMenu", "TabHome", "Format (chiều cao dòng, độ rộng cột, ẩn/hiện)"),
+    ("CellsInsertSmart", "TabHome", "Insert (chèn ô, dòng, cột)"),
+    ("CellsDeleteSmart", "TabHome", "Delete (xóa ô, dòng, cột)"),
     ("AutoSum", "TabHome", "AutoSum (Σ, tự gõ hàm SUM)"),
     ("FillMenu", "TabHome", "Fill (điền dữ liệu)"),
     ("SortFilterMenu", "TabHome", "Sort & Filter (sắp xếp và lọc)"),

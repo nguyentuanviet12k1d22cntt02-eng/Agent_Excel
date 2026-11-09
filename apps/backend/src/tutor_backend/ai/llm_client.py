@@ -21,6 +21,23 @@ class LLMError(RuntimeError):
     """Không lấy được kết quả từ LLM (mạng, key, quota, trả về không phải JSON)."""
 
 
+class LLMOutputError(LLMError):
+    """LLM có trả lời nhưng nội dung không dùng được (rỗng, không phải JSON, bị cắt): gọi lại có thể được.
+
+    Giữ số token, thời gian của lần gọi hỏng để vẫn tính vào thống kê (đánh giá kỹ thuật, T5.8).
+    """
+
+    def __init__(
+        self, message: str, prompt_tokens: int = 0, completion_tokens: int = 0, duration_ms: int = 0
+    ):
+        super().__init__(message)
+        self.prompt_tokens, self.completion_tokens, self.duration_ms = (
+            prompt_tokens,
+            completion_tokens,
+            duration_ms,
+        )
+
+
 @dataclass(frozen=True)
 class LLMResponse:
     data: Any
@@ -71,15 +88,24 @@ class OpenAICompatibleClient:
         duration_ms = int((time.perf_counter() - start) * 1000)
         self._raise_for_status(response)
         body = response.json()
-        try:
-            content = body["choices"][0]["message"]["content"] or ""
-            data = json.loads(_FENCE.sub("", content.strip()))
-        except (KeyError, IndexError, TypeError, json.JSONDecodeError) as exc:
-            raise LLMError(f"AI trả về không phải JSON hợp lệ: {exc}") from exc
         usage = body.get("usage") or {}
-        return LLMResponse(
-            data, int(usage.get("prompt_tokens") or 0), int(usage.get("completion_tokens") or 0), duration_ms
-        )
+        tokens = (int(usage.get("prompt_tokens") or 0), int(usage.get("completion_tokens") or 0))
+        try:
+            choice = body["choices"][0]
+            content = (choice["message"]["content"] or "").strip()
+        except (KeyError, IndexError, TypeError) as exc:
+            raise LLMOutputError("AI trả lời sai cấu trúc API", *tokens, duration_ms) from exc
+        if choice.get("finish_reason") == "length":
+            raise LLMOutputError("AI viết quá dài nên bị cắt giữa chừng", *tokens, duration_ms)
+        if not content:
+            raise LLMOutputError("AI trả về nội dung rỗng", *tokens, duration_ms)
+        try:
+            data = json.loads(_FENCE.sub("", content))
+        except json.JSONDecodeError as exc:
+            raise LLMOutputError(
+                f"AI trả về không phải JSON hợp lệ ({exc.msg})", *tokens, duration_ms
+            ) from exc
+        return LLMResponse(data, *tokens, duration_ms)
 
     def _post(self, system: str, user: str, response_format: dict[str, Any]) -> httpx.Response:
         body = {

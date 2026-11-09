@@ -7,7 +7,7 @@ from collections.abc import Callable
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from tutor_backend.ai.llm_client import LLMError
+from tutor_backend.ai.llm_client import LLMError, LLMOutputError
 from tutor_backend.models import GenerationJob, User
 from tutor_backend.models.enums import JobStatus
 
@@ -140,3 +140,33 @@ def test_job_history_lists_newest_first_with_result_version(
     assert history[1]["created_at"] <= history[1]["started_at"] <= history[1]["finished_at"]
     student = auth(make_user("student", email="hv@tdmu.edu.vn"))
     assert client.get(url, headers=student).status_code == 403
+
+
+def test_unusable_answer_is_retried_and_counted(
+    client: TestClient, make_user: Callable[..., User], auth, exercise_files, fake_llm, b22_plan_factory
+):
+    headers = auth(make_user("teacher"))
+    exercise = create_b22(client, headers, exercise_files)
+    fake_llm([LLMOutputError("AI trả về nội dung rỗng", 700, 0, 10), b22_plan_factory()])
+
+    job = generate(client, exercise["id"], headers)
+
+    assert (job["status"], job["attempts"]) == ("succeeded", 2)
+    assert job["prompt_tokens"] == 700 + 1000  # lần hỏng vẫn tính token
+
+
+def test_garbage_plan_fails_with_short_error_and_keeps_stats(
+    client: TestClient, make_user: Callable[..., User], auth, exercise_files, fake_llm
+):
+    headers = auth(make_user("teacher"))
+    exercise = create_b22(client, headers, exercise_files)
+    # AI "lạc": mảng lồng nhau kèm câu tự nói chuyện thay vì đối tượng kế hoạch (đã gặp với bài 06)
+    garbage = [[["NumberFormatGallery", "c6"], "Hmm, actually let me reconsider. " * 400]]
+    llm = fake_llm([garbage, garbage, garbage])
+
+    job = generate(client, exercise["id"], headers)
+
+    assert (job["status"], job["attempts"], job["prompt_tokens"]) == ("failed", 3, 3000)
+    assert "phải là kiểu object, nhận được list" in job["error"]
+    assert len(job["error"]) < 1000 and "reconsider" not in job["error"]
+    assert "viết lại từ đầu" in llm.requests[1]  # không gửi lại đầu ra hỏng cho AI
