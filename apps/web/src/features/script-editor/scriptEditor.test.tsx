@@ -191,3 +191,49 @@ test("gợi ý có địa chỉ ô thì cảnh báo ở đúng bước; rời tr
   await user.click(within(dialog).getByRole("button", { name: "Hủy" }));
   expect(router.state.location.pathname).toBe(`/scripts/${VERSION_ID}`);
 });
+
+test("chấm thử bằng file Excel: hiện bước học viên đang làm, điều kiện chưa đạt và lời gia sư", async () => {
+  const api = setup();
+  api.on("POST", "/scripts/:id/try-out", {
+    current_step_id: "s1_first_total",
+    global_checks: [{ index: 0, type: "data_unchanged", status: "passed", cells: [], detail: "" }],
+    steps: [
+      {
+        step_id: "s1_first_total",
+        title: "Tổng tiền ngày đầu tiên",
+        status: "failed",
+        checks: [
+          { index: 0, type: "is_formula", status: "passed", cells: [], detail: "" },
+          {
+            index: 1,
+            type: "formula_uses_function",
+            status: "failed",
+            code: "used_operator_instead",
+            cells: ["F9"],
+            detail: "",
+          },
+        ],
+        feedback: [{ code: "used_operator_instead", message: "Bài yêu cầu dùng hàm SUM." }],
+      },
+      { step_id: "s2_copy_down", title: "Sao chép", status: "failed", checks: [], feedback: [] },
+    ],
+  });
+  renderApp(`/scripts/${VERSION_ID}`);
+  const user = userEvent.setup();
+
+  await user.click(
+    await screen.findByRole("button", { name: "Chấm thử bằng file Excel" }, { timeout: 5000 }),
+  );
+  const dialog = screen.getByRole("dialog", { name: "Chấm thử bằng file Excel" });
+  await user.upload(within(dialog).getByLabelText("File bài làm (.xlsx)"), new File(["PK"], "bai-lam.xlsx"));
+  await user.click(within(dialog).getByRole("button", { name: "Chấm" }));
+
+  expect(
+    await within(dialog).findByText("Học viên đang ở bước 1: Tổng tiền ngày đầu tiên"),
+  ).toBeInTheDocument();
+  expect(within(dialog).getByText(/Công thức ở F9 dùng hàm SUM/)).toHaveTextContent(
+    "used_operator_instead ở F9",
+  );
+  expect(within(dialog).getByText("Gia sư nói: “Bài yêu cầu dùng hàm SUM.”")).toBeInTheDocument();
+  expect(api.callsTo("POST", `/scripts/${VERSION_ID}/try-out`)).toHaveLength(1);
+});

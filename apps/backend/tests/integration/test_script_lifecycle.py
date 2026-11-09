@@ -171,3 +171,26 @@ def test_students_get_starter_file_only_when_assigned(
         f"/api/v1/classes/{class_id}/exercises", json={"exercise_id": exercise["id"]}, headers=headers
     )
     assert client.get(url, headers=auth(student)).status_code == 200
+
+
+def test_try_out_grades_an_uploaded_workbook_like_desktop(client: TestClient, setup, b22_script: dict):
+    headers, _ = setup
+    version = save(client, setup, b22_script).json()
+    fixtures = Path(__file__).resolve().parents[4] / "packages" / "excel_core" / "tests" / "fixtures" / "b22"
+    url = f"/api/v1/scripts/{version['id']}/try-out"
+
+    def try_file(name: str) -> dict:
+        files = {"file": (name, (fixtures / name).read_bytes(), "application/octet-stream")}
+        response = client.post(url, files=files, headers=headers)
+        assert response.status_code == 200, response.json()
+        return response.json()
+
+    untouched, finished = try_file("de.xlsx"), try_file("dap-an.xlsx")
+
+    assert untouched["current_step_id"] == "s1_first_total"
+    first = untouched["steps"][0]
+    assert (first["status"], first["checks"][0]["code"]) == ("failed", "empty")
+    assert finished["current_step_id"] is None
+    assert {s["status"] for s in finished["steps"]} == {"passed"}
+    not_xlsx = client.post(url, files={"file": ("a.xlsx", b"%PDF-1.4", "application/pdf")}, headers=headers)
+    assert (not_xlsx.status_code, not_xlsx.json()["code"]) == (422, "file_type_invalid")

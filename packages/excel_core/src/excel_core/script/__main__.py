@@ -2,6 +2,8 @@ r"""Kiểm một kịch bản JSON theo 3 tầng.
 
     .venv\Scripts\python -m excel_core.script kich-ban.json
     .venv\Scripts\python -m excel_core.script kich-ban.json --starter de.xlsx --solution dap-an.xlsx
+    .venv\Scripts\python -m excel_core.script kich-ban.json --starter de.xlsx --solution dap-an.xlsx ^
+        --current bai-lam.xlsx          chấm thử file bài làm như Desktop sẽ chấm
 
 Mã thoát 0 khi không có lỗi chặn, 1 khi có.
 """
@@ -12,6 +14,24 @@ import sys
 from pathlib import Path
 
 from excel_core.script import load_script, self_check_files, validate_script
+from excel_core.script.grade import GradeReport, grade_files
+
+MARKS = {"passed": "✓", "failed": "✗", "not_evaluable": "?"}
+
+
+def _print_grade(report: GradeReport) -> None:
+    for check in report.global_checks:
+        result = check.result
+        print(f"Toàn bài #{check.index + 1} {check.type}: {MARKS[result.status.value]} {result.code or ''}")
+    for step in report.steps:
+        here = "  ← học viên đang ở bước này" if step.step_id == report.current_step_id else ""
+        print(f"{MARKS[step.status.value]} {step.step_id} — {step.title}{here}")
+        for check in step.checks:
+            result = check.result
+            cells = f" ({', '.join(result.cells[:5])})" if result.cells else ""
+            print(f"    {MARKS[result.status.value]} {check.type} {result.code or ''}{cells} {result.detail}")
+        for feedback in step.feedback:
+            print(f"    gia sư nói: {feedback['message']}")
 
 
 def main() -> int:
@@ -21,6 +41,7 @@ def main() -> int:
     parser.add_argument("--starter", type=Path, help="file đề (.xlsx) để chạy tầng 3")
     parser.add_argument("--solution", type=Path, help="file đáp án (.xlsx) để chạy tầng 3")
     parser.add_argument("--json", action="store_true", help="in báo cáo tầng 3 dạng JSON")
+    parser.add_argument("--current", type=Path, help="file bài làm (.xlsx) để chấm thử từng bước")
     args = parser.parse_args()
 
     script = load_script(args.script)
@@ -35,6 +56,9 @@ def main() -> int:
     if not validation.ok or not (args.starter and args.solution):
         return 0 if validation.ok else 1
 
+    if args.current:
+        _print_grade(grade_files(script, args.current, args.starter, args.solution))
+        return 0
     report = self_check_files(script, args.starter, args.solution)
     if args.json:
         print(json.dumps(report.to_dict(), ensure_ascii=False, indent=2))

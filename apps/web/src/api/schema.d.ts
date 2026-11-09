@@ -1162,6 +1162,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/scripts/{version_id}/try-out": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                version_id: components["parameters"]["VersionId"];
+            };
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Chấm thử một file bài làm theo revision này, như Desktop sẽ chấm
+         * @description Giảng viên mở file đề bằng Excel, làm vài bước như học viên, lưu rồi tải lên để xem từng bước đạt hay
+         *     chưa, mã lỗi và phản hồi gia sư sẽ hiện. Không lưu file, không ghi gì vào CSDL.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    version_id: components["parameters"]["VersionId"];
+                };
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    "multipart/form-data": {
+                        file: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Kết quả chấm từng bước */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["TryOutReport"];
+                    };
+                };
+                422: components["responses"]["Invalid"];
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/scripts/{version_id}/self-check": {
         parameters: {
             query?: never;
@@ -2003,6 +2054,37 @@ export interface components {
                 /** @description Lỗi AI chưa sửa được sau N lần */
                 remaining_issues?: string[];
             };
+        };
+        CheckGrade: {
+            index: number;
+            type: string;
+            /** @enum {unknown} */
+            status: "passed" | "failed" | "not_evaluable";
+            /** @description Mã lỗi khi chưa đạt */
+            code?: string | null;
+            /** @description Ô chưa đạt */
+            cells: string[];
+            /** @description Giải thích cho giảng viên (không hiện cho học viên) */
+            detail: string;
+        };
+        TryOutReport: {
+            /** @description Bước đầu tiên chưa đạt (null: xong cả bài) */
+            current_step_id: string | null;
+            global_checks: components["schemas"]["CheckGrade"][];
+            steps: {
+                step_id: string;
+                title: string;
+                /** @enum {unknown} */
+                status: "passed" | "failed" | "not_evaluable";
+                checks: components["schemas"]["CheckGrade"][];
+                /** @description Phản hồi gia sư sẽ hiện, theo mã lỗi của điều kiện chưa đạt */
+                feedback: {
+                    code: string;
+                    message: string;
+                    /** @enum {unknown} */
+                    severity?: "error" | "info";
+                }[];
+            }[];
         };
         TutorScript: components["schemas"]["tutor-script.schema"];
         SessionUpsert: {

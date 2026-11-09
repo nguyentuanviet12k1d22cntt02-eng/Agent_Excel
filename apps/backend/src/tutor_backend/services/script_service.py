@@ -5,19 +5,24 @@
 - NFR-13: chỉ gửi duyệt được khi kịch bản qua cả 3 tầng kiểm (lược đồ, tham chiếu chéo, tự kiểm trên file).
 """
 
+import tempfile
 import uuid
+import zipfile
 from pathlib import Path
 from typing import Any
 
+from openpyxl.utils.exceptions import InvalidFileException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from excel_core.script import self_check_files, validate_script
+from excel_core.script.grade import grade_files
 from tutor_backend.core.errors import ConflictError, InvalidError, NotFoundError
 from tutor_backend.db.base import utcnow
 from tutor_backend.models import Exercise, ScriptVersion, User
 from tutor_backend.models.enums import ScriptOrigin, ScriptStatus
 from tutor_backend.services.storage import FileStore
+from tutor_backend.services.uploads import require_type
 
 TRANSITIONS: dict[str, tuple[frozenset[ScriptStatus], ScriptStatus]] = {
     "submit": (frozenset({ScriptStatus.DRAFT}), ScriptStatus.PENDING_REVIEW),
@@ -139,6 +144,26 @@ def save_revision(
     )
     db.commit()
     return version
+
+
+def try_out(db: Session, store: FileStore, version: ScriptVersion, data: bytes) -> dict[str, Any]:
+    """Chấm thử một file bài làm theo revision này, như Desktop sẽ chấm (thử trước khi phát hành)."""
+    require_type(data, {"xlsx"}, "file")
+    exercise = db.get(Exercise, version.exercise_id)
+    if exercise is None:
+        raise NotFoundError("Không tìm thấy bài tập", code="exercise_not_found")
+    with tempfile.TemporaryDirectory(prefix="tutor-try-") as folder:
+        current = Path(folder) / "bai-lam.xlsx"
+        current.write_bytes(data)
+        try:
+            report = grade_files(version.content, current, *_exercise_files(store, exercise))
+        except (InvalidFileException, zipfile.BadZipFile, KeyError, ValueError) as exc:
+            raise InvalidError(
+                "Không đọc được file bài làm",
+                code="file_invalid",
+                errors=[{"path": "/file", "message": "không phải file .xlsx hợp lệ"}],
+            ) from exc
+    return report.to_dict()
 
 
 def refresh_report(db: Session, store: FileStore, version: ScriptVersion) -> dict[str, Any]:

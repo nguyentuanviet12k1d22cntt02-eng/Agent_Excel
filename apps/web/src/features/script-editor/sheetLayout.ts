@@ -44,6 +44,23 @@ function sumRange(sizes: number[], from: number, to: number): number {
   return total;
 }
 
+/**
+ * Bề ngang cả bảng. Phải đặt đúng con số này: bảng table-layout: fixed mà để trình duyệt tự tính bề ngang thì
+ * cột giãn theo chữ dài, khung tô (tính theo độ rộng cột) bị lệch sang cột khác.
+ */
+/** Chiều cao (px) của `count` dòng bắt đầu từ dòng `row`, trừ đường kẻ. */
+export function spanHeight(preview: SheetPreview, row: number, count: number): number {
+  let total = 0;
+  for (let r = row; r < row + count; r++) total += rowPx(preview, r);
+  return Math.max(0, total - 1);
+}
+
+export function tableWidth(preview: SheetPreview): number {
+  let total = ROW_HEADER_PX;
+  for (let c = 1; c <= preview.cols; c++) total += colPx(preview, colLetter(c));
+  return total;
+}
+
 /** Vị trí khung trên lưới, tính từ độ rộng cột và chiều cao dòng (bảng dùng table-layout: fixed). */
 export function overlayRects(preview: SheetPreview, highlights: Highlight[]): OverlayRect[] {
   const colSizes = Array.from({ length: preview.cols }, (_, i) => colPx(preview, colLetter(i + 1)));

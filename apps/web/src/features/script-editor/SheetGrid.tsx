@@ -7,6 +7,8 @@ import {
   overlayRects,
   ROW_HEADER_PX,
   rowPx,
+  spanHeight,
+  tableWidth,
   type Highlight,
   type PreviewCell,
   type SheetPreview,
@@ -73,7 +75,7 @@ export function SheetGrid({ preview, highlights }: { preview: SheetPreview; high
 
   return (
     <div className="sheet" ref={container}>
-      <table className="sheet__table">
+      <table className="sheet__table" style={{ width: tableWidth(preview) }}>
         <colgroup>
           <col style={{ width: ROW_HEADER_PX }} />
           {cols.map((c) => (
@@ -108,7 +110,13 @@ export function SheetGrid({ preview, highlights }: { preview: SheetPreview; high
                     style={cellStyle(cell)}
                     title={cell?.formula ? `${address}: ${cell.formula}` : undefined}
                   >
-                    {cell?.text}
+                    {/* Chữ không được làm dòng cao lên: khung tô tính theo chiều cao dòng như Excel */}
+                    <div
+                      className="sheet__cell"
+                      style={{ maxHeight: spanHeight(preview, r, merge?.rowSpan ?? 1) }}
+                    >
+                      {cell?.text}
+                    </div>
                   </td>
                 );
               })}

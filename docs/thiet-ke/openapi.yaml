@@ -546,6 +546,31 @@ paths:
             application/json:
               schema: { $ref: "#/components/schemas/ScriptVersion" }
         "404": { $ref: "#/components/responses/NotFound" }
+  /scripts/{version_id}/try-out:
+    parameters: [{ $ref: "#/components/parameters/VersionId" }]
+    post:
+      tags: [scripts]
+      summary: Chấm thử một file bài làm theo revision này, như Desktop sẽ chấm
+      description: |
+        Giảng viên mở file đề bằng Excel, làm vài bước như học viên, lưu rồi tải lên để xem từng bước đạt hay
+        chưa, mã lỗi và phản hồi gia sư sẽ hiện. Không lưu file, không ghi gì vào CSDL.
+      x-roles: [admin, teacher]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, contentMediaType: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet }
+      responses:
+        "200":
+          description: Kết quả chấm từng bước
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/TryOutReport" }
+        "422": { $ref: "#/components/responses/Invalid" }
   /scripts/{version_id}/self-check:
     parameters: [{ $ref: "#/components/parameters/VersionId" }]
     post:
@@ -1058,6 +1083,42 @@ components:
             attempts: { type: integer }
             model: { type: string }
             remaining_issues: { type: array, items: { type: string }, description: Lỗi AI chưa sửa được sau N lần }
+    CheckGrade:
+      type: object
+      required: [index, type, status, cells, detail]
+      properties:
+        index: { type: integer }
+        type: { type: string }
+        status: { enum: [passed, failed, not_evaluable] }
+        code: { type: [string, "null"], description: Mã lỗi khi chưa đạt }
+        cells: { type: array, items: { type: string }, description: Ô chưa đạt }
+        detail: { type: string, description: Giải thích cho giảng viên (không hiện cho học viên) }
+    TryOutReport:
+      type: object
+      required: [current_step_id, global_checks, steps]
+      properties:
+        current_step_id: { type: [string, "null"], description: "Bước đầu tiên chưa đạt (null: xong cả bài)" }
+        global_checks: { type: array, items: { $ref: "#/components/schemas/CheckGrade" } }
+        steps:
+          type: array
+          items:
+            type: object
+            required: [step_id, title, status, checks, feedback]
+            properties:
+              step_id: { type: string }
+              title: { type: string }
+              status: { enum: [passed, failed, not_evaluable] }
+              checks: { type: array, items: { $ref: "#/components/schemas/CheckGrade" } }
+              feedback:
+                type: array
+                description: Phản hồi gia sư sẽ hiện, theo mã lỗi của điều kiện chưa đạt
+                items:
+                  type: object
+                  required: [code, message]
+                  properties:
+                    code: { type: string }
+                    message: { type: string }
+                    severity: { enum: [error, info] }
     TutorScript:
       $ref: "../../schemas/tutor-script/v1/tutor-script.schema.json"
     SessionUpsert:

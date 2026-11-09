@@ -327,7 +327,6 @@ blockquote p {
 
 /* Kích thước khớp hằng số trong SheetGrid.tsx (ROW_HEADER_PX, COL_HEADER_PX) để khung vẽ đúng chỗ */
 .sheet__table {
-  width: max-content;
   border-collapse: collapse;
   table-layout: fixed;
   font-family: Calibri, "Segoe UI", Arial, sans-serif;
@@ -364,6 +363,10 @@ blockquote p {
   text-align: center;
 }
 
+.sheet__cell {
+  overflow: hidden;
+}
+
 .sheet__table .sheet__corner {
   left: 0;
   z-index: 3;
@@ -392,4 +395,58 @@ blockquote p {
   border-color: var(--mark-focus);
   border-width: 3px;
   background: rgb(232 89 12 / 10%);
+}
+
+/* ===== Chấm thử bằng file Excel ===== */
+.tryout__howto {
+  margin: 0 0 12px;
+  padding-left: 20px;
+}
+
+.tryout {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tryout__step {
+  padding: 8px 10px;
+  border-left: 3px solid var(--color-border);
+}
+
+.tryout__step + .tryout__step {
+  margin-top: 6px;
+}
+
+.tryout__step--passed {
+  border-left-color: var(--color-success);
+}
+
+.tryout__step--failed {
+  border-left-color: var(--color-danger);
+  background: #fffafa;
+}
+
+.tryout__step--not_evaluable {
+  border-left-color: var(--color-warning);
+}
+
+.tryout__checks {
+  margin: 4px 0 0;
+  padding-left: 18px;
+  list-style: none;
+  font-size: 0.9rem;
+}
+
+.tryout__check--passed {
+  color: var(--color-success);
+}
+
+.tryout__check--failed {
+  color: var(--color-danger);
+}
+
+.tryout__feedback {
+  margin: 6px 0 0;
+  font-style: italic;
 }

@@ -22,13 +22,13 @@ npm run dev          # mở http://localhost:5173
 
 ## Các trang
 
-| Trang                     | Ai dùng              | Việc                                                                                                   |
-| ------------------------- | -------------------- | ------------------------------------------------------------------------------------------------------ |
-| Bài tập `/exercises`      | Giảng viên           | Tạo bài (file đề, đáp án, sheet, đề bài, giáo trình), sinh kịch bản bằng AI, lịch sử bản, giao cho lớp |
-| Trình sửa `/scripts/{id}` | Giảng viên           | Xem, sửa từng bước, kiểm lược đồ ngay, lưới mô phỏng trang tính, gửi duyệt, duyệt, phát hành           |
-| Giáo trình `/textbooks`   | Giảng viên           | Tải PDF/DOCX, theo dõi lập chỉ mục, thử tìm đoạn trích                                                 |
-| Lớp học `/classes`        | Quản trị, giảng viên | Học viên và nhóm thực nghiệm / đối chứng, bài đã giao                                                  |
-| Tài khoản `/users`        | Quản trị             | Thêm tài khoản, nhập CSV                                                                               |
+| Trang                     | Ai dùng              | Việc                                                                                                                          |
+| ------------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Bài tập `/exercises`      | Giảng viên           | Tạo bài (file đề, đáp án, sheet, đề bài, giáo trình), sinh kịch bản bằng AI, lịch sử bản, giao cho lớp                        |
+| Trình sửa `/scripts/{id}` | Giảng viên           | Xem, sửa từng bước, kiểm lược đồ ngay, lưới mô phỏng trang tính, chấm thử bằng file Excel đã làm, gửi duyệt, duyệt, phát hành |
+| Giáo trình `/textbooks`   | Giảng viên           | Tải PDF/DOCX, theo dõi lập chỉ mục, thử tìm đoạn trích                                                                        |
+| Lớp học `/classes`        | Quản trị, giảng viên | Học viên và nhóm thực nghiệm / đối chứng, bài đã giao                                                                         |
+| Tài khoản `/users`        | Quản trị             | Thêm tài khoản, nhập CSV                                                                                                      |
 
 Tài khoản quản trị đầu tiên vẫn tạo bằng dòng lệnh (`python -m tutor_backend create-admin`), các tài khoản sau
 tạo trên Web.

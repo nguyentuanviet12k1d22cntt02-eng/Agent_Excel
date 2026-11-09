@@ -3,13 +3,14 @@
 import uuid
 from typing import Any
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, UploadFile, status
 from fastapi.responses import FileResponse
 
-from tutor_backend.api.deps import AnyRole, DbSession, Staff, Store
+from tutor_backend.api.deps import AnyRole, AppSettings, DbSession, Staff, Store
 from tutor_backend.schemas.script import RejectRequest, ScriptCreate, ScriptVersionOut, ScriptVersionSummary
 from tutor_backend.services import publish_service, script_service
 from tutor_backend.services.exercise_service import get_exercise
+from tutor_backend.services.uploads import read_limited
 
 router = APIRouter(tags=["scripts"])
 
@@ -43,6 +44,17 @@ def get_script(version_id: uuid.UUID, db: DbSession, _: Staff) -> ScriptVersionO
 @router.post("/scripts/{version_id}/self-check", summary="Chạy lại tự kiểm tầng 3 trên file đề và đáp án")
 def self_check(version_id: uuid.UUID, db: DbSession, store: Store, _: Staff) -> dict[str, Any]:
     return script_service.refresh_report(db, store, script_service.get_version(db, version_id))
+
+
+@router.post(
+    "/scripts/{version_id}/try-out",
+    summary="Chấm thử một file bài làm theo revision này, như Desktop sẽ chấm",
+)
+def try_out(
+    version_id: uuid.UUID, file: UploadFile, db: DbSession, store: Store, settings: AppSettings, _: Staff
+) -> dict[str, Any]:
+    data = read_limited(file.file, settings.max_upload_bytes, "file")
+    return script_service.try_out(db, store, script_service.get_version(db, version_id), data)
 
 
 @router.post("/scripts/{version_id}/submit", summary="Gửi duyệt (draft → pending_review)")

@@ -5,7 +5,7 @@ import { colIndex, colLetter, parseRange } from "@/lib/a1";
 
 import { checkRange, describeCheck } from "./checkText";
 import { codesForCheckType, describePath, stepCodes, validateScript } from "./scriptSchema";
-import { overlayRects, type SheetPreview } from "./sheetLayout";
+import { overlayRects, tableWidth, type SheetPreview } from "./sheetLayout";
 import { move, withoutStep } from "./useScriptDraft";
 
 const clone = <T>(value: T): T => structuredClone(value);
@@ -103,6 +103,8 @@ test("khung tô tính từ độ rộng cột, chiều cao dòng; vùng vượt 
   // A rộng mặc định 8,43 ký tự = 64 px; B 20 ký tự = 145 px; dòng 1 = 20 px; dòng 2 = 40 px
   expect(rect).toMatchObject({ left: 36 + 64, top: 22 + 20, width: 145 + 64, height: 40 + 20 });
   expect(overlayRects(preview, [{ box: { c1: 9, r1: 1, c2: 9, r2: 1 }, kind: "focus" }])).toEqual([]);
+  // Bảng phải rộng đúng tổng các cột, nếu không trình duyệt giãn cột theo chữ và khung lệch cột
+  expect(tableWidth(preview)).toBe(36 + 64 + 145 + 64);
 });
 
 test("xóa bước thì gỡ bước đó khỏi tiêu chí hoàn thành; đổi thứ tự", () => {

@@ -23,6 +23,7 @@ import { describePath, validateScript } from "./scriptSchema";
 import { sectionKey, type Section } from "./sections";
 import { SelfCheckSummary } from "./SelfCheckSummary";
 import { StepPanel } from "./StepPanel";
+import { TryOutDialog } from "./TryOutDialog";
 import { useScriptDraft } from "./useScriptDraft";
 
 import "./editor.css";
@@ -76,6 +77,7 @@ function Editor({ version, exercise }: { version: ScriptVersion; exercise: Exerc
   const rerun = useRerunSelfCheck(version.id);
   const [section, setSection] = useState<Section>({ kind: "overview" });
   const [focus, setFocus] = useState<FocusRange | null>(null);
+  const [tryingOut, setTryingOut] = useState(false);
   const leaving = useRef(false);
   const issues = useMemo(() => validateScript(draft), [draft]);
   const savedRevision = (location.state as SavedState | null)?.savedRevision;
@@ -211,6 +213,9 @@ function Editor({ version, exercise }: { version: ScriptVersion; exercise: Exerc
               Bỏ thay đổi
             </button>
           )}
+          <button type="button" className="btn" onClick={() => setTryingOut(true)}>
+            Chấm thử bằng file Excel
+          </button>
           {!dirty && (
             <button type="button" className="btn" onClick={() => rerun.mutate()} disabled={rerun.isPending}>
               {rerun.isPending ? "Đang tự kiểm…" : "Chạy lại tự kiểm"}
@@ -260,6 +265,7 @@ function Editor({ version, exercise }: { version: ScriptVersion; exercise: Exerc
           <GridPanel exerciseId={exercise.id} defaultSheet={draft.exercise.sheet} marks={marks} />
         </aside>
       </div>
+      {tryingOut && <TryOutDialog version={version} dirty={dirty} onClose={() => setTryingOut(false)} />}
       {blocker.state === "blocked" && (
         <ConfirmDialog
           title="Rời trang khi chưa lưu?"
