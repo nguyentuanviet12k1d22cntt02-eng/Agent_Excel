@@ -472,12 +472,37 @@ def merge_safe_cells(sheet: SheetSnapshot, span: CellRange, is_col: bool) -> Cel
     return (ranked or candidates or [None])[0]
 
 
-def _selection_note(kind: ChangeKind) -> str:
+def hidden_lines(sheet: SheetSnapshot, rng: CellRange, is_col: bool) -> list[str]:
+    """Cột (chữ) / dòng (số) đang ẩn trong vùng: học viên không bấm hay kéo chuột tới được."""
+    if is_col:
+        return [column_letter(c) for c in rng.cols() if column_letter(c) in sheet.hidden_cols]
+    return [str(r) for r in rng.rows() if r in sheet.hidden_rows]
+
+
+def _selection_note(kind: ChangeKind, target: CellRange, merged: bool, hidden: list[str]) -> str:
+    """Dặn AI cách chọn chắc chắn đúng khi bấm tiêu đề cột (dòng) không dùng được.
+
+    Hai trường hợp: ô gộp tràn ra ngoài (Excel nới vùng chọn cho trọn ô gộp, bài 06: chọn cột F–G thành
+    B–H) và cột (dòng) đang ẩn (bài 06: cột E của file đề ẩn, kéo chuột chỉ chọn được D). Gõ địa chỉ vào
+    Name Box chọn đúng vùng trong cả hai trường hợp.
+    """
     unit = "cột" if kind in _COL_KINDS else "dòng"
+    reasons = []
+    if merged:
+        reasons.append(
+            f"các {unit} này nằm trong ô gộp trải sang {unit} khác nên bấm tiêu đề {unit} (hay bấm vào ô "
+            f"gộp) thì Excel tự chọn lan ra cả các {unit} đó và thao tác sẽ sai"
+        )
+    if hidden:
+        reasons.append(f"{unit} {', '.join(hidden)} đang ẩn nên không bấm hay kéo chuột tới được")
+    if not reasons:
+        return ""
+    how = f"gõ {target} vào ô Name Box (bên trái thanh công thức) rồi nhấn Enter"
+    if not hidden:
+        how = f"kéo chọn đúng các ô được khoanh {target}, hoặc {how}"
     return (
-        f"các {unit} này nằm trong ô gộp trải sang {unit} khác: bấm tiêu đề {unit} thì Excel tự chọn lan "
-        f"ra cả các {unit} đó và thao tác sẽ sai. Hướng dẫn học viên chọn các ô được khoanh (KHÔNG bấm tiêu "
-        f"đề {unit}) rồi dùng {_COMMANDS[kind]}"
+        f"{'; '.join(reasons)}. Hướng dẫn học viên chọn vùng bằng cách {how} (KHÔNG bấm tiêu đề {unit}), "
+        f"rồi dùng {_COMMANDS[kind]}"
     )
 
 
@@ -538,7 +563,7 @@ class _Builder:
         merges = wide_merges(sheet, rng, is_col)
         if merges:
             target = merge_safe_cells(sheet, rng, is_col) or rng
-            context = _selection_note(change.kind)
+            context = _selection_note(change.kind, target, merged=True, hidden=[])
             checks += self._keep_sizes(change, sheet, rng, merges, is_col)
         description = f"{KIND_NAMES[change.kind.value]}: {change.before or '…'} → {change.after}"
         item = ChangeItem(
@@ -589,18 +614,18 @@ class _Builder:
         is_col = change.kind in (ChangeKind.COL_DELETED, ChangeKind.COL_INSERTED)
         # Xóa: học viên làm trên bố cục của đề; chèn: chỗ chèn tính theo đáp án
         base = starter if deleted else solution
-        target = _line_range(change, _used(base))[0]
-        # Có ô gộp tràn ra ngoài: chọn ô rồi dùng lệnh Delete/Insert Sheet Columns, không bấm tiêu đề cột
-        context = _selection_note(change.kind) if wide_merges(base, target, is_col) else ""
-        if context:
-            target = merge_safe_cells(base, target, is_col) or target
+        lines = _line_range(change, _used(base))[0]
+        # Ô gộp tràn ra ngoài hay cột (dòng) ẩn: chọn ô (Name Box) rồi dùng Delete/Insert Sheet Columns
+        merged = bool(wide_merges(base, lines, is_col))
+        target = (merge_safe_cells(base, lines, is_col) or lines) if merged else lines
+        context = _selection_note(change.kind, target, merged, hidden_lines(base, target, is_col))
         check = layout_check(starter, solution, is_col)
         if check is None:
             return
         first, _, last = (change.range or "").partition(":")
         count = (column_index(last) - column_index(first) if is_col else int(last) - int(first)) + 1
         unit = "cột" if is_col else "dòng"
-        empty = deleted and not _has_content(starter, target)
+        empty = deleted and not _has_content(starter, lines)
         description = f"{'xóa' if deleted else 'chèn'} {count} {unit}{' trống' if empty else ''}"
         label = (
             f"{unit} {first}" + (f"–{last}" if last != first else "") + (" của file đề" if deleted else "")

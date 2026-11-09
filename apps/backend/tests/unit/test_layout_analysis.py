@@ -15,7 +15,7 @@ HEADERS = ("Mã hàng", "Tên hàng", "Số lượng", "Đơn giá")
 ROWS = (("A01", "Bút bi", 10, 5000), ("A02", "Vở", 20, 12000), ("A03", "Thước", 5, 8000))
 
 
-def build(path: Path, gap: int) -> Path:
+def build(path: Path, gap: int, merge: bool = True, hidden: str | None = None) -> Path:
     """Bảng từ cột B; `gap` cột trống chen giữa cột thứ 2 và thứ 3 (đề có 2, đáp án đã xóa nên 0)."""
     wb = openpyxl.Workbook()
     ws = wb.active
@@ -23,7 +23,10 @@ def build(path: Path, gap: int) -> Path:
     ws.title = SHEET
     ws["B2"] = "DANH SÁCH HÀNG"
     ws["B2"].font = Font(bold=True, size=14)
-    ws.merge_cells(start_row=2, start_column=2, end_row=2, end_column=5 + gap)
+    if merge:
+        ws.merge_cells(start_row=2, start_column=2, end_row=2, end_column=5 + gap)
+    if hidden:
+        ws.column_dimensions[hidden].hidden = True
     for row, values in enumerate((HEADERS, *ROWS), start=4):
         for index, value in enumerate(values):
             col = 2 + index + (gap if index >= 2 else 0)
@@ -49,6 +52,7 @@ def test_deleted_columns_become_one_layout_step(tmp_path: Path):
     # trong bảng (trên bố cục file đề) và dặn AI hướng dẫn chọn ô rồi dùng Delete > Delete Sheet Columns
     assert item.range == "D4:E4"
     assert "KHÔNG bấm tiêu đề cột" in item.context and "Delete Sheet Columns" in item.context
+    assert "kéo chọn đúng các ô được khoanh D4:E4, hoặc gõ D4:E4 vào ô Name Box" in item.context
     assert item.checks == (
         {
             "type": "layout_matches",
@@ -106,3 +110,36 @@ def test_resizing_columns_inside_a_wide_merge_selects_cells_and_guards_neighbour
     assert "Format > Column Width" in d.context
     guards = [c for c in d.checks if c.get("description", "").endswith("(không chọn lan theo ô gộp).")]
     assert [g["cols"] for g in guards] == ["B", "C"]  # E cũng đổi độ rộng nên không phải giữ nguyên
+
+
+def test_deleting_a_hidden_column_tells_to_select_through_the_name_box(tmp_path: Path):
+    # Như bài 06: cột E của file đề đang ẩn, kéo chuột từ D chỉ chọn được D (hoặc lố sang F)
+    starter = build(tmp_path / "de.xlsx", gap=2, hidden="E")
+    solution = build(tmp_path / "dap-an.xlsx", gap=0)
+
+    (item,) = analyze_exercise(starter, solution, SHEET).changes
+
+    assert item.range == "D4:E4"  # vẫn né tiêu đề gộp B2:G2
+    assert "cột E đang ẩn" in item.context
+    assert "gõ D4:E4 vào ô Name Box" in item.context and "kéo chọn" not in item.context
+    assert item.description == "xóa 2 cột trống"
+
+
+def test_hidden_column_without_merges_still_gets_a_note(tmp_path: Path):
+    starter = build(tmp_path / "de.xlsx", gap=2, merge=False, hidden="E")
+    solution = build(tmp_path / "dap-an.xlsx", gap=0, merge=False)
+
+    (item,) = analyze_exercise(starter, solution, SHEET).changes
+
+    assert item.range == "D2:E7"  # không có ô gộp: khoanh cả hai cột trong vùng dữ liệu
+    assert "cột E đang ẩn" in item.context and "gõ D2:E7 vào ô Name Box" in item.context
+    assert "ô gộp" not in item.context
+
+
+def test_plain_deleted_columns_need_no_note(tmp_path: Path):
+    starter = build(tmp_path / "de.xlsx", gap=2, merge=False)
+    solution = build(tmp_path / "dap-an.xlsx", gap=0, merge=False)
+
+    (item,) = analyze_exercise(starter, solution, SHEET).changes
+
+    assert (item.range, item.context) == ("D2:E7", "")
