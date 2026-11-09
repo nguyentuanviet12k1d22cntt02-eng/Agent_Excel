@@ -423,8 +423,9 @@ _COL_KINDS = frozenset(
 def wide_merges(sheet: SheetSnapshot, span: CellRange, is_col: bool) -> list[CellRange]:
     """Ô gộp đi qua các cột (dòng) này mà tràn sang cột (dòng) khác.
 
-    Bấm tiêu đề cột thì Excel tự mở rộng vùng chọn cho trọn ô gộp (bài 06: chọn F–G thành B–H vì tiêu đề
-    gộp B9:H9); học viên xóa cột hay đổi độ rộng theo vùng chọn đó là sai cả loạt cột.
+    Bấm chuột vào tiêu đề cột thì Excel chỉ chọn đúng cột đó. Nhưng bấm vào ô gộp, hay chọn bằng lệnh (gõ địa
+    chỉ vào Name Box, Go To) thì Excel nới vùng chọn cho trọn ô gộp (bài 06: gõ F:G thành B:H vì tiêu đề gộp
+    B9:H9); đổi độ rộng hay xóa cột theo vùng chọn đó là sai cả loạt cột.
     """
     found = []
     for text in sheet.merged:
@@ -479,30 +480,25 @@ def hidden_lines(sheet: SheetSnapshot, rng: CellRange, is_col: bool) -> list[str
     return [str(r) for r in rng.rows() if r in sheet.hidden_rows]
 
 
-def _selection_note(kind: ChangeKind, target: CellRange, merged: bool, hidden: list[str]) -> str:
-    """Dặn AI cách chọn chắc chắn đúng khi bấm tiêu đề cột (dòng) không dùng được.
+def _hidden_note(kind: ChangeKind, target: CellRange, merged: bool, hidden: list[str]) -> str:
+    """Dặn AI cách chọn khi trong vùng có cột (dòng) đang ẩn: không bấm hay kéo chuột tới được.
 
-    Hai trường hợp: ô gộp tràn ra ngoài (Excel nới vùng chọn cho trọn ô gộp, bài 06: chọn cột F–G thành
-    B–H) và cột (dòng) đang ẩn (bài 06: cột E của file đề ẩn, kéo chuột chỉ chọn được D). Gõ địa chỉ vào
-    Name Box chọn đúng vùng trong cả hai trường hợp.
+    Bài 06: cột E của file đề đang ẩn, kéo từ tiêu đề D thì chỉ được D hoặc lố sang F. Gõ địa chỉ vào Name Box
+    thì chọn được cả cột ẩn; nhưng chọn kiểu này Excel nới theo ô gộp, nên khi có ô gộp tràn ra ngoài thì gõ
+    các ô ở một dòng không có ô gộp (`target`) chứ không gõ cả cột.
     """
-    unit = "cột" if kind in _COL_KINDS else "dòng"
-    reasons = []
-    if merged:
-        reasons.append(
-            f"các {unit} này nằm trong ô gộp trải sang {unit} khác nên bấm tiêu đề {unit} (hay bấm vào ô "
-            f"gộp) thì Excel tự chọn lan ra cả các {unit} đó và thao tác sẽ sai"
-        )
-    if hidden:
-        reasons.append(f"{unit} {', '.join(hidden)} đang ẩn nên không bấm hay kéo chuột tới được")
-    if not reasons:
-        return ""
-    how = f"gõ {target} vào ô Name Box (bên trái thanh công thức) rồi nhấn Enter"
     if not hidden:
-        how = f"kéo chọn đúng các ô được khoanh {target}, hoặc {how}"
+        return ""
+    unit, other = ("cột", "dòng") if kind in _COL_KINDS else ("dòng", "cột")
+    merge_part = (
+        f" (các ô ở {other} không có ô gộp: gõ cả {unit} hay ô thuộc ô gộp thì Excel chọn lan theo ô gộp)"
+        if merged
+        else ""
+    )
     return (
-        f"{'; '.join(reasons)}. Hướng dẫn học viên chọn vùng bằng cách {how} (KHÔNG bấm tiêu đề {unit}), "
-        f"rồi dùng {_COMMANDS[kind]}"
+        f"{unit} {', '.join(hidden)} đang ẩn nên học viên không bấm hay kéo chuột tới được. Hướng dẫn chọn "
+        f"bằng cách gõ {target} vào ô Name Box (bên trái thanh công thức) rồi nhấn Enter{merge_part}, rồi "
+        f"dùng {_COMMANDS[kind]}"
     )
 
 
@@ -558,30 +554,27 @@ class _Builder:
         checks = line_check(change)
         if not checks:
             return
-        target, context = rng, ""
         is_col = change.kind in _COL_KINDS
         merges = wide_merges(sheet, rng, is_col)
         if merges:
-            target = merge_safe_cells(sheet, rng, is_col) or rng
-            context = _selection_note(change.kind, target, merged=True, hidden=[])
             checks += self._keep_sizes(change, sheet, rng, merges, is_col)
         description = f"{KIND_NAMES[change.kind.value]}: {change.before or '…'} → {change.after}"
         item = ChangeItem(
             self.next_id(),
             change.sheet,
             change.kind.value,
-            str(target),
+            str(rng),
             description,
             label,
             tuple(checks),
-            context=context,
         )
         self.items.append(item)
 
     def _keep_sizes(
         self, change: Change, sheet: SheetSnapshot, rng: CellRange, merges: list[CellRange], is_col: bool
     ) -> list[Check]:
-        """Các cột (dòng) khác của ô gộp giữ nguyên kích thước: bắt lỗi lỡ chọn cả B–H rồi đổi độ rộng."""
+        """Các cột (dòng) khác của ô gộp giữ nguyên kích thước: bắt lỗi bấm vào ô gộp (chọn cả B–H) rồi đổi
+        độ rộng."""
         if change.kind not in (ChangeKind.COL_WIDTH, ChangeKind.ROW_HEIGHT):
             return []
         own = (
@@ -615,10 +608,11 @@ class _Builder:
         # Xóa: học viên làm trên bố cục của đề; chèn: chỗ chèn tính theo đáp án
         base = starter if deleted else solution
         lines = _line_range(change, _used(base))[0]
-        # Ô gộp tràn ra ngoài hay cột (dòng) ẩn: chọn ô (Name Box) rồi dùng Delete/Insert Sheet Columns
-        merged = bool(wide_merges(base, lines, is_col))
+        # Cột (dòng) ẩn: chọn qua Name Box; có thêm ô gộp tràn ra ngoài thì gõ các ô ở dòng không có ô gộp
+        hidden = hidden_lines(base, lines, is_col)
+        merged = bool(hidden and wide_merges(base, lines, is_col))
         target = (merge_safe_cells(base, lines, is_col) or lines) if merged else lines
-        context = _selection_note(change.kind, target, merged, hidden_lines(base, target, is_col))
+        context = _hidden_note(change.kind, target, merged, hidden)
         check = layout_check(starter, solution, is_col)
         if check is None:
             return
