@@ -45,7 +45,10 @@ def test_deleted_columns_become_one_layout_step(tmp_path: Path):
         "xóa 2 cột trống",
         "cột D–E của file đề",
     )
-    assert item.range == "D2:E7"  # vùng khoanh trên bố cục học viên đang thấy (file đề)
+    # Tiêu đề gộp B2:G2 đi qua cột D–E: bấm tiêu đề cột thì Excel chọn lan ra B–G. Khoanh các ô ở một dòng
+    # trong bảng (trên bố cục file đề) và dặn AI hướng dẫn chọn ô rồi dùng Delete > Delete Sheet Columns
+    assert item.range == "D4:E4"
+    assert "KHÔNG bấm tiêu đề cột" in item.context and "Delete Sheet Columns" in item.context
     assert item.checks == (
         {
             "type": "layout_matches",
@@ -84,3 +87,22 @@ def test_layout_step_passes_self_check(tmp_path: Path):
 
     assert report.errors == ()  # đạt trên đáp án, chưa đạt trên đề
     assert report.diff_coverage == 1.0
+
+
+def test_resizing_columns_inside_a_wide_merge_selects_cells_and_guards_neighbours(tmp_path: Path):
+    starter = build(tmp_path / "de.xlsx", gap=0)
+    solution = build(tmp_path / "dap-an.xlsx", gap=0)
+    wb = openpyxl.load_workbook(solution)
+    ws = wb[SHEET]
+    ws.column_dimensions["D"].width = 20
+    ws.column_dimensions["E"].width = 20
+    wb.save(solution)
+
+    analysis = analyze_exercise(starter, solution, SHEET)
+
+    (d, e) = analysis.changes
+    # Tiêu đề gộp B2:E2 đi qua cột D, E: khoanh ô ở dòng tiêu đề bảng, không khoanh cả cột
+    assert (d.range, e.range) == ("D4", "E4")
+    assert "Format > Column Width" in d.context
+    guards = [c for c in d.checks if c.get("description", "").endswith("(không chọn lan theo ô gộp).")]
+    assert [g["cols"] for g in guards] == ["B", "C"]  # E cũng đổi độ rộng nên không phải giữ nguyên

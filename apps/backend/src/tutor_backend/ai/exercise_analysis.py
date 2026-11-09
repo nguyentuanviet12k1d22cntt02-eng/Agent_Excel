@@ -7,6 +7,7 @@ Kết luận T2.6 áp dụng ở đây:
 """
 
 from collections import Counter
+from collections.abc import Iterable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -15,6 +16,7 @@ from excel_core.address import (
     CellRange,
     cell_address,
     column_index,
+    column_letter,
     group_into_ranges,
     parse_cell,
     parse_range,
@@ -402,9 +404,104 @@ def _sheet_target(checks: list[Check], sheet: SheetSnapshot) -> CellRange:
     return _used(sheet)
 
 
+# Lệnh Ribbon dùng khi đã chọn các ô (không chọn cả cột/dòng) để chỉ tác động đúng cột/dòng cần
+_COMMANDS = {
+    ChangeKind.COL_WIDTH: "Format > Column Width (áp cho cột của các ô đang chọn)",
+    ChangeKind.ROW_HEIGHT: "Format > Row Height (áp cho dòng của các ô đang chọn)",
+    ChangeKind.COL_HIDDEN: "Format > Hide & Unhide > Hide Columns hoặc Unhide Columns",
+    ChangeKind.ROW_HIDDEN: "Format > Hide & Unhide > Hide Rows hoặc Unhide Rows",
+    ChangeKind.COL_DELETED: "mũi tên của nút Delete > Delete Sheet Columns (bấm thẳng nút Delete chỉ xóa ô)",
+    ChangeKind.ROW_DELETED: "mũi tên của nút Delete > Delete Sheet Rows (bấm thẳng nút Delete chỉ xóa ô)",
+    ChangeKind.COL_INSERTED: "mũi tên của nút Insert > Insert Sheet Columns",
+    ChangeKind.ROW_INSERTED: "mũi tên của nút Insert > Insert Sheet Rows",
+}
+_COL_KINDS = frozenset(
+    {ChangeKind.COL_WIDTH, ChangeKind.COL_HIDDEN, ChangeKind.COL_DELETED, ChangeKind.COL_INSERTED}
+)
+
+
+def wide_merges(sheet: SheetSnapshot, span: CellRange, is_col: bool) -> list[CellRange]:
+    """Ô gộp đi qua các cột (dòng) này mà tràn sang cột (dòng) khác.
+
+    Bấm tiêu đề cột thì Excel tự mở rộng vùng chọn cho trọn ô gộp (bài 06: chọn F–G thành B–H vì tiêu đề
+    gộp B9:H9); học viên xóa cột hay đổi độ rộng theo vùng chọn đó là sai cả loạt cột.
+    """
+    found = []
+    for text in sheet.merged:
+        m = parse_range(text)
+        if is_col:
+            crosses = m.min_col <= span.max_col and m.max_col >= span.min_col
+            spills = m.min_col < span.min_col or m.max_col > span.max_col
+        else:
+            crosses = m.min_row <= span.max_row and m.max_row >= span.min_row
+            spills = m.min_row < span.min_row or m.max_row > span.max_row
+        if crosses and spills:
+            found.append(m)
+    return found
+
+
+def merge_safe_cells(sheet: SheetSnapshot, span: CellRange, is_col: bool) -> CellRange | None:
+    """Dãy ô trên một dòng (cột) không dính ô gộp: chọn các ô này rồi dùng lệnh Ribbon thì chỉ tác động đúng
+    các cột (dòng) cần. Ưu tiên dòng có nội dung, không ẩn."""
+    merges = [parse_range(m) for m in sheet.merged]
+    lines = span.rows() if is_col else span.cols()
+    candidates = []
+    for line in lines:
+        box = (
+            CellRange(span.min_col, line, span.max_col, line)
+            if is_col
+            else CellRange(line, span.min_row, line, span.max_row)
+        )
+        hidden = line in sheet.hidden_rows if is_col else column_letter(line) in sheet.hidden_cols
+        if hidden or any(m.intersects(box) for m in merges):
+            continue
+        candidates.append(box)
+    used = _used(sheet)
+
+    def in_table(box: CellRange) -> bool:
+        line = box.min_row if is_col else box.min_col
+        whole = (
+            CellRange(used.min_col, line, used.max_col, line)
+            if is_col
+            else CellRange(line, used.min_row, line, used.max_row)
+        )
+        return _has_content(sheet, whole)
+
+    # Ưu tiên ô có nội dung, rồi dòng (cột) nằm trong bảng, cuối cùng mới là dòng trống
+    ranked = [box for box in candidates if _has_content(sheet, box)] + [b for b in candidates if in_table(b)]
+    return (ranked or candidates or [None])[0]
+
+
+def _selection_note(kind: ChangeKind) -> str:
+    unit = "cột" if kind in _COL_KINDS else "dòng"
+    return (
+        f"các {unit} này nằm trong ô gộp trải sang {unit} khác: bấm tiêu đề {unit} thì Excel tự chọn lan "
+        f"ra cả các {unit} đó và thao tác sẽ sai. Hướng dẫn học viên chọn các ô được khoanh (KHÔNG bấm tiêu "
+        f"đề {unit}) rồi dùng {_COMMANDS[kind]}"
+    )
+
+
+def _changed_lines(changes: Iterable[Change]) -> dict[tuple[str, ChangeKind], set[str]]:
+    """Cột (chữ) / dòng (số dạng chữ) có thay đổi kích thước, theo sheet và loại."""
+    found: dict[tuple[str, ChangeKind], set[str]] = {}
+    for change in changes:
+        if change.kind in (ChangeKind.COL_WIDTH, ChangeKind.ROW_HEIGHT) and change.range:
+            first, _, last = change.range.partition(":")
+            lines = (
+                {column_letter(c) for c in range(column_index(first), column_index(last or first) + 1)}
+                if change.kind == ChangeKind.COL_WIDTH
+                else {str(r) for r in range(int(first), int(last or first) + 1)}
+            )
+            found.setdefault((change.sheet, change.kind), set()).update(lines)
+    return found
+
+
 class _Builder:
-    def __init__(self, starter: WorkbookSnapshot, solution: WorkbookSnapshot) -> None:
+    def __init__(
+        self, starter: WorkbookSnapshot, solution: WorkbookSnapshot, changes: Iterable[Change] = ()
+    ) -> None:
         self.starter, self.solution = starter, solution
+        self.resized = _changed_lines(changes)
         self.items: list[ChangeItem] = []
         self.emitted_sheet_kinds: set[tuple[str, ChangeKind]] = set()
 
@@ -431,14 +528,59 @@ class _Builder:
             self._add_sheet_object(change)
 
     def _add_line(self, change: Change) -> None:
-        rng, label = _line_range(change, _used(self.solution.sheet(change.sheet)))
+        sheet = self.solution.sheet(change.sheet)
+        rng, label = _line_range(change, _used(sheet))
         checks = line_check(change)
-        if checks:
-            description = f"{KIND_NAMES[change.kind.value]}: {change.before or '…'} → {change.after}"
-            item = ChangeItem(
-                self.next_id(), change.sheet, change.kind.value, str(rng), description, label, tuple(checks)
+        if not checks:
+            return
+        target, context = rng, ""
+        is_col = change.kind in _COL_KINDS
+        merges = wide_merges(sheet, rng, is_col)
+        if merges:
+            target = merge_safe_cells(sheet, rng, is_col) or rng
+            context = _selection_note(change.kind)
+            checks += self._keep_sizes(change, sheet, rng, merges, is_col)
+        description = f"{KIND_NAMES[change.kind.value]}: {change.before or '…'} → {change.after}"
+        item = ChangeItem(
+            self.next_id(),
+            change.sheet,
+            change.kind.value,
+            str(target),
+            description,
+            label,
+            tuple(checks),
+            context=context,
+        )
+        self.items.append(item)
+
+    def _keep_sizes(
+        self, change: Change, sheet: SheetSnapshot, rng: CellRange, merges: list[CellRange], is_col: bool
+    ) -> list[Check]:
+        """Các cột (dòng) khác của ô gộp giữ nguyên kích thước: bắt lỗi lỡ chọn cả B–H rồi đổi độ rộng."""
+        if change.kind not in (ChangeKind.COL_WIDTH, ChangeKind.ROW_HEIGHT):
+            return []
+        own = (
+            {column_letter(c) for c in rng.cols()} if is_col else {str(r) for r in rng.rows()}
+        ) | self.resized.get((change.sheet, change.kind), set())
+        span = sorted(
+            {c for m in merges for c in m.cols()} if is_col else {r for m in merges for r in m.rows()}
+        )
+        checks: list[Check] = []
+        for line in span:
+            key = column_letter(line) if is_col else str(line)
+            size = sheet.col_widths.get(key) if is_col else sheet.row_heights.get(line)
+            if key in own or size is None or (is_col and key in sheet.hidden_cols):
+                continue
+            unit = "Cột" if is_col else "Dòng"
+            checks.append(
+                {
+                    "type": "row_col_size",
+                    "cols" if is_col else "rows": key,
+                    "equals": size,
+                    "description": f"{unit} {key} giữ nguyên kích thước (không chọn lan theo ô gộp).",
+                }
             )
-            self.items.append(item)
+        return checks
 
     def _add_layout(self, change: Change) -> None:
         """Chèn/xóa cột, dòng: vùng mục tiêu theo bố cục học viên đang thấy, điều kiện kiểm phần bị dịch."""
@@ -448,6 +590,10 @@ class _Builder:
         # Xóa: học viên làm trên bố cục của đề; chèn: chỗ chèn tính theo đáp án
         base = starter if deleted else solution
         target = _line_range(change, _used(base))[0]
+        # Có ô gộp tràn ra ngoài: chọn ô rồi dùng lệnh Delete/Insert Sheet Columns, không bấm tiêu đề cột
+        context = _selection_note(change.kind) if wide_merges(base, target, is_col) else ""
+        if context:
+            target = merge_safe_cells(base, target, is_col) or target
         check = layout_check(starter, solution, is_col)
         if check is None:
             return
@@ -461,7 +607,14 @@ class _Builder:
         )
         self.items.append(
             ChangeItem(
-                self.next_id(), change.sheet, change.kind.value, str(target), description, label, (check,)
+                self.next_id(),
+                change.sheet,
+                change.kind.value,
+                str(target),
+                description,
+                label,
+                (check,),
+                context=context,
             )
         )
 
@@ -610,7 +763,7 @@ def analyze_exercise(starter_path: Path | str, solution_path: Path | str, sheet:
     request = pair_request(starter_path, solution_path)
     starter, solution = read_workbook(starter_path, request), read_workbook(solution_path, request)
     diff = diff_workbooks(starter, solution)
-    builder = _Builder(starter, solution)
+    builder = _Builder(starter, solution, diff.changes)
     covered = _detect_sorts(starter, solution, diff.changes, builder)
     for index, change in enumerate(diff.changes):
         if index not in covered and not _auto_row_height(change, diff.changes):
