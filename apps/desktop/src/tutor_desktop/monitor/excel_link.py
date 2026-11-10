@@ -16,6 +16,7 @@ Kết quả spike GĐ2 dùng ở đây:
 - Đọc vùng chọn (ActiveWindow.RangeSelection.Address) không làm đổi vùng chọn, đọc được cả khi menu đang mở.
 """
 
+import _ctypes
 import ctypes
 import logging
 import time
@@ -47,6 +48,9 @@ OPEN_ATTEMPTS = 50  # mở file: Excel có thể bận vài giây (đang tải, 
 UIA_SEARCH_DEPTH = 30
 MENU_SEARCH_DEPTH = 8
 EXPANDED = 1  # ExpandCollapseState.Expanded
+# Lỗi khi đọc cây UIA: phần tử biến mất giữa chừng (menu vừa đóng, Ribbon vẽ lại) báo COMError
+# 0x80040201 UIA_E_ELEMENTNOTAVAILABLE; không tìm thấy thì uiautomation báo LookupError
+UIA_ERRORS = (LookupError, OSError, _ctypes.COMError)
 
 type Com = Any
 type Rect = tuple[int, int, int, int]  # pixel vật lý: trái, trên, phải, dưới
@@ -217,7 +221,7 @@ class ExcelLink:
                     r = item.BoundingRectangle
                     if r.width() > 0 and r.height() > 0:
                         rects.append((r.left, r.top, r.right, r.bottom))
-        except LookupError, OSError:
+        except UIA_ERRORS:
             self._grid = None  # lưới vẽ lại (đổi sheet, cuộn): tìm lại lần sau
             return None
         if not rects:
@@ -276,7 +280,7 @@ class ExcelLink:
                 r = element.BoundingRectangle
                 return ((r.left, r.top, r.right, r.bottom), "control") if r.width() > 0 else None
             return self.ribbon_rect(control, tab)
-        except LookupError, OSError:
+        except UIA_ERRORS:
             self._ribbon.clear()  # Ribbon vẽ lại (đổi thẻ, đổi cỡ cửa sổ): tìm lại lần sau
             return None
 
@@ -323,11 +327,14 @@ class ExcelLink:
         for automation_id, kind in ((control, "control"), (tab, "tab")):
             if not automation_id:
                 continue
-            found = self._ribbon_control(automation_id)
-            if found is not None:
-                r = found.BoundingRectangle
-                if r.width() > 0 and r.height() > 0:
-                    return (r.left, r.top, r.right, r.bottom), kind
+            try:
+                found = self._ribbon_control(automation_id)
+                r = found.BoundingRectangle if found is not None else None
+            except UIA_ERRORS:
+                self._ribbon.pop(automation_id, None)  # nút đã lưu bị Ribbon vẽ lại: tìm lại lần sau
+                continue
+            if r is not None and r.width() > 0 and r.height() > 0:
+                return (r.left, r.top, r.right, r.bottom), kind
         return None
 
 

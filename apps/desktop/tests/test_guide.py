@@ -177,3 +177,24 @@ def test_menu_items_used_by_generated_guides_are_in_the_catalog():
     used |= {"RowHeight", "SheetColumnsInsert", "SheetRowsInsert", "SheetColumnsDelete", "SheetRowsDelete"}
     assert used <= MENU_ITEMS.keys()
     assert menu_name("Column Width...") == menu_name("column width") == "column width"
+
+
+def test_menu_closing_while_the_tutor_looks_does_not_stop_the_watcher(app: QApplication):
+    """Bấm Unhide Columns: menu đóng đúng lúc gia sư đang duyệt các mục, UIA báo COMError 0x80040201."""
+    import _ctypes  # noqa: PLC0415
+
+    class ClosingMenu(FakeLink):
+        def ui_target(self, control: str, _tab: str | None) -> Any:
+            raise _ctypes.COMError(-2147220991, "An event was unable to invoke any of the subscribers", None)
+
+        def is_foreground(self, _pid: int) -> bool:
+            return True
+
+        def is_busy(self) -> bool:
+            return False
+
+    watcher = ExcelWatcher(Path("bai-06.xlsx"))
+    link = ClosingMenu()
+    link.address = "$D:$F"
+    guide = Guide(parse_guide({"guide": GUIDE}), SHEET)
+    assert watcher._marks(link, [], guide) == []  # type: ignore[arg-type]  # bỏ nhịp này, không ném lỗi

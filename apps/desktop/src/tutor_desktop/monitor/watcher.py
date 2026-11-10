@@ -26,6 +26,7 @@ from excel_core.snapshot import ReadRequest
 from tutor_desktop.agent.guide import Guide, position, selection_matches
 from tutor_desktop.agent.preview_session import Highlight
 from tutor_desktop.monitor.excel_link import (
+    UIA_ERRORS,
     ExcelBusyError,
     ExcelLink,
     Rect,
@@ -271,5 +272,7 @@ class ExcelWatcher(QThread):
                         label = item.label if kind == "control" else f"Mở thẻ chứa nút {item.label}"
                         marks.append(MarkRect(rect, label, "location" if kind == "control" else "tab"))
             return marks
-        except pywintypes.com_error, AttributeError, ExcelBusyError, LookupError:
+        except (pywintypes.com_error, AttributeError, ExcelBusyError, *UIA_ERRORS):
+            # Khung chỉ dẫn không bao giờ được làm dừng luồng giám sát: lỗi thì bỏ nhịp này
+            logger.debug("Bỏ một nhịp tính khung chỉ dẫn", exc_info=True)
             return []
