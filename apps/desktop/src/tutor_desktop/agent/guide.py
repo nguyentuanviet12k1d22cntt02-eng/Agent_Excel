@@ -74,6 +74,22 @@ def selected_lines(address: str, axis: str) -> frozenset[str]:
     return frozenset(lines)
 
 
+def line_blocks(item: GuideItem) -> list[tuple[str, ...]]:
+    """Các nhóm cột (dòng) liền nhau của bước chọn: D, E, H → (D, E), (H). Mỗi nhóm một khung, để không khoanh
+    nhầm cả cột F, G nằm giữa (chọn D–E rồi giữ Ctrl chọn thêm H)."""
+
+    def index(name: str) -> int:
+        return column_index(name) if item.axis == "cols" else int(name)
+
+    blocks: list[list[str]] = []
+    for name in sorted(item.lines, key=index):
+        if blocks and index(name) == index(blocks[-1][-1]) + 1:
+            blocks[-1].append(name)
+        else:
+            blocks.append([name])
+    return [tuple(block) for block in blocks]
+
+
 def selection_matches(item: GuideItem, address: str | None) -> bool:
     """Vùng chọn phủ ĐÚNG các cột/dòng của bước chọn (thừa một cột là lệnh áp cả cột đó: sai)."""
     if address is None or item.axis is None:

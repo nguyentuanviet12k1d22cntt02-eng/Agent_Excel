@@ -38,7 +38,6 @@ _RAISE_FLAGS = (
     win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE | win32con.SWP_NOOWNERZORDER
 )
 LABEL_HEIGHT = 20
-LABEL_CHAR_PX = 7
 
 
 @dataclass
@@ -75,17 +74,22 @@ class _Overlay(QWidget):
         painter = QPainter(self)
         painter.setRenderHint(QPainter.RenderHint.Antialiasing)
         painter.setFont(QFont("Segoe UI", 9, QFont.Weight.Bold))
+        labels: list[QRect] = []
         for box in self.boxes:
             pen = QPen(box.color, PEN_WIDTH)
             if box.dashed:
                 pen.setStyle(Qt.PenStyle.DashLine)
             painter.setPen(pen)
             painter.drawRect(box.rect.adjusted(-2, -2, 2, 2))
-            width = len(box.label) * LABEL_CHAR_PX + 12
-            top = box.rect.top() - LABEL_HEIGHT - 4
-            painter.fillRect(box.rect.left() - 2, top, width, LABEL_HEIGHT, box.color)
+            width = painter.fontMetrics().horizontalAdvance(box.label) + 12  # đo theo phông thật
+            label = QRect(box.rect.left() - 2, box.rect.top() - LABEL_HEIGHT - 4, width, LABEL_HEIGHT)
+            # Nhãn chạm nhãn đã vẽ (hai khung cùng hàng: D–E và H) thì xếp lên một tầng
+            while any(label.intersects(other) for other in labels):
+                label.translate(0, -(LABEL_HEIGHT + 2))
+            labels.append(label)
+            painter.fillRect(label, box.color)
             painter.setPen(QColor("white"))
-            painter.drawText(box.rect.left() + 4, top + LABEL_HEIGHT - 6, box.label)
+            painter.drawText(label.left() + 6, label.bottom() - 5, box.label)
 
 
 @dataclass

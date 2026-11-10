@@ -23,7 +23,7 @@ import win32com.client
 from PyQt6.QtCore import QThread, pyqtSignal
 
 from excel_core.snapshot import ReadRequest
-from tutor_desktop.agent.guide import Guide, position, selection_matches
+from tutor_desktop.agent.guide import Guide, line_blocks, position, selection_matches
 from tutor_desktop.agent.preview_session import Highlight
 from tutor_desktop.monitor.excel_link import (
     UIA_ERRORS,
@@ -235,8 +235,18 @@ class ExcelWatcher(QThread):
         item = items[index]
         label = f"{index + 1}/{total}. {item.text}"
         if item.action == "select":
-            rect = link.header_rect(item.lines)
-            return [MarkRect(rect, label, "location")] if rect else []
+            # Mỗi nhóm cột liền nhau một khung (D–E và H, không trùm F, G); khung sau ghi "+ giữ Ctrl"
+            unit = "cột" if item.axis == "cols" else "dòng"
+            marks = []
+            for number, block in enumerate(line_blocks(item)):
+                rect = link.header_rect(block)
+                if rect is None:
+                    continue
+                name = block[0] if len(block) == 1 else f"{block[0]}–{block[-1]}"
+                marks.append(
+                    MarkRect(rect, label if number == 0 else f"+ giữ Ctrl: {unit} {name}", "location")
+                )
+            return marks
         target = found.get(index) or link.ui_target(item.control or "", item.tab)
         if target is None:
             return []

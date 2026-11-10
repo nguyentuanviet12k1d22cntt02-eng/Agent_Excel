@@ -198,3 +198,35 @@ def test_menu_closing_while_the_tutor_looks_does_not_stop_the_watcher(app: QAppl
     link.address = "$D:$F"
     guide = Guide(parse_guide({"guide": GUIDE}), SHEET)
     assert watcher._marks(link, [], guide) == []  # type: ignore[arg-type]  # bỏ nhịp này, không ném lỗi
+
+
+def test_non_adjacent_columns_get_one_box_per_block(app: QApplication):
+    """Bước xóa D, E, H: hai khung D–E và H, không một khung trùm D→H (cả F, G) như trước."""
+    from tutor_desktop.agent.guide import line_blocks  # noqa: PLC0415
+
+    delete = [
+        {"action": "select", "axis": "cols", "lines": ["D", "E", "H"], "text": "Chọn D → E, giữ Ctrl chọn H"},
+        {
+            "action": "click",
+            "control": "TableDeleteRowsAndColumnsMenu_Dropdown",
+            "tab": "TabHome",
+            "text": "▾",
+        },
+    ]
+    items = parse_guide({"guide": delete})
+    assert line_blocks(items[0]) == [("D", "E"), ("H",)]
+    assert line_blocks(GuideItem("select", "", "rows", ("12", "10", "11", "15"))) == [
+        ("10", "11", "12"),
+        ("15",),
+    ]
+
+    class Headers(FakeLink):
+        def header_rect(self, names: tuple[str, ...]) -> tuple[int, int, int, int]:
+            return {("D", "E"): (100, 10, 300, 30), ("H",): (500, 10, 560, 30)}[names]
+
+    watcher = ExcelWatcher(Path("bai-06.xlsx"))
+    marks = watcher._guide_marks(Headers(), Guide(items, SHEET), busy=False)  # type: ignore[arg-type]
+    assert [(m.rect, m.label) for m in marks] == [
+        ((100, 10, 300, 30), "1/2. Chọn D → E, giữ Ctrl chọn H"),
+        ((500, 10, 560, 30), "+ giữ Ctrl: cột H"),
+    ]
