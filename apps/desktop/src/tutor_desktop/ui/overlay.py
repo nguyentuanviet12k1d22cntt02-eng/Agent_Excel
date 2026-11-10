@@ -1,8 +1,14 @@
 """Khung chỉ vị trí vẽ đè lên Excel (T7.7, theo spike T2.5).
 
-Mỗi màn hình một cửa sổ trong suốt, luôn trên cùng, chuột bấm xuyên qua, không giành focus của Excel. Tọa độ
-nhận vào là pixel vật lý (từ COM/UIA); Qt vẽ theo pixel logic của TỪNG màn hình: logic = (vật lý - gốc vật lý
-của màn hình) / devicePixelRatio của màn hình đó (quy tắc code 2.3 mục 12).
+Mỗi màn hình một cửa sổ trong suốt, luôn trên cùng, chuột bấm xuyên qua, không giành focus của Excel.
+
+Popup menu của Office (Format, Hide & Unhide…) cũng là cửa sổ luôn trên cùng, mở sau nên nằm trên
+overlay và che khung chỉ mục trong menu. Vì vậy overlay đang hiện được đẩy lên đầu lớp luôn-trên-cùng mỗi khi
+khung đổi và đều đặn mỗi RAISE_MS (SetWindowPos HWND_TOPMOST, không kích hoạt: menu không đóng, focus không
+đổi).
+
+Tọa độ nhận vào là pixel vật lý (từ COM/UIA); Qt vẽ theo pixel logic của TỪNG màn hình: logic = (vật lý - gốc
+vật lý của màn hình) / devicePixelRatio của màn hình đó (quy tắc code 2.3 mục 12).
 """
 
 import ctypes
@@ -11,7 +17,8 @@ from dataclasses import dataclass
 
 import win32api
 import win32con
-from PyQt6.QtCore import QRect, Qt
+import win32gui
+from PyQt6.QtCore import QRect, Qt, QTimer
 from PyQt6.QtGui import QColor, QFont, QPainter, QPaintEvent, QPen, QScreen
 from PyQt6.QtWidgets import QApplication, QWidget
 
@@ -26,6 +33,10 @@ COLORS = {
     "tab": QColor("#e8590c"),
 }
 PEN_WIDTH = 3
+RAISE_MS = 250  # đẩy overlay lên trên popup menu vừa mở (nhanh hơn nhịp tính khung 300 ms)
+_RAISE_FLAGS = (
+    win32con.SWP_NOMOVE | win32con.SWP_NOSIZE | win32con.SWP_NOACTIVATE | win32con.SWP_NOOWNERZORDER
+)
 LABEL_HEIGHT = 20
 LABEL_CHAR_PX = 7
 
@@ -52,6 +63,13 @@ class _Overlay(QWidget):
         self.setScreen(screen)
         self.setGeometry(screen.geometry())
         self.boxes: list[_Box] = []
+
+    def raise_to_top(self) -> None:
+        """Lên đầu lớp cửa sổ luôn-trên-cùng (trên popup menu của Excel), không kích hoạt."""
+        try:
+            win32gui.SetWindowPos(int(self.winId()), win32con.HWND_TOPMOST, 0, 0, 0, 0, _RAISE_FLAGS)
+        except win32gui.error:
+            logger.debug("Không đẩy được overlay lên trên", exc_info=True)
 
     def paintEvent(self, _event: QPaintEvent | None) -> None:  # noqa: N802 — tên do Qt quy định
         painter = QPainter(self)
@@ -89,6 +107,9 @@ class OverlayManager:
 
     def __init__(self, app: QApplication) -> None:
         self.monitors: list[_Monitor] = []
+        self._timer = QTimer()
+        self._timer.setInterval(RAISE_MS)
+        self._timer.timeout.connect(self.raise_to_top)
         screens = list(app.screens())
         for handle, _, _ in win32api.EnumDisplayMonitors():
             info = win32api.GetMonitorInfo(handle)
@@ -136,9 +157,19 @@ class OverlayManager:
             monitor.overlay.boxes = per_monitor[monitor.device]
             if monitor.overlay.boxes:
                 monitor.overlay.show()
+                monitor.overlay.raise_to_top()
                 monitor.overlay.update()
             else:
                 monitor.overlay.hide()
+        if any(m.overlay.boxes for m in self.monitors):
+            self._timer.start()
+        else:
+            self._timer.stop()
+
+    def raise_to_top(self) -> None:
+        for monitor in self.monitors:
+            if monitor.overlay.isVisible():
+                monitor.overlay.raise_to_top()
 
     def hide(self) -> None:
         self.show([])
